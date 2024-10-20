@@ -28,7 +28,7 @@ function GamepadPanel() {
   // Render the component UI
   return (
     <div className="panel">
-            <h2 className="panel-title">Gamepad Status</h2>
+            {/* <h2 className="panel-title">Gamepad Status</h2> */}
             <p className="gamepad-status">{gamepadStatus}</p>
     </div>
   );

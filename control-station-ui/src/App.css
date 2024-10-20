@@ -26,11 +26,16 @@
   background-color: #f7fafc;
   padding: 4px;
   border-radius: 8px;
+  list-style-type: none;
 }
 
 .tab-button {
   padding: 8px 16px;
   border-radius: 8px;
+  border: none;
+  background: none;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   transition: background-color 0.3s;
 }
 
@@ -105,24 +110,36 @@
 }
 
 .command-button {
-  background-color: #2d3748;
-  color: #ffffff;
+  /* background-color: #2d3748; */
+  background: none;
+  color: black;
   border-radius: 8px;
-  padding: 4px 8px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 8px 8px;
   font-size: 0.875rem;
   transition: background-color 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .command-button:hover {
   background-color: #4a5568;
+  color: white;
+}
+
+.command-button.active {
+  background-color: #2d3748;
+  color: white;
 }
 
 .estop-button {
   width: 100%;
-  padding: 8px;
+  padding: 12px;
   background-color: #f56565;
   color: #ffffff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   border-radius: 8px;
+  border: 1px solid #e2e8f0;
   text-align: center;
   transition: background-color 0.3s;
 }
@@ -158,6 +175,12 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+}
+
+.chart-space {
+  text-align: center;
+  padding: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .lever-grid {
