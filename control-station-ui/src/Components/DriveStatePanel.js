@@ -4,7 +4,7 @@
  * This component renders a control panel with buttons to switch between different drive states
  * and an emergency stop (ESTOP) button.
  */
-import React, { useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 function DriveStatePanel() {
   // Define the drive state and displays the current state
   const [driveState, setDriveState] = useState('Idle');
