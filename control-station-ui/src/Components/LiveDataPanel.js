@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Camera } from "lucide-react";
 
+// This component renders a panel with charts and live values
 function LiveDataPanel() {
   const [chartData, setChartData] = useState(Array.from({ length: 1 }, (_, i) => ({
     time: i,

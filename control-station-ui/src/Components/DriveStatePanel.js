@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-
-// Component Name: ExampleComponent
+/**
+ * DriveStatePanel Component
+ * 
+ * This component renders a control panel with buttons to switch between different drive states
+ * and an emergency stop (ESTOP) button.
+ */
+import React, { useState} from 'react';
 function DriveStatePanel() {
+  // Define the drive state and displays the current state
   const [driveState, setDriveState] = useState('Idle');
-
-
     const CommandButton = ({ label, active, onClick }) => (
         <button className={"command-button " + active} onClick={onClick}>
           {label}
         </button>
       );
- 
-
   // Render the component UI
   return (
     <div className="panel">

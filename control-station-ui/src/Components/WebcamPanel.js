@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 
+// This component renders a panel with a webcam feed (currently showing laptop webcam)
 function WebcamPanel() {
 
     const videoRef = useRef(null);

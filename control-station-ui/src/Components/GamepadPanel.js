@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect} from 'react';
 
-// Component Name: ExampleComponent
+// This component renders a panel with a message indicating the gamepad status
 function GamepadPanel() {
   // State Hook - useState for managing local state
-  const [count, setCount] = useState(0);
   const [gamepadStatus, setGamepadStatus] = useState('No gamepad connected!');
   useEffect(() => {
     const handleGamepadConnected = (e) => {
