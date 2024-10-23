@@ -1,38 +1,26 @@
 cmake_minimum_required(VERSION 3.8)
-project(navigation)
+project(webcam)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies and include them - REQUIRED means that finding and including the corresponding dependency is a must before proceeding with compilation
+# find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
-
-# Include the c++ "include" directory for necessary header and supporting cpp files
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(OpenCV REQUIRED)
+# uncomment the following section in order to fill in
+# further dependencies manually.
+# find_package(<dependency> REQUIRED)
 include_directories(include)
 
-# Create executable from c++ programs
-add_executable(cpp_exe src/autonomous_nav.cpp)
-ament_target(cpp_exe rclcpp)
-
-# Install the c++ executables
 install(TARGETS
-  cpp_exe
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-# Install Python modules
-ament_python_install_package(${PROJECT_NAME})
-
-# Install Python executables
-install(PROGRAMS
-  scripts/surface_mesh.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -45,5 +33,11 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+ament_python_install_package(${PROJECT_NAME})
+install(PROGRAMS
+  scripts/webcam_publisher.py
+  scripts/display.py
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
