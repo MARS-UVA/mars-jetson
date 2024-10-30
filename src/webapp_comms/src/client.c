@@ -18,37 +18,37 @@ void client(char ip)
 {
     int client_fd, client_socket, valread;
     struct sockaddr_in address;
-    int opt = 1;
     int addrlen = sizeof(address);
-    char buffer[1024] = {0};
+    char buffer[1024];
     char ack[1000];
 
-    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror("Failure to create socket");
         exit(EXIT_FAILURE);
     }
 
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr(ip);
+    address.sin_addr.s_addr = inet_addr((const char*) ip);
     address.sin_port = htons(PORT);
 
-    if (connect(client_fd, (struct sockaddr*)&address, sizeOf(address)) == 0) 
+    if (connect(client_fd, (struct sockaddr*)&address, sizeof(address)) == 0) 
     {
         perror("Failure to connect");
         exit(EXIT_FAILURE);
     }
     while(1){
+    strncpy(buffer, "hello", 1024);
     send(client_fd, buffer, 1024, 0);
     valread = read(client_fd, ack, 1000);
     if(valread == 0){
         break;
     }
-    ack[valread] = "\0";
+    ack[valread] = '\0';
     printf("\n%s", ack);
     }
     close(client_socket);
-    return 0;
+    return;
 }
 
 int main(int argc , char argv[]){
