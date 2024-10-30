@@ -14,7 +14,7 @@
 
 #define PORT 8080
 
-void client(char ip)
+void client(char* ip)
 {
     int client_fd, client_socket, valread;
     struct sockaddr_in address;
@@ -29,7 +29,7 @@ void client(char ip)
     }
 
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr((const char*) ip);
+    address.sin_addr.s_addr = inet_addr(ip);
     address.sin_port = htons(PORT);
 
     if (connect(client_fd, (struct sockaddr*)&address, sizeof(address)) == 0) 
@@ -52,5 +52,5 @@ void client(char ip)
 }
 
 int main(int argc , char argv[]){
-    client(argv[1]);
+    client(&argv[1]);
 }
