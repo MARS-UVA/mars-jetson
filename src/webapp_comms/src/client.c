@@ -32,25 +32,35 @@ void client(char* ip)
     address.sin_addr.s_addr = inet_addr(ip);
     address.sin_port = htons(PORT);
 
-    if (connect(client_fd, (struct sockaddr*)&address, sizeof(address)) == 0) 
+    if (connect(client_fd, (struct sockaddr*)&address, sizeof(address)) != 0) 
     {
         perror("Failure to connect");
         exit(EXIT_FAILURE);
     }
+     printf("Connected to server at %s:%d\n", ip, PORT);
     while(1){
-    strncpy(buffer, "hello", 1024);
-    send(client_fd, buffer, 1024, 0);
+    strncpy(buffer, "hello", 5);
+    if (send(client_fd, buffer, strlen(buffer), 0) == -1) {
+            perror("Send failed");
+            break;
+    }
+
     valread = read(client_fd, ack, 1000);
-    if(valread == 0){
-        break;
-    }
+    if (valread < 0) {
+            perror("Read failed");
+            break;
+        } else if (valread == 0) {
+            printf("Server closed the connection\n");
+            break;
+        }
     ack[valread] = '\0';
-    printf("\n%s", ack);
+    printf("%s\n", ack);
     }
-    close(client_socket);
+    close(client_fd);
     return;
 }
 
-int main(int argc , char argv[]){
-    client(&argv[1]);
+int main(int argc , char *argv[]){
+    client(argv[1]);
 }
+
