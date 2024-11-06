@@ -1,3 +1,4 @@
 # MARS ROS2 Development Respository
 
-#eric wuz here
+Repository in progress.
+For robot autonomy code
