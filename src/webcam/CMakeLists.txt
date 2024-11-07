@@ -14,10 +14,14 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
+#find_package(apriltag_msgs REQUIRED)
+#find_package(apriltag 3.2 REQUIRED)
+#find_package(apriltag_ros REQUIRED) 
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 include_directories(include)
+
 
 install(TARGETS
   DESTINATION lib/${PROJECT_NAME})
