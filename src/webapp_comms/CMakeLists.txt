@@ -7,9 +7,21 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+add_executable(dummy_pub src/dummy_image_publisher.cpp)
+ament_target_dependencies(dummy_pub rclcpp sensor_msgs cv_bridge OpenCV)
+
+add_executable(webcam_subscriber src/image_sub.cpp)
+ament_target_dependencies(webcam_subscriber rclcpp sensor_msgs cv_bridge OpenCV)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
