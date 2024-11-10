@@ -20,20 +20,30 @@ public:
     }
 
 private:
-    void listener_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
-        cv_bridge::CvImagePtr cv_ptr;
-        try {
-            cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
-        } catch (cv_bridge::Exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-            return;
-        }
-        size_t img_size = img.total() * img.elemSize();
-        std::vector<uchar> img_data(img_size);
-        memcpy(img_data.data(), img.data, img_size);
-        cv::imshow("Image", cv_ptr->image);
-        cv::waitKey(1);
+void listener_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
+// Convert ROS image message to OpenCV cv::Mat
+    cv::Mat image;
+    try {
+        // Use cv_bridge to convert the ROS image message into a cv::Mat
+        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
+        image = cv_ptr->image;  // Get the OpenCV image
+    } catch (cv_bridge::Exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+        return;
     }
+
+    // Encode the cv::Mat to a byte array (compressed image)
+    std::vector<uchar> buffer;
+    bool success = cv::imencode(".jpg", image, buffer);  // JPEG compression
+    if (!success) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to encode image.");
+        return;
+    }
+
+    // get pointer for char* to send over sockeet
+    unsigned char* char_ptr = reinterpret_cast<unsigned char*>(buffer.data());
+    client("127.0.0.1", char_ptr);
+}
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
 };

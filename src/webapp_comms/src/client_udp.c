@@ -6,7 +6,7 @@
 
 #define PORT 8080
 
-void client(char* ip, char* data){
+void client(char* ip, unsigned char* data){
     int socket_desc;
     struct sockaddr_in server_addr;
     char server_message[2000], client_message[2000];
@@ -52,6 +52,6 @@ void client(char* ip, char* data){
 
 }
 
-int main(int argc, char *argv[]) {
+/*int main(int argc, char *argv[]) {
 	client(argv[1], "hello");
-}
+}*/
