@@ -6,7 +6,7 @@
 
 #define PORT 8080
 
-void client(char* ip){
+void client(char* ip, char* data){
     int socket_desc;
     struct sockaddr_in server_addr;
     char server_message[2000], client_message[2000];
@@ -30,12 +30,8 @@ void client(char* ip){
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = inet_addr(ip);
     
-    // Get input from the user:
-    printf("Enter message: ");
-    fgets(client_message, sizeof(client_message), stdin);
-    
     // Send the message to server:
-    if(sendto(socket_desc, client_message, strlen(client_message), 0,
+    if(sendto(socket_desc, data, strlen(client_message), 0,
          (struct sockaddr*)&server_addr, server_struct_length) < 0){
         printf("Unable to send message\n");
         return;
@@ -57,5 +53,5 @@ void client(char* ip){
 }
 
 int main(int argc, char *argv[]) {
-	client(argv[1]);
+	client(argv[1], "hello");
 }

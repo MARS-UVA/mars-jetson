@@ -8,20 +8,39 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(image_transport REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+include_directories(include)
 
+#add_executable(cam_pub src/simple_publisher.cpp)
+#add_executable(cam_sub src/simple_subscriber.cpp)
 add_executable(dummy_pub src/dummy_image_publisher.cpp)
-ament_target_dependencies(dummy_pub rclcpp sensor_msgs cv_bridge OpenCV)
+add_executable(image_sub src/image_sub.cpp)
+target_link_libraries(dummy_pub ${OpenCV_LIBS})
+target_link_libraries(image_sub ${OpenCV_LIBS})
+target_include_directories(dummy_pub PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_include_directories(image_sub PRIVATE ${OpenCV_INCLUDE_DIRS})
+#ament_target_dependencies(cam_pub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
+#ament_target_dependencies(cam_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
+ament_target_dependencies(dummy_pub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
+ament_target_dependencies(image_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
 
-add_executable(webcam_subscriber src/image_sub.cpp)
-ament_target_dependencies(webcam_subscriber rclcpp sensor_msgs cv_bridge OpenCV)
+
+
+install(TARGETS
+ #cam_pub
+ # cam_sub
+  dummy_pub
+  image_sub
+  DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

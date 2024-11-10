@@ -3,6 +3,10 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 
+extern "C" {
+    #include "client_udp.c"  // Ensure the C code is available to be compiled
+}
+
 class WebcamSubscriber : public rclcpp::Node {
 public:
     WebcamSubscriber() : Node("webcam_subscriber") {
@@ -24,7 +28,9 @@ private:
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
         }
-
+        size_t img_size = img.total() * img.elemSize();
+        std::vector<uchar> img_data(img_size);
+        memcpy(img_data.data(), img.data, img_size);
         cv::imshow("Image", cv_ptr->image);
         cv::waitKey(1);
     }
