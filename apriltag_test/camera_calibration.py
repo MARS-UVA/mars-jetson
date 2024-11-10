@@ -16,7 +16,7 @@ object_points = []
 image_points = []
 
 # Reading images from the folder, but we should use OpenCV VideoCapture to get readings every some seconds from our Webcam
-images = glob.glob('./images/*.jpg')
+images = glob.glob('./images/*.jpg')  #TO FIX: comment out this code and instead run a loop and collect iamge frames from the OpenCV VideoCapture method to get realtime frames from our Webcam.
 gray = None
 i = 0
 for f in images:
