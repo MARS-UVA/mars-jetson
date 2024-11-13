@@ -16,6 +16,7 @@ object_points = []
 image_points = []
 
 # Reading images from the folder, but we should use OpenCV VideoCapture to get readings every some seconds from our Webcam
+"""
 images = glob.glob('./images/*.jpg')  #TO FIX: comment out this code and instead run a loop and collect iamge frames from the OpenCV VideoCapture method to get realtime frames from our Webcam.
 gray = None
 i = 0
@@ -23,8 +24,17 @@ for f in images:
     img = cv.imread(f)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
+"""
+# Using OpenCV VideoCapture to get readings every some seconds from our Webcam
+cap = cv.VideoCapture(0) # 0 is the default camera
+gray = None 
+i = 0  
+while ret: #Loop through the frames until the frame is not read correctly
+    ret, img = cap.read()  
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # Converting the frame to grayscale
+
     # Just using a bunch of OpenCV function I got from a site I linked on the Sprint 3 doc
-    ret, corners = cv.findCirclesGrid(gray, (4, 11), None, flags=cv.CALIB_CB_ASYMMETRIC_GRID)
+    ret, corners = cv.findCirclesGrid(gray, (4, 11), None, flags=cv.CALIB_CB_ASYMMETRIC_GRID) 
 
     if ret == True:
         object_points.append(calibration_drawing_points)
