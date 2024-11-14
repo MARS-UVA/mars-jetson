@@ -29,8 +29,8 @@ for f in images:
 cap = cv.VideoCapture(0) # 0 is the default camera
 gray = None 
 i = 0  
-while ret: #Loop through the frames until the frame is not read correctly
-    ret, img = cap.read()  
+ret, img = cap.read()
+while ret and i<10: #Loop through the frames until the frame is not read correctly
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # Converting the frame to grayscale
 
     # Just using a bunch of OpenCV function I got from a site I linked on the Sprint 3 doc
@@ -46,11 +46,12 @@ while ret: #Loop through the frames until the frame is not read correctly
         cv.imwrite(f'./calibration_images/circle_drawings{i}.jpg', img)
         cv.imshow('img', img)
         cv.waitKey(0)
+    ret, img = cap.read()
+    cv.imshow('img', img)
     i+=1
 cv.destroyAllWindows()
 
-ret, camera_mat, distortion, rotation_vecs, translation_vecs = cv.calibrateCamera(
-    object_points, image_points, gray.shape[::-1], None, None)
+ret, camera_mat, distortion, rotation_vecs, translation_vecs = cv.calibrateCamera(object_points, image_points, gray.shape[::-1], None, None)
 
 
 
