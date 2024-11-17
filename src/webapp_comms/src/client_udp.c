@@ -31,7 +31,7 @@ void client(char* ip, unsigned char* data){
     server_addr.sin_addr.s_addr = inet_addr(ip);
     
     // Send the message to server:
-    if(sendto(socket_desc, data, strlen(client_message), 0,
+    if(sendto(socket_desc, data, sizeof(data), 0,
          (struct sockaddr*)&server_addr, server_struct_length) < 0){
         printf("Unable to send message\n");
         return;

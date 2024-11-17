@@ -42,7 +42,20 @@ void listener_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
 
     // get pointer for char* to send over sockeet
     unsigned char* char_ptr = reinterpret_cast<unsigned char*>(buffer.data());
+    
+
+
     client("127.0.0.1", char_ptr);
+
+    std::cout << "Raw data: ";
+    for (unsigned char c : char_ptr) {
+        std::cout << c; // Prints as raw characters (may not be readable)
+        RCLCPP_INFO(this->get_logger(), static_cast<const char>(c));
+    }
+    std::cout << std::endl;
+
+    
+
 }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
