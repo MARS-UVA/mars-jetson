@@ -6,13 +6,13 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from sensor_msg.msg import Image
 
-class MinimalSubscriber(Node):
+class ObstacleDetector(Node):
 
     def __init__(self):
         super().__init__('detect_obstacles')
         self.subscription = self.create_subscription(
             Image,
-            '/camera/camera/color/image_raw',
+            '/camera/depth/image_rect_raw',
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
