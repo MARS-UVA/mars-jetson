@@ -1,0 +1,6 @@
+setuptools~=75.5.0
+-e .
+matplotlib~=3.9.2
+numpy~=2.1.3
+opencv-python~=4.10.0.84
+pupil_apriltags~=1.0.4.post10
