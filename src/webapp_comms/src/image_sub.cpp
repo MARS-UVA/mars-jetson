@@ -33,24 +33,25 @@ void listener_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
     }
 
     // Encode the cv::Mat to a byte array (compressed image)
+    cv::imwrite("test.jpg", image);
     std::vector<uchar> buffer;
     bool success = cv::imencode(".jpg", image, buffer);  // JPEG compression
     if (!success) {
         RCLCPP_ERROR(this->get_logger(), "Failed to encode image.");
         return;
     }
+    RCLCPP_INFO(this->get_logger(), "Size of the buffer: %zu", buffer.size());
 
     // get pointer for char* to send over sockeet
     unsigned char* char_ptr = reinterpret_cast<unsigned char*>(buffer.data());
-    
 
-
-    client("127.0.0.1", char_ptr);
+    client("127.0.0.1", char_ptr, buffer.size());
 
     std::cout << "Raw data: ";
-    for (unsigned char c : char_ptr) {
-        std::cout << c; // Prints as raw characters (may not be readable)
-        RCLCPP_INFO(this->get_logger(), static_cast<const char>(c));
+    for (size_t i = 0; i < buffer.size(); i++) {
+        unsigned char c = char_ptr[i];
+        //std::cout << c; // Prints as raw characters (may not be readable)
+        //RCLCPP_INFO(this->get_logger(), "%c", c);
     }
     std::cout << std::endl;
 
