@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-imagepath = 'tag.png'
+imagepath = 'tag1.png'
 img = cv2.imread(imagepath)
 
 img = img.mean(axis=2).astype(np.uint8)
@@ -18,4 +18,10 @@ at_detector = Detector(
    debug=0
 )
 
-print(at_detector.detect(img))
+img_detected = at_detector.detect(img)
+
+print(img_detected)
+
+#print(img_detected[0].corners)
+print(img_detected[0].pose_R)
+print(img_detected[0].pose_t)

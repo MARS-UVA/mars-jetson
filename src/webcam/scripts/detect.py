@@ -44,7 +44,13 @@ class WebcamSubscriber(Node):
            decode_sharpening=0.25,
            debug=0
          )
-        print(at_detector.detect(cv_image))
+        img_detected = at_detector.detect(cv_image)
+
+        print(img_detected)
+
+        #print(img_detected[0].corners)
+        print(img_detected[0].pose_R)
+        print(img_detected[0].pose_t)
     
 
 # Main method is the first point of entry which instantiates an instance of the WebcamSubscriber class (a child of the Node class)
