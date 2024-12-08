@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from plyfile import PlyData
-
+1
 print("Which PLY viewer to use: Matplotlib (1) or Open3D (2)?")
 viewer_in = int(input())
 
@@ -26,7 +26,6 @@ if viewer_in == 1:
     plt.show()
 elif viewer_in == 2:
     import open3d as o3d
-    import numpy as np
 
     pcd = o3d.io.read_point_cloud("out.ply")
 
