@@ -6,6 +6,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(Catch2 3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
@@ -23,6 +24,7 @@ include_directories(include)
 #add_executable(cam_sub src/simple_subscriber.cpp)
 add_executable(dummy_pub src/dummy_image_publisher.cpp)
 add_executable(image_sub src/image_sub.cpp)
+
 target_link_libraries(dummy_pub ${OpenCV_LIBS})
 target_link_libraries(image_sub ${OpenCV_LIBS})
 target_include_directories(dummy_pub PRIVATE ${OpenCV_INCLUDE_DIRS})
@@ -31,8 +33,6 @@ target_include_directories(image_sub PRIVATE ${OpenCV_INCLUDE_DIRS})
 #ament_target_dependencies(cam_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
 ament_target_dependencies(dummy_pub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
 ament_target_dependencies(image_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
-
-
 
 install(TARGETS
  #cam_pub
