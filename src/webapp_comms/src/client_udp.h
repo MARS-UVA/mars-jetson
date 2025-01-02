@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-    void create_sending_client(char *ip, unsigned char *data, size_t data_size);
+    void send_frame(const char *ip, unsigned char *data, size_t data_size);
 
 #ifdef __cplusplus
 }

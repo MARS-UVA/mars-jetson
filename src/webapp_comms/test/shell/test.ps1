@@ -1,5 +1,5 @@
-$BUILD_DIR = "build"
-$DEBUG_DIR = "build\Debug"
+$BUILD_DIR = "..\build"
+$DEBUG_DIR = "..\build\Debug"
 
 # Check if no argument passed or first-time setup
 if ($args.Count -eq 0) {

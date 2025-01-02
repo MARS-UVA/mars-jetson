@@ -1,5 +1,5 @@
-BUILD_DIR=build
-DEBUG_DIR=build/Debug
+BUILD_DIR=../build
+DEBUG_DIR=../build/Debug
 if [ $# == 0 ]; then
     if [ ! -d $BUILD_DIR ]; then
         mkdir $BUILD_DIR
@@ -10,13 +10,13 @@ if [ $# == 0 ]; then
         cmake ..
         make
     fi
-    cd $DEBUG_DIR
     ./test
 elif [ $1 == "clean" ]; then
     echo "Cleaning build directory"
     rm -rf $BUILD_DIR
 elif [ $1 == "run" ]; then 
     echo "Running tests"
+    cd $BUILD_DIR
     ./test
 else
     echo "Invalid argument"

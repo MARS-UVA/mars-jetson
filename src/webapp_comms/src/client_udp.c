@@ -1,5 +1,6 @@
 #include <string.h>
 #include "client_udp.h"
+#include <stdio.h>
 
 #ifdef _WIN32
 void usleep_simulation(unsigned int microseconds);
@@ -18,7 +19,7 @@ void usleep_simulation(unsigned int microseconds);
 #include <unistd.h>
 #endif
 
-#define PORT 8080
+#define PORT 2000
 #define CHUNK_SIZE 1400
 
 void usleep_simulation(unsigned int microseconds)
@@ -30,7 +31,7 @@ void usleep_simulation(unsigned int microseconds)
     }
 }
 
-void create_sending_client(char *ip, unsigned char *data, size_t data_size)
+void send_frame(const char *ip, unsigned char *data, size_t data_size)
 {
     int socket_desc;
     struct sockaddr_in server_addr;
@@ -55,18 +56,18 @@ void create_sending_client(char *ip, unsigned char *data, size_t data_size)
     // Set port and IP:
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr(ip);
+    server_addr.sin_addr.s_addr = htonl(inet_addr(ip));
 
     // Calculate number of chunks to send
-    total_chunks = (data_size + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    total_chunks = (data_size + DATA_MTU_SIZE - 1) / DATA_MTU_SIZE;
     // Send data in chunks
     for (int i = 0; i < total_chunks; i++)
     {
         usleep(1000);
-        start = i * CHUNK_SIZE;
-        end = (start + CHUNK_SIZE > data_size) ? data_size : start + CHUNK_SIZE;
+        start = i * DATA_MTU_SIZE;
+        end = (start + DATA_MTU_SIZE > data_size) ? data_size : start + DATA_MTU_SIZE;
         // add 3 bytes for metadata
-        unsigned char packet[CHUNK_SIZE + 3];
+        unsigned char packet[DATA_MTU_SIZE + 3];
         // sequence #
         packet[0] = (unsigned char)i;
         // Total chunks count
