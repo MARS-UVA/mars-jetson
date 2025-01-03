@@ -10,3 +10,6 @@ add_executable(test
 )
 
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain ${OpenCV_LIBS})
+
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")

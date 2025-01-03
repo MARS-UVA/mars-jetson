@@ -56,6 +56,9 @@ TEST_CASE("Test client sending small data to a server [client_udp.h]")
     int server_socket_fd = create_test_server();
 
     auto start = std::chrono::high_resolution_clock::now();
+    // Set non-blocking mode to avoid a situation where the client thread has executed before the server is ready to recieve/recvfrom is called
+    int flags = fcntl(server_socket_fd, F_GETFL, 0);
+    fcntl(server_socket_fd, F_SETFL, flags | O_NONBLOCK);
 
     unsigned char data[] = "Hello, world!";
     size_t data_size = sizeof(data) - 1;
@@ -67,7 +70,7 @@ TEST_CASE("Test client sending small data to a server [client_udp.h]")
     std::thread client_thread([&]()
                               { client_send(ip, data, data_size); });
 
-    // Transmission should be within 2 seconds
+    // Transmission should be within 1 second
     struct timeval tv;
     tv.tv_sec = 1;
     tv.tv_usec = 0;
@@ -79,22 +82,34 @@ TEST_CASE("Test client sending small data to a server [client_udp.h]")
     socklen_t client_len = sizeof(client_addr);
 
     // struct sockaddr *result = result_future.get();
-    ssize_t received = recvfrom(server_socket_fd, buffer, sizeof(buffer), 0,
-                                (struct sockaddr *)&client_addr, &client_len);
+    while (true)
+    {
+        ssize_t received = recvfrom(server_socket_fd, buffer, sizeof(buffer), 0,
+                                    (struct sockaddr *)&client_addr, &client_len);
+        if (received < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                continue;
+            }
+            else
+            {
+                perror("recvfrom failed");
+                break;
+            }
+        }
 
+        buffer[received] = '\0';
+        REQUIRE(received - HEADER_SIZE == data_size);
+        REQUIRE(memcmp(buffer + HEADER_SIZE, data, data_size) == 0);
+        REQUIRE(((DataHeader *)buffer)->sequence == 0);
+        REQUIRE(((DataHeader *)buffer)->fragment_size == data_size);
+        REQUIRE(((DataHeader *)buffer)->crc == crc32bit((char *)data, data_size));
+        break;
+    }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cout << "Elapsed time of [Small Data] test: " << elapsed_seconds.count() << "s\n";
-
-    if (received < 0)
-    {
-        std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
-    }
-    else
-    {
-        REQUIRE(received == data_size);
-        REQUIRE(memcmp(buffer, data, data_size) == 0);
-    }
 
     client_thread.join();
     close(server_socket_fd);
@@ -118,14 +133,14 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
     }
     const char *ip = "127.0.0.1";
 
-    // Transmission should be within 1 second
+    // Transmission should be within 1 second - 1 second timeouyt for socket
     struct timeval tv;
     tv.tv_sec = 1;
     tv.tv_usec = 0;
     setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
 
-    // Increase socket buffer sizes to recieve large data
-    int rcvbuf = 262144; // 256KB
+    // Increase socket buffer sizes to recieve larger amounts of data - this is like the receive window size in TCP
+    int rcvbuf = 262144; // 256KB of buffer space to receivq data
     setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
 
     std::thread client_thread([&]()
@@ -133,10 +148,9 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
 
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    char buffer[1400];
+    char buffer[1410];
     std::vector<unsigned char> received_data;
 
-    // Try receiving for up to 1 second
     auto start_time = std::chrono::steady_clock::now();
     while (received_data.size() < data.size())
     {
@@ -149,7 +163,6 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                // No data available right now, try again
                 if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(1))
                 {
                     throw std::runtime_error("Timeout of 1 second while waiting for data");
@@ -161,8 +174,11 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
             std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
             break;
         }
-
-        received_data.insert(received_data.end(), buffer, buffer + num_bytes);
+        uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
+        REQUIRE(crc == ((DataHeader *)buffer)->crc);
+        REQUIRE(((DataHeader *)buffer)->fragment_size == num_bytes - HEADER_SIZE);
+        char *payloadStart = buffer + HEADER_SIZE;
+        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
     }
 
     client_thread.join();
@@ -173,6 +189,5 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
 
     REQUIRE(received_data.size() == data.size());
     REQUIRE(memcmp(received_data.data(), data.data(), data.size()) == 0);
-
     close(server_socket_fd);
 }

@@ -45,18 +45,49 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip)
     return connection_headers;
 }
 
+uint32_t crc32bit(const char *data, size_t data_size)
+{
+    uint32_t crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < data_size; i++)
+    {
+        crc = crc ^ data[i];
+        for (size_t j = 0; j < 8; j++)
+        {
+            if (crc & 1)
+            {
+                crc = (crc >> 1) ^ 0xEDB88320;
+            }
+            else
+            {
+                crc = crc >> 1;
+            }
+        }
+    }
+    return ~crc;
+}
+
 void client_send(const char *control_station_ip, unsigned char *data, size_t data_size)
 {
     ConnectionHeaders connection_headers = create_connection_headers(control_station_ip);
 
-    // Send the message to server:
     size_t sent_bytes = 0;
+    int seqNo = 0;
+    char sendBuffer[CHUNK_SIZE + HEADER_SIZE];
+    memset(sendBuffer, '\0', sizeof(sendBuffer));
+
     while (sent_bytes < data_size)
     {
         size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
+        DataHeader header_struct;
+        DataHeader *header = &header_struct;
+        header->sequence = (uint32_t)seqNo;
+        header->fragment_size = (uint16_t)bytes_to_send;
+        header->crc = crc32bit((char *)(data + sent_bytes), bytes_to_send);
+        memcpy(sendBuffer, header, HEADER_SIZE);
+        memcpy(sendBuffer + HEADER_SIZE, data + sent_bytes, bytes_to_send);
         ssize_t transmission_result = sendto(connection_headers.client_socket_fd,
-                                             data + sent_bytes,
-                                             bytes_to_send, 0,
+                                             sendBuffer,
+                                             bytes_to_send + HEADER_SIZE, 0,
                                              (struct sockaddr *)&(connection_headers.control_station_addr),
                                              sizeof(connection_headers.control_station_addr));
         if (transmission_result < 0)
@@ -64,7 +95,8 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
             throw std::runtime_error("Unable to send message");
             return;
         }
-        sent_bytes += transmission_result;
+        sent_bytes += bytes_to_send;
+        seqNo++;
     }
 }
 
