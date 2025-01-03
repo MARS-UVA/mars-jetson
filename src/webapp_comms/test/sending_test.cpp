@@ -8,20 +8,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <chrono>
+#include <opencv2/opencv.hpp>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
-#define close closesocket // Map POSIX close to Windows closesocket
-typedef int ssize_t;
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#endif
+#include "../../platform_compat.h"
 
 int create_test_server()
 {
@@ -189,5 +178,87 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
 
     REQUIRE(received_data.size() == data.size());
     REQUIRE(memcmp(received_data.data(), data.data(), data.size()) == 0);
+    close(server_socket_fd);
+}
+
+TEST_CASE("Test client sending image to a server [client_udp.h]")
+{
+    int server_socket_fd = create_test_server();
+    REQUIRE(server_socket_fd > 0);
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Set non-blocking mode to avoid a situation where the client thread has executed before the server is ready to recieve/recvfrom is called
+    int flags = fcntl(server_socket_fd, F_GETFL, 0);
+    fcntl(server_socket_fd, F_SETFL, flags | O_NONBLOCK);
+
+    cv::Mat imageMatrix = cv::imread("../assets/test1.png", cv::IMREAD_COLOR);
+    std::vector<unsigned char> imgBuffer;
+    std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY, 90};
+    cv::imencode(".jpg", imageMatrix, imgBuffer, compression_params);
+
+    const char *ip = "127.0.0.1";
+
+    // Transmission should be within 1 second - 1 second timeouyt for socket
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+
+    // Increase socket buffer sizes to recieve larger amounts of data - this is like the receive window size in TCP
+    int rcvbuf = 262144; // 256KB of buffer space to receivq data
+    setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
+
+    std::thread client_thread([&]()
+                              { client_send(ip, imageMatrix); });
+
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    char buffer[1410];
+    std::vector<unsigned char> received_data;
+
+    auto start_time = std::chrono::steady_clock::now();
+    while (received_data.size() < imgBuffer.size())
+    {
+        ssize_t num_bytes = recvfrom(server_socket_fd,
+                                     buffer, sizeof(buffer), 0,
+                                     (struct sockaddr *)&client_addr,
+                                     &client_len);
+
+        if (num_bytes < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(1))
+                {
+                    throw std::runtime_error("Timeout of 1 second while waiting for data");
+                    break;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+            std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
+            break;
+        }
+        uint32_t crc = crc32bit(buffer + HEADER_SIZE, (size_t)((DataHeader *)buffer)->fragment_size);
+        REQUIRE(crc == ((DataHeader *)buffer)->crc);
+        REQUIRE(((DataHeader *)buffer)->fragment_size == num_bytes - HEADER_SIZE);
+        char *payloadStart = buffer + HEADER_SIZE;
+        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
+    }
+
+    client_thread.join();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << "Elapsed time of [Image Data] test: " << elapsed_seconds.count() << "s\n";
+
+    REQUIRE(received_data.size() == imgBuffer.size());
+    REQUIRE(memcmp(received_data.data(), imgBuffer.data(), imgBuffer.size()) == 0);
+    cv::Mat receivedImage = cv::imdecode(received_data, cv::IMREAD_COLOR);
+    cv::imshow("Received Image", receivedImage);
+    REQUIRE(receivedImage.rows == imageMatrix.rows);
+    REQUIRE(receivedImage.cols == imageMatrix.cols);
+    cv::waitKey(0);
     close(server_socket_fd);
 }

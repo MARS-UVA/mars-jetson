@@ -7,6 +7,8 @@ find_package(OpenCV REQUIRED)
 add_executable(test
     sending_test.cpp
     ../src/client.cpp
+    ../src/frame_sender.cpp
+    ../../platform_compat.c
 )
 
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain ${OpenCV_LIBS})

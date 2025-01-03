@@ -1,28 +1,5 @@
-#include <string.h>
-#include <iostream>
-#include <unistd.h>
-#include <cstring>
-#include <stdio.h>
-#include <opencv2/opencv.hpp>
 #include "client.hpp"
-// #include "frame_sender.hpp"
-
-#ifdef _WIN32
-void usleep_simulation(unsigned int microseconds);
-#define usleep usleep_simulation
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <stdio.h>
-#pragma comment(lib, "Ws2_32.lib")
-#define close closesocket
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#endif
+#include "frame_sender.hpp"
 
 ConnectionHeaders create_connection_headers(const char *control_station_ip)
 {
@@ -98,9 +75,12 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
         sent_bytes += bytes_to_send;
         seqNo++;
     }
+    close(connection_headers.client_socket_fd);
 }
 
 void client_send(const char *control_station_ip, cv::Mat &image)
 {
     ConnectionHeaders connection_headers = create_connection_headers(control_station_ip);
+    send_frame(connection_headers, image);
+    close(connection_headers.client_socket_fd);
 }

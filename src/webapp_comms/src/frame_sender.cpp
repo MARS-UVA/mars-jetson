@@ -1,56 +1,11 @@
-#include <string.h>
-#include <iostream>
-#include <unistd.h>
-#include <cstring>
-#include <stdio.h>
-#include <opencv2/opencv.hpp>
-#include "client_udp.h"
+#include "frame_sender.hpp"
 
-#ifdef _WIN32
-void usleep_simulation(unsigned int microseconds);
-#define usleep usleep_simulation
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <stdio.h>
-#pragma comment(lib, "Ws2_32.lib")
-#define close closesocket
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#endif
-
-void usleep_simulation(unsigned int microseconds)
+void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
 {
-    volatile unsigned long long i;
-    for (i = 0; i < (unsigned long long)microseconds * 1000; i++)
-    {
-        // Do nothing, just burn CPU cycles
-    }
-}
-
-struct DataHeader
-{
-    int sequence;
-    uint16_t fragment_size;
-    uint32_t crc;
-} __attribute__((packed));
-#define HEADER_SIZE sizeof(DataHeader)
-
-void send_frame(const char *control_station_ip, cv::Mat &image)
-{
-    char client_message[CHUNK_SIZE];
-
     int total_chunks, start, end;
 
-    // Clean buffers:
-    memset(client_message, '\0', sizeof(client_message));
-
     /* Frame compression and encoding */
-    std::vector<uchar> buffer;
+    std::vector<unsigned char> buffer;
     std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY, 90};
 
     if (!cv::imencode(".jpg", image, buffer, compression_params))
@@ -59,35 +14,30 @@ void send_frame(const char *control_station_ip, cv::Mat &image)
         return;
     }
     int buffer_size = buffer.size();
-    total_chunks = (int)(buffer_size / CHUNK_SIZE) + (1 ? buffer_size % CHUNK_SIZE : 0);
+    total_chunks = (int)(buffer_size / CHUNK_SIZE) + (1 ? buffer_size % CHUNK_SIZE > 0 : 0);
 
     // Send data in chunks
+    char *sendBuffer = (char *)malloc(CHUNK_SIZE + HEADER_SIZE);
+    memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
     for (int i = 0; i < total_chunks; i++)
     {
-        usleep(1000);
         start = i * CHUNK_SIZE;
-        end = (start + DATA_MTU_SIZE > data_size) ? data_size : start + DATA_MTU_SIZE;
-        // add 3 bytes for metadata
-        unsigned char packet[DATA_MTU_SIZE + 3];
-        // sequence #
-        packet[0] = (unsigned char)i;
-        // Total chunks count
-        unsigned char total = (unsigned char)total_chunks;
-        packet[1] = (total >> 8) & 0xFF;
-        packet[2] = total & 0xFF;
-        // Actual data
-        memcpy(packet + 3, data + start, end - start);
-        printf("%d of %d\n", i + 1, total_chunks);
+        end = (start + CHUNK_SIZE > buffer_size) ? buffer_size : start + CHUNK_SIZE;
 
-        // send the chunks
-        struct sockaddr *destination_addr_ptr = (struct sockaddr *)&control_station_addr;
-        if (sendto(client_socket_fd, packet, end - start + 3, 0, destination_addr_ptr, contol_station_struct_len) < 0)
+        DataHeader header = {i, (uint16_t)(end - start), crc32bit((char *)(buffer.data() + start), end - start)};
+        memcpy(sendBuffer, &header, HEADER_SIZE);
+        memcpy(sendBuffer + HEADER_SIZE, buffer.data() + start, end - start);
+
+        ssize_t transmission_result = sendto(connectionHeaders.client_socket_fd,
+                                             sendBuffer,
+                                             (end - start) + HEADER_SIZE, 0,
+                                             (struct sockaddr *)&(connectionHeaders.control_station_addr),
+                                             sizeof(connectionHeaders.control_station_addr));
+        if (transmission_result < 0)
         {
-            printf("Unable to send message\n");
+            throw std::runtime_error("Unable to send message");
             return;
         }
+        memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
     }
-
-    // Close the socket:
-    close(client_socket_fd);
 }

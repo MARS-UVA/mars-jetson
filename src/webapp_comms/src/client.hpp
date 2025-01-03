@@ -6,7 +6,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <opencv2/opencv.hpp>
+#include "main.hpp"
 
 struct connection_headers
 {
