@@ -33,7 +33,6 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip)
     {
         throw std::runtime_error("Error while creating socket");
     }
-    printf("Socket created successfully\n");
 
     /* Set port and IP for control station laptop: */
     struct sockaddr_in control_station_addr;
@@ -49,22 +48,24 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip)
 void client_send(const char *control_station_ip, unsigned char *data, size_t data_size)
 {
     ConnectionHeaders connection_headers = create_connection_headers(control_station_ip);
-    char client_message[CHUNK_SIZE];
-
-    int total_chunks, start, end;
-
-    // Clean buffer:
-    memset(client_message, '\0', sizeof(client_message));
 
     // Send the message to server:
-    std::cout << "Sending message to server" << std::endl;
-    if (sendto(connection_headers.client_socket_fd, data, data_size, 0,
-               (struct sockaddr *)&(connection_headers.control_station_addr), sizeof(connection_headers.control_station_addr)) < 0)
+    size_t sent_bytes = 0;
+    while (sent_bytes < data_size)
     {
-        throw std::runtime_error("Unable to send message");
-        return;
+        size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
+        ssize_t transmission_result = sendto(connection_headers.client_socket_fd,
+                                             data + sent_bytes,
+                                             bytes_to_send, 0,
+                                             (struct sockaddr *)&(connection_headers.control_station_addr),
+                                             sizeof(connection_headers.control_station_addr));
+        if (transmission_result < 0)
+        {
+            throw std::runtime_error("Unable to send message");
+            return;
+        }
+        sent_bytes += transmission_result;
     }
-    std::cout << "Message sent to server" << std::endl;
 }
 
 void client_send(const char *control_station_ip, cv::Mat &image)

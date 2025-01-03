@@ -2,7 +2,7 @@
 #define CLIENT_H
 
 #define PORT 2000
-#define CHUNK_SIZE 1450
+#define CHUNK_SIZE 1400
 
 #include <sys/socket.h>
 #include <netinet/in.h>
