@@ -40,4 +40,5 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
         }
         memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
     }
+    free(sendBuffer);
 }
