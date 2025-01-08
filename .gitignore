@@ -4,3 +4,4 @@ build
 install
 devel
 log
+**/realsense-source/

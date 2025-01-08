@@ -3,6 +3,7 @@ $DEBUG_DIR = "..\build\Debug"
 
 # Check if no argument passed or first-time setup
 if ($args.Count -eq 0) {
+    . ".\realsense_extract.ps1"
     if (-Not (Test-Path -Path $BUILD_DIR)) {
         New-Item -ItemType Directory -Path $BUILD_DIR
         Set-Location $BUILD_DIR

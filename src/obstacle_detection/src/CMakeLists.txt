@@ -12,8 +12,10 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4819 /wd4251 /wd4244 /wd4267")
 endif()
 
-set(REALSENSE_SOURCE_DIR "librealsense2-pkg/librealsense-win")
-set(REALSENSE_INCLUDE_DIR "${REALSENSE_SOURCE_DIR}/include")
+set(REALSENSE_SOURCE_DIR "realsense-source/librealsense-2.56.3")
+set(REALSENSE_INCLUDE_
+
+DIR "${REALSENSE_SOURCE_DIR}/include")
 
 set(CMAKE_MODULE_PATH "${REALSENSE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 
