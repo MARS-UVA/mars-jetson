@@ -4,3 +4,9 @@ build
 install
 devel
 log
+
+# Ignore dev containers for now
+.devcontainer
+
+# macOS filesystem files
+.DS_Store
