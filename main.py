@@ -171,14 +171,14 @@ def processor_process(poses_queue: mp.Queue,
                 not_closed, frame = capture.read()
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 if estimates := estimator.estimate_tag_pose(image):
+                    print(estimates[0].best_tag_pose.get_matrix())
                     image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
                     overlay_writer = OverlayWriter(image, estimates, camera_params, tag_size=tag_size)
-                    overlay_writer.overlay_square()
-                    overlay_writer.overlay_axes()
+                    overlay_writer.overlay_cubes()
                 cv2.imshow('Capture', image)
                 key = cv2.waitKey(frame_delay)
                 try:
-                    poses_queue.put_nowait({estimate.tag_id: estimate.tag_pose for estimate in estimates})
+                    poses_queue.put_nowait({estimate.tag_id: estimate.best_tag_pose for estimate in estimates})
                 except queue.Full:
                     warnings.warn('Frame dropped when sending to plotter')
                 if key == 27:
@@ -197,7 +197,7 @@ def main(frame_delay: int = 20) -> None:
                                   frame_delay,
                                   PerspectiveNPointStrategy(PnPMethod.IPPE),
                                   0.150,
-                                  LOGITECH_CAM_PARAMETERS),
+                                  DEPSTECH_CAM_PARAMETERS),
                             kwargs=dict(families='tagStandard41h12',
                                         nthreads=2,
                                         quad_sigma=0,
