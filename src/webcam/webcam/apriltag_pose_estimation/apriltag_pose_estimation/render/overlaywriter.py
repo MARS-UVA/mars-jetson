@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
+from ..euclidean import Pose
 from ..estimation import CameraParameters, AprilTagDetection
 from .color import Color, RED, GREEN, BLUE
 
@@ -63,7 +64,7 @@ class OverlayWriter:
             [0, 0, 0]
         ]]) / 2 * self.__tag_size
         for detection in self.__detections:
-            projected_points = self.__project(object_points, detection)
+            projected_points = self.__project(object_points, detection.best_tag_pose)
             for src, dest in zip(projected_points[:4], chain(projected_points[1:4], projected_points[:1])):
                 cv2.line(self.__image, src, dest, color=color.bgr(), thickness=thickness)
 
@@ -86,7 +87,7 @@ class OverlayWriter:
             [0, 0, 0]
         ]]) / 2 * self.__tag_size
         for detection in self.__detections:
-            projected_points = self.__project(object_points, detection)
+            projected_points = self.__project(object_points, detection.best_tag_pose)
             cv2.putText(self.__image, label_func(detection), projected_points[0], int(font), scale,
                         color.bgr(), thickness, cv2.LINE_AA)
 
@@ -117,7 +118,7 @@ class OverlayWriter:
             [0, 0, -1 if invert_z else 1],
         ]], dtype=np.float64) * self.__tag_size * axis_length
         for detection in self.__detections:
-            projected_points = self.__project(object_points, detection)
+            projected_points = self.__project(object_points, detection.best_tag_pose)
             cv2.line(self.__image, projected_points[0], projected_points[3], color=z_color.bgr(), thickness=thickness)
             cv2.line(self.__image, projected_points[0], projected_points[1], color=x_color.bgr(), thickness=thickness)
             cv2.line(self.__image, projected_points[0], projected_points[2], color=y_color.bgr(), thickness=thickness)
@@ -153,14 +154,58 @@ class OverlayWriter:
             [3, 7]
         ])
         for detection in self.__detections:
-            projected_points = self.__project(object_points, detection)
+            projected_points = self.__project(object_points, detection.best_tag_pose)
             for i, j in edges:
                 cv2.line(self.__image, projected_points[i], projected_points[j], color=color.bgr(), thickness=2)
 
-    def __project(self, object_points: npt.NDArray[np.float64], detection: AprilTagDetection):
+    def overlay_cubes(self, color: Color = RED) -> None:
+        """
+        Overlay cubes corresponding to each possible pose of the detected AprilTags on the image. Poses with higher
+        reprojection errors are drawn with opacity.
+        :param color: The color with which to draw the cubes (default: red).
+        """
+        object_points = np.array([[
+            [-1, -1, 0],
+            [+1, -1, 0],
+            [+1, +1, 0],
+            [-1, +1, 0],
+            [-1, -1, -2],
+            [+1, -1, -2],
+            [+1, +1, -2],
+            [-1, +1, -2],
+            [0, 0, -1]
+        ]]) / 2 * self.__tag_size
+        edges = np.array([
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 0],
+            [4, 5],
+            [5, 6],
+            [6, 7],
+            [7, 4],
+            [0, 4],
+            [1, 5],
+            [2, 6],
+            [3, 7]
+        ])
+        for detection in self.__detections:
+            total_errors = sum(pose.error if pose.error else 0 for pose in detection.tag_poses)
+            for pose in detection.tag_poses:
+                projected_points = self.__project(object_points, pose)
+                if pose.error is None or pose.error == 0 or pose.error == total_errors:
+                    alpha = 1.
+                else:
+                    alpha = 1 - (pose.error / total_errors)
+                image_copy = np.array(self.__image)
+                for i, j in edges:
+                    cv2.line(self.__image, projected_points[i], projected_points[j], color=color.bgr(), thickness=2)
+                cv2.addWeighted(self.__image, alpha, image_copy, 1 - alpha, 0, self.__image)
+
+    def __project(self, object_points: npt.NDArray[np.float64], pose: Pose):
         projected_points, _ = cv2.projectPoints(object_points,
-                                                detection.tag_pose.rotation_vector,
-                                                detection.tag_pose.translation_vector,
+                                                pose.rotation_vector,
+                                                pose.translation_vector,
                                                 self.__camera_params.get_matrix(),
                                                 self.__camera_params.get_distortion_vector())
         projected_points = np.round(projected_points).astype(int).reshape((-1, 2))

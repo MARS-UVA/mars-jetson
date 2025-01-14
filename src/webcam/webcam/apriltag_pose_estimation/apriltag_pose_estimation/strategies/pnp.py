@@ -1,4 +1,5 @@
 from enum import IntEnum
+from operator import attrgetter
 from typing import List
 
 import cv2
@@ -6,7 +7,8 @@ import numpy as np
 import numpy.typing as npt
 from pupil_apriltags import Detector, Detection
 
-from ..estimation import AprilTagPoseEstimationStrategy, CameraParameters, AprilTagDetection, Pose, EstimationError
+from ..estimation import AprilTagPoseEstimationStrategy, CameraParameters, AprilTagDetection, EstimationError
+from ..euclidean import Pose
 
 
 __all__ = ['PerspectiveNPointStrategy', 'PnPMethod']
@@ -72,13 +74,17 @@ class PerspectiveNPointStrategy(AprilTagPoseEstimationStrategy):
                                   corners=detection.corners,
                                   decision_margin=detection.decision_margin,
                                   hamming=detection.hamming,
-                                  tag_pose=self.__get_pose_from_corners(detection, camera_params, tag_size))
+                                  tag_poses=self.__get_poses_from_corners(detection, camera_params, tag_size))
                 for detection in detector.detect(image)]
 
-    def __get_pose_from_corners(self,
-                                detection: Detection,
-                                camera_params: CameraParameters,
-                                tag_size: float) -> Pose:
+    @property
+    def name(self):
+        return f'pnp-{self.__method.name.lower()}'
+
+    def __get_poses_from_corners(self,
+                                 detection: Detection,
+                                 camera_params: CameraParameters,
+                                 tag_size: float) -> List[Pose]:
         object_points = np.array([
             [-1, +1, 0],
             [+1, +1, 0],
@@ -87,12 +93,13 @@ class PerspectiveNPointStrategy(AprilTagPoseEstimationStrategy):
         ]) / 2 * tag_size
         image_points = detection.corners
 
-        success, rotation_vector, translation = cv2.solvePnP(object_points,
-                                                             image_points,
-                                                             camera_params.get_matrix(),
-                                                             camera_params.get_distortion_vector(),
-                                                             flags=int(self.__method))
+        success, rotation_vectors, translations, errors = cv2.solvePnPGeneric(object_points,
+                                                                              image_points,
+                                                                              camera_params.get_matrix(),
+                                                                              camera_params.get_distortion_vector(),
+                                                                              flags=int(self.__method))
         if not success:
             raise EstimationError('Failed to solve')
-        rotation, _ = cv2.Rodrigues(rotation_vector)
-        return Pose(rotation, translation)
+        return sorted((Pose(cv2.Rodrigues(rotation)[0], translation, error=float(error[0]))
+                       for rotation, translation, error in zip(rotation_vectors, translations, errors)),
+                      key=attrgetter('error'))
