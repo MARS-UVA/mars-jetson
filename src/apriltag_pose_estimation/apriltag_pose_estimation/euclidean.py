@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from scipy.linalg import expm, logm
+from scipy.spatial.transform import Rotation
 
 
 __all__ = ['Pose', 'Twist']
@@ -61,6 +62,14 @@ class Pose:
         """
         result, _ = cv2.Rodrigues(self.rotation_matrix)
         return result
+
+    @property
+    def rotation_quaternion(self) -> npt.NDArray[np.float64]:
+        """
+        A 4-vector representing the rotation of the pose as a quaternion in order of [x, y, z, w] (w is the scalar
+        component).
+        """
+        return Rotation.from_matrix(self.rotation_matrix).as_quat()
 
     def get_matrix(self) -> npt.NDArray[np.float64]:
         """
