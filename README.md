@@ -3,3 +3,10 @@
 This repository is still in development and documentation is only available for each feature branch. The main branch is behind feature branches and accordingly, please see a feature branch's README.md file for instructions on building and to see implementations:
 - Obstacle Detection and RealSense Depth frame processing: please visit **obstacle-detection** branch
 - Multi-process socket communication implementation and protocols: please visit **communication** branch
+- April Tag Pose Estimation implementation: please visit **apriltag** branch
+
+# Structure
+This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:
+- *src/actions/* includes programs that make up the **actions** node. These programs decide what motor and actuator actions to perform upon subscribing to the **communications** nodes. All motor and actuator current values (all motor are controlled by current levels) are passed through a buffer or array of bytes and constructed by the **actions** node.
+- *src/hero_comms* and *src/webapp_comms* are both part of the **communications** node responsible for setting up a series of sockets for communicating chunks of data. For instance, the *frame_sender.cpp* implementation is responsible for dividing up an RGB frame from the **webcam** node into simultaneously sent packets for quick transmission time. Each packet is designed to be a lightweight UDP packet with nothing but a sequence number and CRC checksum to validate transmission integrity. It is also designed to be reconstructed on the fly by a load-balancing server on the receiving end.
+- *src/obstacle_detection* is part of the **perception** node. This node is responsible for ingesting depth frames from a RealSense 435 Depth Camera, filling holes produced by occlusions, rotating the frame of reference to a X, Y, Z coordinate system, and detecting positive and negative obstacles in the ground.
