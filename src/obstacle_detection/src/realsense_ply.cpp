@@ -1,78 +1,98 @@
-#include <iostream>
 #include <librealsense2/rs.hpp>
-#include <iomanip>
-#include <chrono> // Add this
-#include <thread> // Add this
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#define M_PI 3.14159265358979323846
+
+struct Vertex
+{
+    float x, y, z;
+};
+
+void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filename)
+{
+    std::ofstream out(filename);
+    // just creating the ply file according to it format: https://fileinfo.com/extension/ply
+    out << "ply\n";
+    out << "format ascii 1.0\n";
+    out << "element vertex " << vertices.size() << "\n";
+    out << "property float x\n";
+    out << "property float y\n";
+    out << "property float z\n";
+    out << "end_header\n";
+
+    for (const auto &vertex : vertices)
+    {
+        out << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+    }
+    out.close();
+}
 
 int main()
 {
-    // Create RealSense pipeline and config
     rs2::pipeline pipe;
     rs2::config cfg;
 
     try
     {
-        // Check if camera is connected
-        rs2::context ctx;
-        auto devices = ctx.query_devices();
-        if (devices.size() == 0)
+        pipe.start();
+
+        std::cout << "Waiting for frames...\n";
+        for (int i = 0; i < 30; i++)
         {
-            std::cout << "No RealSense device connected!" << std::endl;
-            return -1;
+            pipe.wait_for_frames(); // Warmup
         }
+        rs2::frameset frames = pipe.wait_for_frames();
+        rs2::depth_frame depth = frames.get_depth_frame();
 
-        std::cout << "RealSense device found." << std::endl;
+        auto stream = depth.get_profile().as<rs2::video_stream_profile>();
+        auto intrinsics = stream.get_intrinsics();
 
-        // Configure and start the pipeline
-        cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
-        pipe.start(cfg);
+        std::vector<Vertex> vertices;
 
-        // Print depths for a few frames
-        for (int frame_number = 0; frame_number < 3; frame_number++)
+        float REALSENSE_CAM_ANGLE = 2 * M_PI + ((-45.0 * M_PI) / 180.0); // -45 degree angle with respect to the horizontal plane
+        float ANGLE_ROTATION = REALSENSE_CAM_ANGLE - M_PI / 2;
+        std::cout << "Angle of rotation: " << ANGLE_ROTATION << std::endl;
+        for (int y = 0; y < depth.get_height(); y++)
         {
-            // Get frameset
-            rs2::frameset frames = pipe.wait_for_frames();
-            rs2::depth_frame depth = frames.get_depth_frame();
-
-            // Get dimensions
-            const int width = depth.get_width();
-            const int height = depth.get_height();
-
-            std::cout << "\nFrame " << frame_number + 1 << " Depth Matrix (showing 5x5 section):" << std::endl;
-
-            // Print a 5x5 section from the middle of the depth image
-            int start_x = width / 2 - 2;
-            int start_y = height / 2 - 2;
-
-            for (int y = start_y; y < start_y + 5; y++)
+            for (int x = 0; x < depth.get_width(); x++)
             {
-                for (int x = start_x; x < start_x + 5; x++)
-                {
-                    float depth_value = depth.get_distance(x, y);
-                    std::cout << std::fixed << std::setprecision(3) << depth_value << "\t";
-                }
-                std::cout << std::endl;
-            }
+                float pixel_depth = depth.get_distance(x, y);
 
-            // Wait a bit between frames
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                if (pixel_depth > 0)
+                {
+                    float pixel[2] = {static_cast<float>(x), static_cast<float>(y)};
+                    float point[3];
+
+                    // Deproject from pixel to 3D points using the depth value
+                    rs2_deproject_pixel_to_point(point, &intrinsics, pixel, pixel_depth);
+                    // float z = point[2] * sin(REALSENSE_CAM_ANGLE * M_PI / 180.0);
+
+                    float y_rotated = point[1] * cos(ANGLE_ROTATION) - point[2] * sin(ANGLE_ROTATION);
+                    float z_rotated = point[1] * sin(ANGLE_ROTATION) + point[2] * cos(ANGLE_ROTATION);
+
+                    vertices.push_back({point[0], y_rotated, z_rotated});
+                }
+            }
         }
 
-        // Stop the pipeline
+        save_to_ply(vertices, "depth_cloud.ply");
+        std::cout << "PLY file saved successfully!\n";
+
         pipe.stop();
     }
     catch (const rs2::error &e)
     {
-        std::cerr << "RealSense error: " << e.what() << std::endl;
-        return -1;
+        std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n"
+                  << e.what() << std::endl;
+        return 1;
     }
     catch (const std::exception &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        return -1;
+        return 1;
     }
 
-    std::cout << "\nPress Enter to exit..." << std::endl;
-    std::cin.get();
     return 0;
 }
