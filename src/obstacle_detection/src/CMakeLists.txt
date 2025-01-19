@@ -30,6 +30,7 @@ set(CMAKE_MODULE_PATH "${REALSENSE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 # Add RealSense library subdirectory
 add_subdirectory(${REALSENSE_SOURCE_DIR})
 
+
 # Create executable
 add_executable(${PROJECT_NAME} realsense_ply.cpp)
 
