@@ -1,6 +1,10 @@
+CATCH2_DIR=../../../../Catch2
 BUILD_DIR=../build
 DEBUG_DIR=../build/Debug
 if [ $# == 0 ]; then
+    cmake -S $CATCH2_DIR -B $CATCH2_DIR/build
+    cmake --build $CATCH2_DIR/build
+    sudo cmake --install $CATCH2_DIR/build
     if [ ! -d $BUILD_DIR ]; then
         mkdir $BUILD_DIR
         cd $BUILD_DIR

@@ -1,8 +1,12 @@
+$CATCH2_DIR = "..\..\..\..\Catch2"
 $BUILD_DIR = "..\build"
 $DEBUG_DIR = "..\build\Debug"
 
 # Check if no argument passed or first-time setup
 if ($args.Count -eq 0) {
+    cmake -S $CATCH2_DIR -B "$CATCH2_DIR\build"
+    cmake --build "$CATCH2_DIR\build"
+    cmake --install "$CATCH2_DIR\build" -DCMAKE_BUILD_TYPE=Release
     if (-Not (Test-Path -Path $BUILD_DIR)) {
         New-Item -ItemType Directory -Path $BUILD_DIR
         Set-Location $BUILD_DIR
