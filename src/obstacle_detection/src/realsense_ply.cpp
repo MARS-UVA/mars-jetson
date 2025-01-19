@@ -3,14 +3,10 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include "realsense.h"
 // #include <opencv2/opencv.hpp>
 #define M_PI 3.14159265358979323846
 #define REALSENSE_ANGLE_FROM_HORIZONTAL 40.0f
-
-struct Vertex
-{
-    float x, y, z;
-};
 
 void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filename)
 {
