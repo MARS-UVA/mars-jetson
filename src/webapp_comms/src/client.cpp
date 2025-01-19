@@ -1,7 +1,7 @@
 #include "client.hpp"
 #include "frame_sender.hpp"
 
-ConnectionHeaders create_connection_headers(const char *control_station_ip)
+ConnectionHeaders create_connection_headers(const char *control_station_ip, int port)
 {
     /* Create new client socket to send frame: */
     int client_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -15,7 +15,7 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip)
     struct sockaddr_in control_station_addr;
     socklen_t contol_station_struct_len = sizeof(control_station_addr);
     control_station_addr.sin_family = AF_INET;
-    control_station_addr.sin_port = htons(PORT);
+    control_station_addr.sin_port = htons(port);
     control_station_addr.sin_addr.s_addr = inet_addr(control_station_ip);
 
     ConnectionHeaders connection_headers = {client_socket_fd, control_station_addr};
@@ -45,7 +45,7 @@ uint32_t crc32bit(const char *data, size_t data_size)
 
 void client_send(const char *control_station_ip, unsigned char *data, size_t data_size)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
 
     size_t sent_bytes = 0;
     int seqNo = 0;
@@ -80,7 +80,7 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
 
 void client_send(const char *control_station_ip, cv::Mat &image)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
     send_frame(connection_headers, image);
     close(connection_headers.client_socket_fd);
 }
