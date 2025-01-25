@@ -32,8 +32,8 @@ public:
     int fullRows = heights.size();
     int fullCols = heights[0].size();
 
-    std::vector<std::vector<Vec3>> result(
-        fullRows, std::vector<Vec3>(fullCols));
+    std::vector<std::vector<Vertex>> result(
+        fullRows, std::vector<Vertex>(fullCols));
     int tileRows = (fullRows + numThreads - 1) / numThreads;
     std::vector<std::thread> threads;
     std::mutex resultMutex;
@@ -93,7 +93,7 @@ private:
       double dy)
   {
     std::vector<std::vector<Vertex>> gradients(
-        tile.rows, std::vector<Vec3>(tile.cols));
+        tile.rows, std::vector<Vertex>(tile.cols));
 
     for (int i = 0; i < tile.rows; ++i)
     {
@@ -101,7 +101,7 @@ private:
       {
         double dzdx = calculatePartialX(tile.data, i, j, dx, tile.cols);
         double dzdy = calculatePartialY(tile.data, i, j, dy, tile.rows);
-        gradients[i][j] = Vec3(dzdx, dzdy, 1.0);
+        gradients[i][j] = Vertex(dzdx, dzdy, 1.0);
       }
     }
 
