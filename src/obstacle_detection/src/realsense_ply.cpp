@@ -46,7 +46,7 @@ void save_to_mat(const std::vector<Vertex> &vertices)
     out.close();
 }
 
-int main()
+int capture_depth_matrix(byte capture_format)
 {
     rs2::pipeline pipe;
     rs2::config cfg;
@@ -68,6 +68,7 @@ int main()
         auto intrinsics = stream.get_intrinsics();
 
         std::vector<Vertex> vertices;
+        std::vector<std::vector<float>> heights = std::vector<std::vector<float>>(depth.get_height(), std::vector<float>(depth.get_width(), 0.0));
 
         // float REALSENSE_CAM_ANGLE = 2 * M_PI + ((-45.0 * M_PI) / 180.0); // -45 degree angle with respect to the horizontal plane
         // float ANGLE_ROTATION = REALSENSE_CAM_ANGLE - M_PI / 2;
@@ -86,13 +87,11 @@ int main()
                     // Deproject from pixel to 3D points using the depth value
                     rs2_deproject_pixel_to_point(point, &intrinsics, pixel, pixel_depth);
                     // float z = point[2] * sin(REALSENSE_CAM_ANGLE * M_PI / 180.0);
-
                     float angle = ((-180.0f + REALSENSE_ANGLE_FROM_HORIZONTAL) * M_PI) / 180.0f;
-
                     float y_rotated = point[1] * cos(angle) - point[2] * sin(angle);
                     float z_rotated = point[1] * sin(angle) + point[2] * cos(angle);
 
-                    vertices.push_back({point[0], y_rotated, z_rotated});
+                    if(capture_format) vertices.push_back({point[0], y_rotated, z_rotated});
                 }
             }
         }
