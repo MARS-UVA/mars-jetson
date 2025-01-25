@@ -23,7 +23,7 @@ struct Tile
 class ParallelGradientCalculator
 {
 public:
-  static std::vector<std::vector<Vec3>> calculateGradientsParallel(
+  static std::vector<std::vector<Vertex>> calculateGradientsParallel(
       const std::vector<std::vector<double>> &heights,
       int numThreads,
       double dx = 1.0,
@@ -87,12 +87,12 @@ private:
     return tile;
   }
 
-  static std::vector<std::vector<Vec3>> calculateTileGradients(
+  static std::vector<std::vector<Vertex>> calculateTileGradients(
       const Tile &tile,
       double dx,
       double dy)
   {
-    std::vector<std::vector<Vec3>> gradients(
+    std::vector<std::vector<Vertex>> gradients(
         tile.rows, std::vector<Vec3>(tile.cols));
 
     for (int i = 0; i < tile.rows; ++i)
@@ -109,8 +109,8 @@ private:
   }
 
   static void copyTileResults(
-      std::vector<std::vector<Vec3>> &result,
-      const std::vector<std::vector<Vec3>> &tileGradients,
+      std::vector<std::vector<Vertex>> &result,
+      const std::vector<std::vector<Vertex>> &tileGradients,
       const Tile &tile)
   {
     for (int i = OVERLAP; i < tile.rows - OVERLAP; ++i)

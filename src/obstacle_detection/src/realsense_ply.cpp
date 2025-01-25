@@ -27,6 +27,25 @@ void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filenam
     out.close();
 }
 
+void save_to_mat(const std::vector<Vertex> &vertices)
+{
+    std::ofstream out(filename);
+    // just creating the ply file according to it format: https://fileinfo.com/extension/ply
+    out << "ply\n";
+    out << "format ascii 1.0\n";
+    out << "element vertex " << vertices.size() << "\n";
+    out << "property float x\n";
+    out << "property float y\n";
+    out << "property float z\n";
+    out << "end_header\n";
+
+    for (const auto &vertex : vertices)
+    {
+        out << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+    }
+    out.close();
+}
+
 int main()
 {
     rs2::pipeline pipe;
