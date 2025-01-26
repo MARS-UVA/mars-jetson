@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.8)
 project(realsense_capture)
 
+set(CMAKE_BUILD_TYPE Debug)
+
+# For GCC/Clang
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+endif()
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,7 +39,8 @@ add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
-add_executable(${PROJECT_NAME} realsense_ply.cpp)
+add_executable(${PROJECT_NAME} realsense_ply.cpp models/pc_adacency_tree.cpp)
+add_executable(pcTree EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${REALSENSE_INCLUDE_DIR}

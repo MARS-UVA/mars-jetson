@@ -30,11 +30,12 @@ if ($args.Count -eq 0) {
     
     Write-Host "Building capture application..."
     cmake --build . --config Debug --target realsense_capture
+    cmake --build . --config Debug --target pcTree
     
     if (Test-Path -Path "$DEBUG_DIR\realsense_capture.exe") {
         Write-Host "Running application..."
         Set-Location $DEBUG_DIR
-        .\realsense_capture.exe
+        .\realsense_capture.exe 1
     }
     else {
         Write-Error "Build failed: executable not found"
@@ -47,7 +48,7 @@ elseif ($args[0] -eq "clean") {
 elseif ($args[0] -eq "run") {
     if (Test-Path -Path "$DEBUG_DIR\realsense_capture.exe") {
         Set-Location $DEBUG_DIR
-        .\realsense_capture.exe
+        .\realsense_capture.exe 1
     }
     else {
         Write-Error "Executable not found. Please build first."

@@ -16,31 +16,31 @@ struct
     float middle_x, middle_y, middle_z;
 } typedef Octant;
 
-class PointcloudTree
+class PointcloudTreee
 {
     Vertex *root;
     Vertex *topLeftFront, *bottomRightBack;
-    std::vector<PointcloudTree *> childTrees;
+    std::vector<PointcloudTreee *> childTrees;
 
 public:
-    PointcloudTree(Vertex *root, Vertex *topLeftFront, Vertex *bottomRightBack)
+    PointcloudTreee(Vertex *root, Vertex *topLeftFront, Vertex *bottomRightBack)
     {
         this->root = root;
         this->topLeftFront = topLeftFront;
         this->bottomRightBack = bottomRightBack;
     }
 
-    PointcloudTree(Vertex *root)
+    PointcloudTreee(Vertex *root)
     {
         this->root = root;
     }
 
-    PointcloudTree()
+    PointcloudTreee()
     {
         this->root = new Vertex();
     }
 
-    PointcloudTree(Vertex *v1, Vertex *v2)
+    PointcloudTreee(Vertex *v1, Vertex *v2)
     {
         if (v2->x < v1->y || v2->y < v1->y || v2->z < v1->z)
             return;
@@ -52,22 +52,22 @@ public:
         childTrees.assign(8, nullptr);
         for (int i = TLF; i <= BLB; ++i)
         {
-            childTrees[i] = new PointcloudTree();
+            childTrees[i] = new PointcloudTreee();
         }
     }
 
-    PointcloudTree(const PointcloudTree &other)
+    PointcloudTreee(const PointcloudTreee &other)
     {
         this->root = new Vertex(*other.root);
         this->topLeftFront = new Vertex(*other.topLeftFront);
         this->bottomRightBack = new Vertex(*other.bottomRightBack);
         for (auto child : other.childTrees)
         {
-            this->childTrees.push_back(new PointcloudTree(*child));
+            this->childTrees.push_back(new PointcloudTreee(*child));
         }
     }
 
-    ~PointcloudTree()
+    ~PointcloudTreee()
     {
         delete root;
         delete topLeftFront;
@@ -169,7 +169,7 @@ public:
         {
             // encountered a leaf node that has not been initialized so create a new tree for it with the vertex as the root
             delete childTrees[pos];
-            childTrees[pos] = new PointcloudTree(vertex);
+            childTrees[pos] = new PointcloudTreee(vertex);
             return;
         }
         else
@@ -182,42 +182,42 @@ public:
             childTrees[pos] = nullptr;
             if (pos == TLF)
             {
-                childTrees[pos] = new PointcloudTree(topLeftFront, new Vertex(middle_x, middle_y, middle_z));
+                childTrees[pos] = new PointcloudTreee(topLeftFront, new Vertex(middle_x, middle_y, middle_z));
             }
             else if (pos == TRF)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(middle_x + 1, topLeftFront->y, topLeftFront->z),
-                                                     new Vertex(bottomRightBack->x, middle_y, middle_z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(middle_x + 1, topLeftFront->y, topLeftFront->z),
+                                                      new Vertex(bottomRightBack->x, middle_y, middle_z));
             }
             else if (pos == BRF)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(middle_x + 1, middle_y + 1, topLeftFront->z),
-                                                     new Vertex(bottomRightBack->x, bottomRightBack->y, middle_z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(middle_x + 1, middle_y + 1, topLeftFront->z),
+                                                      new Vertex(bottomRightBack->x, bottomRightBack->y, middle_z));
             }
             else if (pos == BLF)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(topLeftFront->x, middle_y + 1, topLeftFront->z),
-                                                     new Vertex(middle_x, bottomRightBack->y, middle_z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(topLeftFront->x, middle_y + 1, topLeftFront->z),
+                                                      new Vertex(middle_x, bottomRightBack->y, middle_z));
             }
             else if (pos == TLB)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(topLeftFront->x, topLeftFront->y, middle_z + 1),
-                                                     new Vertex(middle_x, middle_y, bottomRightBack->z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(topLeftFront->x, topLeftFront->y, middle_z + 1),
+                                                      new Vertex(middle_x, middle_y, bottomRightBack->z));
             }
             else if (pos == TRB)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(middle_x + 1, topLeftFront->y, middle_z + 1),
-                                                     new Vertex(bottomRightBack->x, middle_y, bottomRightBack->z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(middle_x + 1, topLeftFront->y, middle_z + 1),
+                                                      new Vertex(bottomRightBack->x, middle_y, bottomRightBack->z));
             }
             else if (pos == BRB)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(middle_x + 1, middle_y + 1, middle_z + 1),
-                                                     new Vertex(bottomRightBack->x, bottomRightBack->y, bottomRightBack->z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(middle_x + 1, middle_y + 1, middle_z + 1),
+                                                      new Vertex(bottomRightBack->x, bottomRightBack->y, bottomRightBack->z));
             }
             else if (pos == BLB)
             {
-                childTrees[pos] = new PointcloudTree(new Vertex(topLeftFront->x, middle_y + 1, middle_z + 1),
-                                                     new Vertex(middle_x, bottomRightBack->y, bottomRightBack->z));
+                childTrees[pos] = new PointcloudTreee(new Vertex(topLeftFront->x, middle_y + 1, middle_z + 1),
+                                                      new Vertex(middle_x, bottomRightBack->y, bottomRightBack->z));
             }
             childTrees[pos]->insert(oldVertex);
             childTrees[pos]->insert(vertex);

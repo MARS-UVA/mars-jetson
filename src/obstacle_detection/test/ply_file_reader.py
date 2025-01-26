@@ -10,6 +10,8 @@ print("PLY file path?")
 ply_path = input()
 
 if viewer_in == 1:
+    print("2D or 3D representation (2 for 2D or 3 for 3D)?")
+    viewer_in = int(input())
     plydata = PlyData.read(ply_path)
 
     vertices = plydata['vertex'].data
@@ -21,13 +23,21 @@ if viewer_in == 1:
     # theta = (-5 * np.pi) / 180
     # y_rot = y*np.cos(theta) - z*np.sin(theta)
     # z_rot = y*np.sin(theta) + z*np.cos(theta)
-
-    fig = plt.figure(figsize=(10,8))
-    ax = fig.add_subplot(111, projection='3d')
-    scatter = ax.scatter(x, y, z, c=z, cmap='viridis', s=1)
-    plt.colorbar(scatter)
-    plt.title('Point Cloud Visualization')
-    plt.show()
+    if viewer_in == 2:
+        plt.figure(figsize=(10,8))
+        plt.scatter(x, y, c=z, cmap='viridis', s=1)
+        plt.colorbar(label='Height from ground')
+        plt.title('Point Cloud 2D Projection')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.show()
+    elif viewer_in == 3:
+        fig = plt.figure(figsize=(10,8))
+        ax = fig.add_subplot(111, projection='3d')
+        scatter = ax.scatter(x, y, z, c=z, cmap='viridis', s=1)
+        plt.colorbar(scatter)
+        plt.title('Point Cloud Visualization')
+        plt.show()
 elif viewer_in == 2:
     pcd = o3d.io.read_point_cloud(ply_path)
 
