@@ -63,6 +63,12 @@ public:
     void print(int depth);
     void exportToPly();
 
+    std::vector<PointcloudTree *> getChildTrees() { return childTrees; }
+    Node *getRoot() { return root; }
+
+    void extractLeafNodesAtDepth(int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
+    void extractLeafNodesRecursive(int currentDepth, int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
+
 private:
     Node *root;
     Point topLeft, bottomRight;

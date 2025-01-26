@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "models/realsense.h"
 #include "models/pc_adacency_tree.h"
 // #include <opencv2/opencv.hpp>
 

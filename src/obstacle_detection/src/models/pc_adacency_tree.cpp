@@ -234,7 +234,7 @@ void PointcloudTree::extractAllNodes(std::vector<Vertex> &vertices)
 {
     if (root)
     {
-        vertices.push_back(Vertex(root->pos.x, root->pos.y, root->pos.z));
+        vertices.push_back(Vertex(root->pos.x, root->pos.y, root->height));
     }
 
     for (auto &child : childTrees)
@@ -244,6 +244,60 @@ void PointcloudTree::extractAllNodes(std::vector<Vertex> &vertices)
             child->extractAllNodes(vertices);
         }
     }
+}
+
+void PointcloudTree::extractLeafNodesAtDepth(int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices)
+{
+    quadrantVertices.resize(4);
+
+    extractLeafNodesRecursive(0, targetDepth, quadrantVertices);
+    std::cout << "num vertices in first qyuadrant: " << quadrantVertices[0].size() << std::endl;
+}
+
+void PointcloudTree::extractLeafNodesRecursive(int currentDepth, int targetDepth,
+                                               std::vector<std::vector<Vertex>> &quadrantVertices)
+{
+    // If at target depth and this is a leaf node (no children)
+    if (currentDepth == targetDepth)
+    {
+        // Check if this subtree contains a root node
+        if (root)
+        {
+            // Determine which quadrant this belongs to
+            float middle_x = (topLeft.x + bottomRight.x) / 2;
+            float middle_y = (topLeft.y + bottomRight.y) / 2;
+
+            int quadrant = -1;
+            if (root->pos.x <= middle_x)
+            {
+                quadrant = (root->pos.y <= middle_y) ? 0 : 1;
+            }
+            else
+            {
+                quadrant = (root->pos.y <= middle_y) ? 2 : 3;
+            }
+
+            if (quadrant != -1)
+            {
+                quadrantVertices[quadrant].push_back(
+                    Vertex(root->pos.x, root->pos.y, root->height));
+            }
+        }
+        return;
+    }
+
+    // Recursively traverse child quadrants
+    if (currentDepth < targetDepth)
+    {
+        for (auto &child : childTrees)
+        {
+            if (child)
+            {
+                child->extractLeafNodesRecursive(currentDepth + 1, targetDepth, quadrantVertices);
+            }
+        }
+    }
+    std::cout << "num vertices in first qyuadrant: " << quadrantVertices[0].size() << std::endl;
 }
 
 // int main()

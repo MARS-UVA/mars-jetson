@@ -30,7 +30,8 @@ if ($args.Count -eq 0) {
     
     Write-Host "Building capture application..."
     cmake --build . --config Debug --target realsense_capture
-    cmake --build . --config Debug --target pcTree
+    cmake --build . --config Debug --target pcTreeSimpleTests
+    cmake --build . --config Debug --target pcTreeQuadrantTest
     
     if (Test-Path -Path "$DEBUG_DIR\realsense_capture.exe") {
         Write-Host "Running application..."
