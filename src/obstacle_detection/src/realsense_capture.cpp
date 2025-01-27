@@ -34,6 +34,10 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
         {
             pipe.wait_for_frames(); // Warmup
         }
+
+        rs2::decimation_filter decimation;
+        int decimation_magnitude = 2;
+        decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
         rs2::depth_frame depth = frames.get_depth_frame();
         rs2::frame color = frames.get_color_frame();
@@ -47,6 +51,7 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
         // float REALSENSE_CAM_ANGLE = 2 * M_PI + ((-45.0 * M_PI) / 180.0); // -45 degree angle with respect to the horizontal plane
         // float ANGLE_ROTATION = REALSENSE_CAM_ANGLE - M_PI / 2;
         // std::cout << "Angle of rotation: " << ANGLE_ROTATION << std::endl;
+        int num_vertices = 0;
         for (int y = 0; y < depth.get_height(); y++)
         {
             for (int x = 0; x < depth.get_width(); x++)
@@ -71,13 +76,12 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
                         vertices.push_back(vertex);
                     else
                         tree->add(&vertex);
+                    num_vertices++;
                 }
             }
         }
 
-        // save_to_ply(vertices, "out.ply");
-        // std::cout << "PLY file saved successfullyy!" << std::endl;
-        // std::cout << "Done!" << std::endl;
+        std::cout << "Number of vertices: " << num_vertices << std::endl;
 
         pipe.stop();
     }

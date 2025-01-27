@@ -59,6 +59,7 @@ public:
     Node *find(Node *node);
     Node *find(Point &pos, Node *node);
     void extractAllNodes(std::vector<Vertex> &vertices);
+    std::vector<Vertex> extractAllNodes();
 
     void print(int depth);
     void exportToPly();
@@ -68,6 +69,7 @@ public:
 
     void extractLeafNodesAtDepth(int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
     void extractLeafNodesRecursive(int currentDepth, int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
+    void collectLeafNodes(PointcloudTree *tree, int quadrant, std::vector<std::vector<Vertex>> &quadrantVertices);
 
 private:
     Node *root;

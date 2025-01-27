@@ -118,25 +118,13 @@ void PointcloudTree::add(Vertex *vertex)
 
 void PointcloudTree::add(Node *newNode)
 {
-    // std::cout << "Adding node at " << newNode->pos.x << ", " << newNode->pos.y << std::endl;
     if (newNode == nullptr)
-    {
-        // std::cout << "Node is null" << std::endl;
         return;
-    }
-    if (find(newNode) != nullptr)
-    {
-        // std::cout << "Node already exists and is " << newNode->pos.x << ", " << newNode->pos.y << std::endl;
-        return;
-    }
 
-    if (std::abs(topLeft.x - bottomRight.x) <= 1 && std::abs(topLeft.y - bottomRight.y) <= 1)
+    // If root is empty, add here regardless of size
+    if (root == nullptr)
     {
-        if (this->root == NULL)
-        {
-            this->root = newNode;
-            std::cout << "Root is added as " << newNode->pos.x << ", " << newNode->pos.y << std::endl;
-        }
+        root = newNode;
         return;
     }
 
@@ -144,28 +132,35 @@ void PointcloudTree::add(Node *newNode)
     float middle_y = (topLeft.y + bottomRight.y) / 2;
 
     int currQuadrant = getQuadrant(newNode, middle_x, middle_y);
+    if (currQuadrant == -1)
+        return;
 
+    // Create child tree if it doesn't exist
     if (childTrees[currQuadrant] == nullptr)
     {
+        Point newTopLeft, newBottomRight;
         switch (currQuadrant)
         {
         case FL:
-            childTrees[currQuadrant] = new PointcloudTree(Point(topLeft.x, middle_y), Point(middle_x, bottomRight.y));
+            newTopLeft = Point(topLeft.x, topLeft.y);
+            newBottomRight = Point(middle_x, middle_y);
             break;
         case FR:
-            childTrees[currQuadrant] = new PointcloudTree(Point(middle_x, middle_y), bottomRight);
+            newTopLeft = Point(middle_x, topLeft.y);
+            newBottomRight = Point(bottomRight.x, middle_y);
             break;
         case BL:
-            childTrees[currQuadrant] = new PointcloudTree(topLeft, Point(middle_x, middle_y));
+            newTopLeft = Point(topLeft.x, middle_y);
+            newBottomRight = Point(middle_x, bottomRight.y);
             break;
         case BR:
-            childTrees[currQuadrant] = new PointcloudTree(Point(middle_x, topLeft.y), Point(bottomRight.x, middle_y));
+            newTopLeft = Point(middle_x, middle_y);
+            newBottomRight = Point(bottomRight.x, bottomRight.y);
             break;
-        default:
-            // std::cout << "Invalid quadrant" << std::endl;
-            return;
         }
+        childTrees[currQuadrant] = new PointcloudTree(newTopLeft, newBottomRight);
     }
+
     childTrees[currQuadrant]->add(newNode);
 }
 
@@ -230,6 +225,13 @@ void PointcloudTree::exportToPly()
     save_to_ply(vertices, "pc_tree_out.ply");
 }
 
+std::vector<Vertex> PointcloudTree::extractAllNodes()
+{
+    std::vector<Vertex> vertices;
+    extractAllNodes(vertices);
+    return vertices;
+}
+
 void PointcloudTree::extractAllNodes(std::vector<Vertex> &vertices)
 {
     if (root)
@@ -251,54 +253,79 @@ void PointcloudTree::extractLeafNodesAtDepth(int targetDepth, std::vector<std::v
     quadrantVertices.resize(4);
 
     extractLeafNodesRecursive(0, targetDepth, quadrantVertices);
-    std::cout << "num vertices in first qyuadrant: " << quadrantVertices[0].size() << std::endl;
+    std::cout << "num vertices in 1st qyuadrant: " << quadrantVertices[0].size() << std::endl;
+    std::cout << "num vertices in 2nd qyuadrant: " << quadrantVertices[1].size() << std::endl;
+    std::cout << "num vertices in 3rd qyuadrant: " << quadrantVertices[2].size() << std::endl;
+    std::cout << "num vertices in 4th qyuadrant: " << quadrantVertices[2].size() << std::endl;
 }
 
 void PointcloudTree::extractLeafNodesRecursive(int currentDepth, int targetDepth,
                                                std::vector<std::vector<Vertex>> &quadrantVertices)
 {
-    // If at target depth and this is a leaf node (no children)
+    // At target depth, check all child trees for leaf nodes
     if (currentDepth == targetDepth)
     {
-        // Check if this subtree contains a root node
-        if (root)
+        for (int i = 0; i < 4; i++)
         {
-            // Determine which quadrant this belongs to
-            float middle_x = (topLeft.x + bottomRight.x) / 2;
-            float middle_y = (topLeft.y + bottomRight.y) / 2;
-
-            int quadrant = -1;
-            if (root->pos.x <= middle_x)
+            if (childTrees[i] != nullptr)
             {
-                quadrant = (root->pos.y <= middle_y) ? 0 : 1;
-            }
-            else
-            {
-                quadrant = (root->pos.y <= middle_y) ? 2 : 3;
-            }
-
-            if (quadrant != -1)
-            {
-                quadrantVertices[quadrant].push_back(
-                    Vertex(root->pos.x, root->pos.y, root->height));
+                collectLeafNodes(childTrees[i], i, quadrantVertices);
             }
         }
         return;
     }
 
-    // Recursively traverse child quadrants
-    if (currentDepth < targetDepth)
+    // Continue traversing until target depth
+    for (int i = 0; i < 4; i++)
     {
-        for (auto &child : childTrees)
+        if (childTrees[i] != nullptr)
         {
-            if (child)
-            {
-                child->extractLeafNodesRecursive(currentDepth + 1, targetDepth, quadrantVertices);
-            }
+            childTrees[i]->extractLeafNodesRecursive(currentDepth + 1, targetDepth, quadrantVertices);
         }
     }
-    std::cout << "num vertices in first qyuadrant: " << quadrantVertices[0].size() << std::endl;
 }
+
+void PointcloudTree::collectLeafNodes(PointcloudTree *tree, int quadrant, std::vector<std::vector<Vertex>> &quadrantVertices)
+{
+    if (tree->root != nullptr)
+    {
+        quadrantVertices[quadrant].push_back(Vertex(tree->root->pos.x, tree->root->pos.y, tree->root->height));
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (tree->childTrees[i] != nullptr)
+        {
+            collectLeafNodes(tree->childTrees[i], quadrant, quadrantVertices);
+        }
+    }
+}
+
+// void PointcloudTree::extractLeafNodesRecursive(int currentDepth, int targetDepth, int quadIndex,
+//                                                std::vector<std::vector<Vertex>> &quadrantVertices)
+// {
+//     if (root != nullptr && quadIndex > -1)
+//     {
+//         quadrantVertices[quadIndex].push_back(Vertex(root->pos.x, root->pos.y, root->height));
+//         return;
+//     }
+//     if (currentDepth == targetDepth)
+//     {
+//         for (int i = 0; i < 4; i++)
+//         {
+//             auto child = childTrees[i];
+//             child->extractLeafNodesRecursive(currentDepth + 1, targetDepth, i, quadrantVertices);
+//         }
+//     }
+//     else
+//     {
+//         for (int i = 0; i < 4; i++)
+//         {
+//             auto child = childTrees[i];
+//             child->extractLeafNodesRecursive(currentDepth + 1, targetDepth, quadIndex, quadrantVertices);
+//         }
+//     }
+// }
 
 // int main()
 // {
