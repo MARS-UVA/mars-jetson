@@ -7,7 +7,8 @@ int main()
 {
     std::vector<Vertex> vertices;
     std::shared_ptr<Matrices> matrices = runMatrixCollector(vertices);
-    std::vector<std::vector<float>> gradients = ParallelGradientCalculator::calculateGradientsParallel(matrices->heights, matrices->actualCoordinates, 4);
+    std::vector<Vertex> obstacleVertices;
+    std::vector<std::vector<float>> gradients = ParallelGradientCalculator::calculateGradientsParallel(matrices->heights, matrices->actualCoordinates, 4, obstacleVertices);
 
     std::vector<Vertex> gradientVertices;
     for (size_t i = 0; i < gradients.size(); i++)
@@ -24,5 +25,6 @@ int main()
     }
 
     save_to_ply(gradientVertices, "gradient_map_out.ply");
+    save_to_ply(obstacleVertices, "obstacle_vertices.ply");
     return 0;
 }
