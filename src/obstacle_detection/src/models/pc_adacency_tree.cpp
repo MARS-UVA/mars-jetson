@@ -80,12 +80,12 @@ void PointcloudTree::clear()
     }
 }
 
-int PointcloudTree::getQuadrant(Node *node, float middle_x, float middle_y)
+int PointcloudTree::getQuadrant(Point &pos, float middle_x, float middle_y)
 {
     int quadrant = -1;
-    if (node->pos.x <= middle_x)
+    if (pos.x <= middle_x)
     {
-        if (node->pos.y <= middle_y)
+        if (pos.y <= middle_y)
         {
             quadrant = FL;
         }
@@ -96,7 +96,7 @@ int PointcloudTree::getQuadrant(Node *node, float middle_x, float middle_y)
     }
     else
     {
-        if (node->pos.y <= middle_y)
+        if (pos.y <= middle_y)
         {
             quadrant = FR;
         }
@@ -112,26 +112,30 @@ void PointcloudTree::add(Vertex *vertex)
 {
     if (vertex == nullptr)
         return;
-    Node *newNode = new Node(Point(vertex->x, vertex->y), vertex->z);
-    add(newNode);
+    Point pos = Point(vertex->x, vertex->y, vertex->z);
+    Node *newNode = new Node(pos);
+    add(pos);
 }
 
-void PointcloudTree::add(Node *newNode)
+void PointcloudTree::add(Point &pos)
 {
-    if (newNode == nullptr)
-        return;
+    // if (pos == NULL)
+    //     return;
 
     // If root is empty, add here regardless of size
-    if (root == nullptr)
+    if (std::abs(topLeft.x - bottomRight.x) <= 0.0001 && std::abs(topLeft.y - bottomRight.y) <= 0.0001)
     {
-        root = newNode;
+        if (root == nullptr)
+            root = new Node(pos);
+        else
+            root->pos.push_back(pos);
         return;
     }
 
     float middle_x = (topLeft.x + bottomRight.x) / 2;
     float middle_y = (topLeft.y + bottomRight.y) / 2;
 
-    int currQuadrant = getQuadrant(newNode, middle_x, middle_y);
+    int currQuadrant = getQuadrant(pos, middle_x, middle_y);
     if (currQuadrant == -1)
         return;
 
@@ -161,13 +165,13 @@ void PointcloudTree::add(Node *newNode)
         childTrees[currQuadrant] = new PointcloudTree(newTopLeft, newBottomRight);
     }
 
-    childTrees[currQuadrant]->add(newNode);
+    childTrees[currQuadrant]->add(pos);
 }
 
-Node *PointcloudTree::find(Node *node)
-{
-    return find(node->pos, node);
-}
+// Node *PointcloudTree::find(Node *node)
+// {
+//     return find(node->pos, node);
+// }
 
 Node *PointcloudTree::find(Point &pos, Node *node)
 {
@@ -179,7 +183,7 @@ Node *PointcloudTree::find(Point &pos, Node *node)
     float middle_x = (topLeft.x + bottomRight.x) / 2;
     float middle_y = (topLeft.y + bottomRight.y) / 2;
 
-    int currQuad = getQuadrant(node, middle_x, middle_y);
+    int currQuad = getQuadrant(pos, middle_x, middle_y);
 
     if (currQuad == -1)
         return nullptr;
@@ -201,7 +205,13 @@ void PointcloudTree::print(int depth)
 
     // Print root if exists
     if (root)
-        std::cout << "Root: (" << root->pos.x << "," << root->pos.y << ")";
+    {
+        std::cout << "Root: ";
+        for (const auto &point : root->pos)
+        {
+            std::cout << "(" << point.x << "," << point.y << "," << point.height << ") ";
+        }
+    }
 
     std::cout << std::endl;
 
@@ -236,7 +246,11 @@ void PointcloudTree::extractAllNodes(std::vector<Vertex> &vertices)
 {
     if (root)
     {
-        vertices.push_back(Vertex(root->pos.x, root->pos.y, root->height));
+        // vertices.push_back(Vertex(root->pos.x, root->pos.y, root->height));
+        for (const auto &point : root->pos)
+        {
+            vertices.push_back(Vertex(point.x, point.y, point.height));
+        }
     }
 
     for (auto &child : childTrees)
@@ -253,10 +267,10 @@ void PointcloudTree::extractLeafNodesAtDepth(int targetDepth, std::vector<std::v
     quadrantVertices.resize(4);
 
     extractLeafNodesRecursive(0, targetDepth, quadrantVertices);
-    std::cout << "num vertices in 1st qyuadrant: " << quadrantVertices[0].size() << std::endl;
-    std::cout << "num vertices in 2nd qyuadrant: " << quadrantVertices[1].size() << std::endl;
-    std::cout << "num vertices in 3rd qyuadrant: " << quadrantVertices[2].size() << std::endl;
-    std::cout << "num vertices in 4th qyuadrant: " << quadrantVertices[2].size() << std::endl;
+    for (int i = 0; i < 4; i++)
+    {
+        std::cout << "num vertices in " << (i + 1) << "th quadrant: " << quadrantVertices[i].size() << std::endl;
+    }
 }
 
 void PointcloudTree::extractLeafNodesRecursive(int currentDepth, int targetDepth,
@@ -289,7 +303,11 @@ void PointcloudTree::collectLeafNodes(PointcloudTree *tree, int quadrant, std::v
 {
     if (tree->root != nullptr)
     {
-        quadrantVertices[quadrant].push_back(Vertex(tree->root->pos.x, tree->root->pos.y, tree->root->height));
+        // quadrantVertices[quadrant].push_back(Vertex(tree->root->pos.x, tree->root->pos.y, tree->root->height));
+        for (const auto &point : tree->root->pos)
+        {
+            quadrantVertices[quadrant].push_back(Vertex(point.x, point.y, point.height));
+        }
     }
 
     for (int i = 0; i < 4; i++)

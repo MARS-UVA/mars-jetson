@@ -20,6 +20,9 @@ int main()
         save_to_ply(quadrantVertices[i], filename);
         std::cout << "Saved " << quadrantVertices[i].size() << " vertices to " << filename << std::endl;
     }
+
+    std::vector<Vertex> allVertices = tree->extractAllNodes();
+    std::cout << "Extracted " << allVertices.size() << " vertices from tree." << std::endl;
     tree->clear();
     delete tree;
     capture_depth_matrix(nullptr, vertices);

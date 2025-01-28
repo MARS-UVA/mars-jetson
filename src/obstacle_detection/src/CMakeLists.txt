@@ -39,18 +39,24 @@ add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
-add_executable(${PROJECT_NAME} extract_capture.cpp realsense_capture.cpp models/pc_adacency_tree.cpp)
-add_executable(pcTreeSimpleTests EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
-add_executable(pcTreeQuadrantTest models/pc_adacency_tree.cpp ../test/pc_tree_quadrant_test.cpp realsense_capture.cpp)
+add_executable(${PROJECT_NAME} startup.cpp extract_capture.cpp realsense_capture.cpp models/pc_adacency_tree.cpp)
+add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/pc_adacency_tree.cpp)
+# add_executable(pcTreeSimpleTests EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
+# add_executable(pcTreeQuadrantTest models/pc_adacency_tree.cpp ../test/pc_tree_quadrant_test.cpp realsense_capture.cpp)
+# add_executable(pcTreeGradientTest models/pc_adacency_tree.cpp models/pc_adacency_tree_gradientify.cpp ../test/pc_tree_gradient_test.cpp realsense_capture.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${REALSENSE_INCLUDE_DIR}
 )
-target_include_directories(pcTreeSimpleTests PRIVATE ${REALSENSE_INCLUDE_DIR})
-target_include_directories(pcTreeQuadrantTest PRIVATE ${REALSENSE_INCLUDE_DIR})
+target_include_directories(gradientMapTest PRIVATE ${REALSENSE_INCLUDE_DIR})
+# target_include_directories(pcTreeSimpleTests PRIVATE ${REALSENSE_INCLUDE_DIR})
+# target_include_directories(pcTreeQuadrantTest PRIVATE ${REALSENSE_INCLUDE_DIR})
+# target_include_directories(pcTreeGradientTest PRIVATE ${REALSENSE_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     realsense2
 )
-target_link_libraries(pcTreeSimpleTests PRIVATE realsense2)
-target_link_libraries(pcTreeQuadrantTest PRIVATE realsense2)
+target_link_libraries(gradientMapTest PRIVATE realsense2)
+# target_link_libraries(pcTreeSimpleTests PRIVATE realsense2)
+# target_link_libraries(pcTreeQuadrantTest PRIVATE realsense2)
+# target_link_libraries(pcTreeGradientTest PRIVATE realsense2)

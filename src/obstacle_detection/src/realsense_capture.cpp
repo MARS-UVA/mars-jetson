@@ -20,10 +20,14 @@ void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filenam
     out.close();
 }
 
-int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
+std::shared_ptr<Matrices> capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
 {
+    // std::vector<Vertex> verticesWithCommonCoordinates;
     rs2::pipeline pipe;
     rs2::config cfg;
+
+    std::vector<std::vector<float>> heights;
+    std::vector<std::vector<Coordinate>> actualCoordinates;
 
     try
     {
@@ -52,6 +56,8 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
         // float ANGLE_ROTATION = REALSENSE_CAM_ANGLE - M_PI / 2;
         // std::cout << "Angle of rotation: " << ANGLE_ROTATION << std::endl;
         int num_vertices = 0;
+        heights = std::vector<std::vector<float>>(depth.get_height(), std::vector<float>(depth.get_width(), 0.0));
+        actualCoordinates = std::vector<std::vector<Coordinate>>(depth.get_height(), std::vector<Coordinate>(depth.get_width(), Coordinate()));
         for (int y = 0; y < depth.get_height(); y++)
         {
             for (int x = 0; x < depth.get_width(); x++)
@@ -71,15 +77,26 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
                     float z_rotated = point[1] * sin(angle) + point[2] * cos(angle);
 
                     Vertex vertex(point[0], y_rotated, z_rotated);
+                    Vertex vertexCommonCoor(x, y, z_rotated);
 
                     if (tree == nullptr)
                         vertices.push_back(vertex);
                     else
                         tree->add(&vertex);
+                    // verticesWithCommonCoordinates.push_back(vertexCommonCoor);
                     num_vertices++;
+                    heights[y][x] = z_rotated;
+                    actualCoordinates[y][x] = Coordinate(point[0], y_rotated);
+                }
+                else
+                {
+                    heights[y][x] = 0.0;
+                    actualCoordinates[y][x] = Coordinate();
                 }
             }
         }
+
+        // save_to_ply(verticesWithCommonCoordinates, "out_common.ply");
 
         std::cout << "Number of vertices: " << num_vertices << std::endl;
 
@@ -89,13 +106,16 @@ int capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
     {
         std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n"
                   << e.what() << std::endl;
-        return 1;
+        return nullptr;
     }
     catch (const std::exception &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
+        return nullptr;
     }
 
-    return 0;
+    std::shared_ptr<Matrices> matrices = std::make_shared<Matrices>();
+    matrices->heights = heights;
+    matrices->actualCoordinates = actualCoordinates;
+    return matrices;
 }

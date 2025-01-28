@@ -21,25 +21,31 @@ struct Quadrant
 struct Point
 {
     float x, y;
-    Point() : x(0), y(0) {}
+    float height;
+    Point() : x(0), y(0), height(0) {}
+    Point(float x, float y, float height) : x(x), y(y), height(height) {}
     Point(float x, float y) : x(x), y(y) {}
 
     bool operator==(const Point &other) const
     {
-        return x == other.x && y == other.y;
+        return x == other.x && y == other.y && height == other.height;
     }
 };
 
 struct Node
 {
-    Point pos;
-    float height;
-    Node(Point pos, float height)
+    std::vector<Point> pos;
+    float gradient;
+    bool isLeaf;
+    Node(Point pos)
     {
-        this->pos = pos;
-        this->height = height;
+        this->pos.push_back(pos);
+        isLeaf = true;
     }
-    Node() { height = 0; }
+    Node()
+    {
+        isLeaf = false;
+    }
 };
 
 class PointcloudTree
@@ -53,9 +59,9 @@ public:
     PointcloudTree(PointcloudTree &&other) noexcept;
 
     void clear();
-    int getQuadrant(Node *node, float middle_x, float middle_y);
+    int getQuadrant(Point &pos, float middle_x, float middle_y);
     void add(Vertex *vertex);
-    void add(Node *newNode);
+    void add(Point &pos);
     Node *find(Node *node);
     Node *find(Point &pos, Node *node);
     void extractAllNodes(std::vector<Vertex> &vertices);
@@ -70,6 +76,11 @@ public:
     void extractLeafNodesAtDepth(int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
     void extractLeafNodesRecursive(int currentDepth, int targetDepth, std::vector<std::vector<Vertex>> &quadrantVertices);
     void collectLeafNodes(PointcloudTree *tree, int quadrant, std::vector<std::vector<Vertex>> &quadrantVertices);
+
+    std::vector<Vertex> gradientify();
+    void gradientify(std::vector<Vertex> &gradientVertices);
+    // void gradientify_parallel();
+    // void gradientify_cuda();
 
 private:
     Node *root;
