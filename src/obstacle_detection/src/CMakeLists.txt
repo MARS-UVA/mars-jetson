@@ -9,7 +9,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Force MSVC to use dynamic runtime
@@ -40,7 +40,7 @@ add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 # Create executable
 add_executable(${PROJECT_NAME} startup.cpp extract_capture.cpp realsense_capture.cpp models/pc_adacency_tree.cpp)
-add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/pc_adacency_tree.cpp)
+add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp)
 # add_executable(pcTreeSimpleTests EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
 # add_executable(pcTreeQuadrantTest models/pc_adacency_tree.cpp ../test/pc_tree_quadrant_test.cpp realsense_capture.cpp)
 # add_executable(pcTreeGradientTest models/pc_adacency_tree.cpp models/pc_adacency_tree_gradientify.cpp ../test/pc_tree_gradient_test.cpp realsense_capture.cpp)

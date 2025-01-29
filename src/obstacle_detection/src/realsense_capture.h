@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include "models/pc_adacency_tree.h"
+#include <optional>
 // #include <opencv2/opencv.hpp>
 
 #ifndef REALSENSECAPTURE_H
@@ -36,6 +37,10 @@ struct Matrices
 };
 
 void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filename);
-std::shared_ptr<Matrices> capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices);
+void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
+                          const std::vector<std::vector<Coordinate>> &actualCoordinates,
+                          const std::string &filename);
+std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename);
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>> &vertices);
 
 #endif

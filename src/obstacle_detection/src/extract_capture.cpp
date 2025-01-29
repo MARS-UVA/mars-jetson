@@ -6,14 +6,16 @@
 
 std::shared_ptr<Matrices> runMatrixCollector(std::vector<Vertex> &vertices)
 {
-    std::shared_ptr<Matrices> matrices = capture_depth_matrix(nullptr, vertices);
-    save_to_ply(vertices, "vertices_out.ply");
+    std::optional<std::vector<Vertex>> v = vertices;
+    std::shared_ptr<Matrices> matrices = capture_depth_matrix(v);
+    save_to_ply(v.value(), "vertices_out.ply");
     std::cout << "PLY file saved successfullyy!" << std::endl;
     return matrices;
 }
 
 void runPcTreeCollector(PointcloudTree *tree, std::vector<Vertex> &vertices)
 {
-    capture_depth_matrix(tree, vertices);
+    std::optional<std::vector<Vertex>> v = vertices;
+    capture_depth_matrix(v);
     std::cout << "Pointcloud tree created!" << std::endl;
 }

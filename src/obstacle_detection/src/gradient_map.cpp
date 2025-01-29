@@ -9,8 +9,12 @@
 #include "realsense_capture.h"
 #include "gradient_map.h"
 #include <atomic>
+#include <numeric>
+#include <omp.h>
+#include <chrono>
 
 std::mutex sumMutex;
+std::mutex copyMutex;
 
 float magnitude(float x, float y)
 {
@@ -38,56 +42,45 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   std::mutex resultMutex;
 
   // Create and process tiles
-  std::atomic<float> globalSum(0.0f);
-  std::atomic<float> globalGradSum(0.0f);
-  std::atomic<int> totalValidPoints(0);
+  // std::atomic<float> globalSum(0.0f);
+  // std::atomic<float> globalSquareSum(0.0f);
+  // std::atomic<float> globalGradSum(0.0f);
+  // std::atomic<float> globalSquareGradSum(0.0f);
+  // std::atomic<int> totalValidPoints(0);
+  std::vector<float> localMeans(numThreads, 0.0f);
+  std::vector<float> localSquareSums(numThreads, 0.0f);
+  std::vector<float> localStdevs(numThreads, 0.0f);
+  std::vector<float> localGradMeans(numThreads, 0.0f);
+  std::vector<float> localGradSquareSums(numThreads, 0.0f);
+  std::vector<int> localValidPoints(numThreads, 0);
   int n = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   for (int tileStart = 0; tileStart < fullRows; tileStart += tileRows)
   {
     threads.emplace_back([&, tileStart, n]()
                          {
-                // Calculate actual tile dimensions
-                int actualTileRows = std::min(tileRows, fullRows - tileStart);
-                
-                // Create tile with overlap
-                Tile tile = createTileWithOverlap(
-                    heights, actualCoordinates, tileStart, 0, 
-                    actualTileRows, fullCols
-                );
-                {
-                  std::lock_guard<std::mutex> lock(sumMutex);
-                  globalSum.store(globalSum.load() + tile.tileSum);
-                  totalValidPoints.store(totalValidPoints.load() + tile.numValidPoints);
-                }
-                
-                // Calculate gradients for tile
-                auto tileGradients = calculateTileGradients(tile);
-                {
-                  std::lock_guard<std::mutex> lock(sumMutex);
-                  globalGradSum.store(globalGradSum.load() + tile.gradientSum);
-                }
-                
-                // Copy results back to main matrix, excluding overlap
-                {
-                  std::lock_guard<std::mutex> lock(resultMutex);
-                  copyTileResults(result, tileGradients, tile);
-                }
-                
-                // Calculate local stats
-                localStats[n].mean = tile.tileSum / tile.numValidPoints;
-                localStats[n].stdDev = 0.0f;
-                for (int i = 0; i < tile.rows; ++i)
-                {
-                  for (int j = 0; j < tile.cols; ++j)
-                  {
-                    if (tile.actualCoors[i][j]->valid)
-                    {
-                      localStats[n].stdDev += std::pow(tile.data[i][j] - localStats[n].mean, 2);
-                    }
-                  }
-                }
-                localStats[n].stdDev = std::sqrt(localStats[n].stdDev / tile.numValidPoints); });
-    std::cout << "Thread " << n << " started" << std::endl;
+                           // Calculate actual tile dimensions
+                           int actualTileRows = std::min(tileRows, fullRows - tileStart);
+
+                           // Create tile with overlap
+                           Tile tile = createTileWithOverlap(
+                               heights, actualCoordinates, tileStart, 0,
+                               actualTileRows, fullCols);
+
+                           // Calculate gradients for tile
+                           auto tileGradients = calculateTileGradients(tile);
+
+                           // Copy results back to main matrix, excluding overlap
+                           //  std::lock_guard<std::mutex> lock(resultMutex);
+                           copyTileResults(result, tileGradients, tile);
+
+                           // Calculate local stats
+                           localMeans[n] = tile.tileMean;
+                           localStdevs[n] = tile.tileStdDev;
+                           localSquareSums[n] = tile.tileSquareSum;
+                           localGradSquareSums[n] = tile.gradientSquareSum;
+                           localValidPoints[n] = tile.numValidPoints;
+                           localGradMeans[n] = tile.gradientSum / tile.numValidPoints; });
     n++;
   }
 
@@ -96,26 +89,20 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   {
     thread.join();
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  std::cout << "Time taken to calculate gradients: " << elapsed.count() << "s" << std::endl;
 
+  // -------- trying to find a way to optimize/take this piece out
   // Get mean and standard deviation for global
-  globalStats.mean = globalSum.load() / totalValidPoints.load();
-  globalStats.gradMean = globalGradSum.load() / totalValidPoints.load();
-  globalStats.stdDev = 0.0f;
-  globalStats.gradStdDev = 0.0f;
-  for (int i = 0; i < fullRows; ++i)
-  {
-    for (int j = 0; j < fullCols; ++j)
-    {
-      if (actualCoordinates[i][j].valid)
-      {
-        globalStats.stdDev += std::pow(heights[i][j] - globalStats.mean, 2);
-        globalStats.gradStdDev += std::pow(result[i][j] - globalStats.gradMean, 2);
-      }
-    }
-  }
-  globalStats.stdDev = std::sqrt(globalStats.stdDev / totalValidPoints.load());
+  globalStats.mean = std::accumulate(localMeans.begin(), localMeans.end(), 0.0f) / numThreads;
+  globalStats.gradMean = std::accumulate(localGradMeans.begin(), localGradMeans.end(), 0.0f) / numThreads;
+  int totalValidPoints = std::accumulate(localValidPoints.begin(), localValidPoints.end(), 0);
+  globalStats.stdDev = std::sqrt((std::accumulate(localSquareSums.begin(), localSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.mean, 2));
+  globalStats.gradStdDev = std::sqrt((std::accumulate(localGradSquareSums.begin(), localGradSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.gradMean, 2));
 
   // 2nd pass to identify outliers - need to refactor this to be more optimal
+#pragma omp parallel for collapse(2)
   for (int i = 0; i < fullRows; ++i)
   {
     for (int j = 0; j < fullCols; ++j)
@@ -125,9 +112,9 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
         float localMean = localStats[i / tileRows].mean;
         float localStdDev = localStats[i / tileRows].stdDev;
         bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 1.5 * localStdDev;
-        bool hasHighLocalVariance = localStdDev > 1.5 * globalStats.stdDev;
+        bool hasHighLocalVariance = localStdDev > 2 * globalStats.stdDev;
         bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > globalStats.stdDev;
-        bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 1.5 * globalStats.gradStdDev;
+        bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 2 * globalStats.gradStdDev;
         if (((isLocalOutlier || hasHighLocalVariance) && isGlobalOutlier) || isGradientOutlier)
         {
           obstacleVertices.push_back(Vertex(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]));
@@ -166,10 +153,12 @@ Tile ParallelGradientCalculator::createTileWithOverlap(
       {
         tile.numValidPoints++;
       }
+      tile.tileSquareSum += std::pow(heights[i][j], 2);
       tile.tileSum += heights[i][j];
     }
   }
-
+  tile.tileMean = tile.tileSum / tile.numValidPoints;
+  tile.tileStdDev = std::sqrt((tile.tileSquareSum / tile.numValidPoints) - std::pow(tile.tileMean, 2));
   return tile;
 }
 
@@ -187,8 +176,10 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateTileGradien
       double dzdy = calculatePartialY(tile.data, tile.actualCoors, i, j, tile.rows);
       gradients[i][j] = magnitude(dzdx, dzdy);
       tile.gradientSum += gradients[i][j];
+      tile.gradientSquareSum += std::pow(gradients[i][j], 2);
     }
   }
+  // tile.gradientMean = tile.gradientSum / tile.numValidPoints;
 
   return gradients;
 }
@@ -207,6 +198,7 @@ void ParallelGradientCalculator::copyTileResults(
       int globalCol = tile.sCol + (j - OVERLAP);
       if (globalRow < result.size() && globalCol < result[0].size())
       {
+        // place mutex lock here
         result[globalRow][globalCol] = tileGradients[i][j];
       }
     }

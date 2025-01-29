@@ -20,7 +20,75 @@ void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filenam
     out.close();
 }
 
-std::shared_ptr<Matrices> capture_depth_matrix(PointcloudTree *tree, std::vector<Vertex> &vertices)
+void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
+                          const std::vector<std::vector<Coordinate>> &actualCoordinates,
+                          const std::string &filename)
+{
+    std::ofstream out(filename);
+
+    out << heights.size() << " " << heights[0].size() << "\n";
+
+    for (size_t i = 0; i < heights.size(); i++)
+    {
+        for (size_t j = 0; j < heights[i].size(); j++)
+        {
+            float height = heights[i][j];
+            const Coordinate &coord = actualCoordinates[i][j];
+
+            if (coord.valid)
+            {
+                out << height << " " << coord.x << " " << coord.y << "\n";
+            }
+            else
+            {
+                out << height << " inf inf\n";
+            }
+        }
+    }
+    out.close();
+}
+
+std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename)
+{
+    std::ifstream in(filename);
+    if (!in.is_open())
+    {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return nullptr;
+    }
+
+    size_t rows, cols;
+    in >> rows >> cols;
+
+    auto matrices = std::make_shared<Matrices>();
+    matrices->heights = std::vector<std::vector<float>>(rows, std::vector<float>(cols));
+    matrices->actualCoordinates = std::vector<std::vector<Coordinate>>(rows, std::vector<Coordinate>(cols));
+
+    float height, x, y;
+    for (size_t i = 0; i < rows; i++)
+    {
+        for (size_t j = 0; j < cols; j++)
+        {
+            in >> height >> x >> y;
+            matrices->heights[i][j] = height;
+
+            if (x == std::numeric_limits<float>::infinity() &&
+                y == std::numeric_limits<float>::infinity())
+            {
+                matrices->actualCoordinates[i][j] = Coordinate();
+            }
+            else
+            {
+                matrices->actualCoordinates[i][j] = Coordinate(x, y);
+            }
+        }
+    }
+
+    in.close();
+    return matrices;
+}
+
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>> &vertices)
 {
     // std::vector<Vertex> verticesWithCommonCoordinates;
     rs2::pipeline pipe;
@@ -40,10 +108,11 @@ std::shared_ptr<Matrices> capture_depth_matrix(PointcloudTree *tree, std::vector
         }
 
         rs2::decimation_filter decimation;
-        int decimation_magnitude = 2;
+        int decimation_magnitude = 4;
         decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
-        rs2::depth_frame depth = frames.get_depth_frame();
+        rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
+        // rs2::depth_frame decimated_depth = decimation.process(depth);
         rs2::frame color = frames.get_color_frame();
 
         auto stream = depth.get_profile().as<rs2::video_stream_profile>();
@@ -79,10 +148,10 @@ std::shared_ptr<Matrices> capture_depth_matrix(PointcloudTree *tree, std::vector
                     Vertex vertex(point[0], y_rotated, z_rotated);
                     Vertex vertexCommonCoor(x, y, z_rotated);
 
-                    if (tree == nullptr)
-                        vertices.push_back(vertex);
-                    else
-                        tree->add(&vertex);
+                    if (vertices.has_value())
+                    {
+                        vertices->push_back(vertex);
+                    }
                     // verticesWithCommonCoordinates.push_back(vertexCommonCoor);
                     num_vertices++;
                     heights[y][x] = z_rotated;

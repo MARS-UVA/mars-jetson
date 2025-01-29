@@ -6,7 +6,7 @@ int main()
 {
     std::vector<Vertex> vertices;
     PointcloudTree *tree = new PointcloudTree(Point(-5, 10), Point(5, 0));
-    capture_depth_matrix(tree, vertices);
+    capture_depth_matrix(vertices);
 
     std::vector<Vertex> gradientVertices = tree->gradientify();
     std::cout << "Extracted " << gradientVertices.size() << " gradient vertices from tree." << std::endl;
@@ -14,6 +14,6 @@ int main()
 
     tree->clear();
     delete tree;
-    capture_depth_matrix(nullptr, vertices);
+    capture_depth_matrix(vertices);
     return 0;
 }

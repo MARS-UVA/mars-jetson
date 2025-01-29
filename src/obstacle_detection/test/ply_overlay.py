@@ -35,11 +35,11 @@ if viewer_in == 1:
     if viewer_in == 2:
         plt.figure(figsize=(10,8))
         # Plot first point cloud with height-based coloring
-        scatter1 = plt.scatter(x1, y1, c=z1, cmap='viridis', s=1, label='First Point Cloud')
+        scatter1 = plt.scatter(x1, y1, c=z1, cmap='viridis', s=1, label='Input Point Cloud')
         # Plot second point cloud in red
-        scatter2 = plt.scatter(x2, y2, c='red', s=15, label='Second Point Cloud')
+        scatter2 = plt.scatter(x2, y2, c='red', s=15, label='Classified Obstacles')
         
-        plt.colorbar(scatter1, label='Height from ground (First Point Cloud)')
+        plt.colorbar(scatter1, label='Height from ground (Input Point Cloud)')
         plt.title('Overlaid Point Clouds 2D Projection')
         plt.xlabel('X')
         plt.ylabel('Y')
@@ -50,11 +50,11 @@ if viewer_in == 1:
         fig = plt.figure(figsize=(10,8))
         ax = fig.add_subplot(111, projection='3d')
         # Plot first point cloud with height-based coloring
-        scatter1 = ax.scatter(x1, y1, z1, c=z1, cmap='viridis', s=1, label='First Point Cloud')
+        scatter1 = ax.scatter(x1, y1, z1, c=z1, cmap='viridis', s=1, label='Input Point Cloud')
         # Plot second point cloud in red
-        scatter2 = ax.scatter(x2, y2, z2, c='red', s=1, label='Second Point Cloud')
+        scatter2 = ax.scatter(x2, y2, z2, c='red', s=1, label='Classified Obstacles')
         
-        plt.colorbar(scatter1, label='Height from ground (First Point Cloud)')
+        plt.colorbar(scatter1, label='Height from ground (Input Point Cloud)')
         plt.title('Overlaid Point Clouds Visualization')
         ax.legend()
         plt.show()

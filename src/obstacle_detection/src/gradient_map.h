@@ -16,23 +16,34 @@ struct Tile
     std::vector<std::vector<float>> data;
     std::vector<std::vector<std::shared_ptr<Coordinate>>> actualCoors;
     float tileSum;
+    float tileSquareSum;
+    float tileMean;
+    float tileStdDev;
+
     float gradientSum;
+    float gradientSquareSum;
+    float gradientMean;
+
     int numValidPoints;
 
     Tile(int sRow, int sCol, int r, int c)
         : sRow(sRow), sCol(sCol), rows(r), cols(c),
           data(r, std::vector<float>(c)), actualCoors(r, std::vector<std::shared_ptr<Coordinate>>(c)),
-          tileSum(0.0f), numValidPoints(0), gradientSum(0.0f)
+          tileSum(0.0f), numValidPoints(0), gradientSum(0.0f), tileMean(0.0f), gradientMean(0.0f),
+          tileSquareSum(0.0f), tileStdDev(0.0f), gradientSquareSum(0.0f)
     {
     }
 };
 
 struct Stats
 {
+    int validPoints;
     float mean;
     float stdDev;
     float gradMean;
     float gradStdDev;
+    float localSumSquares;
+    float localGradSumSquares;
 };
 
 float magnitude(float x, float y);
