@@ -10,12 +10,12 @@ int main(int argc, char *argv[])
     std::vector<Vertex> vertices;
     if (capture_format)
     {
-        runMatrixCollector(vertices);
+        runMatrixCollector(vertices, 4);
     }
     else
     {
         PointcloudTree *tree = new PointcloudTree(Point(-5, 10), Point(5, 0));
-        runPcTreeCollector(tree, vertices);
+        runPcTreeCollector(tree, vertices, 4);
         delete tree;
     }
     std::cout << "Finished!" << std::endl;

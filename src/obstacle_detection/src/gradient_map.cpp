@@ -33,15 +33,12 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   int fullRows = heights.size();
   int fullCols = heights[0].size();
 
-  // Initialize result matrix
   std::vector<std::vector<float>> result(fullRows, std::vector<float>(fullCols));
 
-  // Calculate tile dimensions
   int tileRows = (fullRows + numThreads - 1) / numThreads;
   std::vector<std::thread> threads;
   std::mutex resultMutex;
 
-  // Create and process tiles
   // std::atomic<float> globalSum(0.0f);
   // std::atomic<float> globalSquareSum(0.0f);
   // std::atomic<float> globalGradSum(0.0f);
@@ -59,22 +56,17 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   {
     threads.emplace_back([&, tileStart, n]()
                          {
-                           // Calculate actual tile dimensions
                            int actualTileRows = std::min(tileRows, fullRows - tileStart);
 
-                           // Create tile with overlap
                            Tile tile = createTileWithOverlap(
                                heights, actualCoordinates, tileStart, 0,
                                actualTileRows, fullCols);
 
-                           // Calculate gradients for tile
                            auto tileGradients = calculateTileGradients(tile);
 
-                           // Copy results back to main matrix, excluding overlap
                            //  std::lock_guard<std::mutex> lock(resultMutex);
                            copyTileResults(result, tileGradients, tile);
 
-                           // Calculate local stats
                            localMeans[n] = tile.tileMean;
                            localStdevs[n] = tile.tileStdDev;
                            localSquareSums[n] = tile.tileSquareSum;
@@ -84,7 +76,6 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
     n++;
   }
 
-  // Wait for all threads to complete
   for (auto &thread : threads)
   {
     thread.join();
@@ -132,7 +123,6 @@ Tile ParallelGradientCalculator::createTileWithOverlap(
     int startRow, int startCol,
     int rows, int cols)
 {
-  // Calculate tile dimensions with overlap
   int overlapStartRow = std::max(0, startRow - OVERLAP);
   int overlapStartCol = std::max(0, startCol - OVERLAP);
   int overlapEndRow = std::min((int)heights.size(), startRow + rows + OVERLAP);
@@ -142,7 +132,6 @@ Tile ParallelGradientCalculator::createTileWithOverlap(
             overlapEndRow - overlapStartRow,
             overlapEndCol - overlapStartCol);
 
-  // Copy data including overlap
   for (int i = overlapStartRow; i < overlapEndRow; ++i)
   {
     for (int j = overlapStartCol; j < overlapEndCol; ++j)
@@ -189,7 +178,6 @@ void ParallelGradientCalculator::copyTileResults(
     const std::vector<std::vector<float>> &tileGradients,
     const Tile &tile)
 {
-  // Copy excluding overlap regions
   for (int i = OVERLAP; i < tile.rows - OVERLAP; ++i)
   {
     for (int j = OVERLAP; j < tile.cols - OVERLAP; ++j)
@@ -198,7 +186,6 @@ void ParallelGradientCalculator::copyTileResults(
       int globalCol = tile.sCol + (j - OVERLAP);
       if (globalRow < result.size() && globalCol < result[0].size())
       {
-        // place mutex lock here
         result[globalRow][globalCol] = tileGradients[i][j];
       }
     }
@@ -227,7 +214,7 @@ float ParallelGradientCalculator::calculatePartialX(
     }
     else
     {
-      return 0.0f; // No valid next point found
+      return 0.0f;
     }
   }
   else if (j == cols - 1)
@@ -275,7 +262,7 @@ float ParallelGradientCalculator::calculatePartialX(
     }
     else
     {
-      return 0.0f; // No valid points found
+      return 0.0f;
     }
   }
 }
@@ -302,7 +289,7 @@ float ParallelGradientCalculator::calculatePartialY(
     }
     else
     {
-      return 0.0f; // No valid next point found
+      return 0.0f;
     }
   }
   else if (i == rows - 1)
@@ -318,7 +305,7 @@ float ParallelGradientCalculator::calculatePartialY(
     }
     else
     {
-      return 0.0f; // No valid next point found
+      return 0.0f;
     }
   }
   else
@@ -349,26 +336,7 @@ float ParallelGradientCalculator::calculatePartialY(
     }
     else
     {
-      return 0.0f; // No valid points found
+      return 0.0f;
     }
   }
 }
-
-// static float calculatePartialY(
-//     const std::vector<std::vector<float>> &heights,
-//     const std::vector<std::vector<std::shared_ptr<Coordinate>>> &actualCoordinates,
-//     int i, int j, int rows)
-// {
-//   if (i == 0)
-//   {
-//     return (heights[i + 1][j] - heights[i][j]) / (actualCoordinates[i + 1][j]->y - actualCoordinates[i][j]->y);
-//   }
-//   else if (i == rows - 1)
-//   {
-//     return (heights[i][j] - heights[i - 1][j]) / (actualCoordinates[i][j]->y - actualCoordinates[i - 1][j]->y);
-//   }
-//   else
-//   {
-//     return (heights[i + 1][j] - heights[i - 1][j]) / (actualCoordinates[i + 1][j]->y - actualCoordinates[i - 1][j]->y);
-//   }
-// }

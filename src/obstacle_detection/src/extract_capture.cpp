@@ -4,18 +4,18 @@
 #include <vector>
 #include "extract_capture.h"
 
-std::shared_ptr<Matrices> runMatrixCollector(std::vector<Vertex> &vertices)
+std::shared_ptr<Matrices> runMatrixCollector(std::vector<Vertex> &vertices, int decimationKernelSize)
 {
-    std::optional<std::vector<Vertex>> v = vertices;
-    std::shared_ptr<Matrices> matrices = capture_depth_matrix(v);
-    save_to_ply(v.value(), "vertices_out.ply");
-    std::cout << "PLY file saved successfullyy!" << std::endl;
+    std::optional<std::vector<Vertex> *> v = &vertices;
+    std::shared_ptr<Matrices> matrices = capture_depth_matrix(v, decimationKernelSize);
+    // save_to_ply(v.value(), "vertices_out.ply");
+    // std::cout << "PLY file saved successfullyy!" << std::endl;
     return matrices;
 }
 
-void runPcTreeCollector(PointcloudTree *tree, std::vector<Vertex> &vertices)
+void runPcTreeCollector(PointcloudTree *tree, std::vector<Vertex> &vertices, int decimationKernelSize)
 {
-    std::optional<std::vector<Vertex>> v = vertices;
-    capture_depth_matrix(v);
+    std::optional<std::vector<Vertex> *> v = &vertices;
+    capture_depth_matrix(v, decimationKernelSize);
     std::cout << "Pointcloud tree created!" << std::endl;
 }

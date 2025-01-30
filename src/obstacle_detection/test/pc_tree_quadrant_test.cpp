@@ -7,7 +7,6 @@ int main()
     std::vector<Vertex> vertices;
     PointcloudTree *tree = new PointcloudTree(Point(-5, 10), Point(5, 0));
     capture_depth_matrix(tree, vertices);
-    // In main or test function
     // tree->print(0);
     std::vector<std::vector<Vertex>> quadrantVertices;
     std::cout << "Extracting leaf nodes at depth 1..." << std::endl;

@@ -41,6 +41,6 @@ void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
                           const std::vector<std::vector<Coordinate>> &actualCoordinates,
                           const std::string &filename);
 std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename);
-std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>> &vertices);
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize);
 
 #endif

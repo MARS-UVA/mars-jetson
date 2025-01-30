@@ -1,23 +1,33 @@
 #include <iostream>
 #include "realsense_capture.h"
+#include <filesystem>
+namespace fs = std::filesystem;
 
 void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filename)
 {
-    std::ofstream out(filename);
-    // just creating the ply file according to it format: https://fileinfo.com/extension/ply
-    out << "ply\n";
-    out << "format ascii 1.0\n";
-    out << "element vertex " << vertices.size() << "\n";
-    out << "property float x\n";
-    out << "property float y\n";
-    out << "property float z\n";
-    out << "end_header\n";
-
-    for (const auto &vertex : vertices)
+    try
     {
-        out << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+        fs::path filepath = fs::path("../../../test/assets") / filename;
+        std::ofstream out(filepath);
+        // just creating the ply file according to it format: https://fileinfo.com/extension/ply
+        out << "ply\n";
+        out << "format ascii 1.0\n";
+        out << "element vertex " << vertices.size() << "\n";
+        out << "property float x\n";
+        out << "property float y\n";
+        out << "property float z\n";
+        out << "end_header\n";
+
+        for (const auto &vertex : vertices)
+        {
+            out << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+        }
+        out.close();
     }
-    out.close();
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
 }
 
 void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
@@ -88,7 +98,7 @@ std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename)
     return matrices;
 }
 
-std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>> &vertices)
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize)
 {
     // std::vector<Vertex> verticesWithCommonCoordinates;
     rs2::pipeline pipe;
@@ -108,7 +118,7 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         }
 
         rs2::decimation_filter decimation;
-        int decimation_magnitude = 4;
+        int decimation_magnitude = decimationKernelSize;
         decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
         rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
@@ -127,6 +137,8 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         int num_vertices = 0;
         heights = std::vector<std::vector<float>>(depth.get_height(), std::vector<float>(depth.get_width(), 0.0));
         actualCoordinates = std::vector<std::vector<Coordinate>>(depth.get_height(), std::vector<Coordinate>(depth.get_width(), Coordinate()));
+        std::vector<Vertex> *verticesRef = vertices.value_or(nullptr);
+
         for (int y = 0; y < depth.get_height(); y++)
         {
             for (int x = 0; x < depth.get_width(); x++)
@@ -148,14 +160,15 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
                     Vertex vertex(point[0], y_rotated, z_rotated);
                     Vertex vertexCommonCoor(x, y, z_rotated);
 
-                    if (vertices.has_value())
-                    {
-                        vertices->push_back(vertex);
-                    }
                     // verticesWithCommonCoordinates.push_back(vertexCommonCoor);
                     num_vertices++;
                     heights[y][x] = z_rotated;
                     actualCoordinates[y][x] = Coordinate(point[0], y_rotated);
+
+                    if (verticesRef)
+                    {
+                        verticesRef->push_back(vertex);
+                    }
                 }
                 else
                 {

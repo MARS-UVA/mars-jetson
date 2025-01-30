@@ -5,7 +5,6 @@
 #include <cmath>
 #include "models/realsense.h"
 #include "realsense_capture.h"
-#include "obstacle_detect.h"
 
 #define OVERLAP 1
 

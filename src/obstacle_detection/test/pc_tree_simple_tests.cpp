@@ -6,13 +6,11 @@ void testPointcloudTreeBasicInsertion()
 {
     PointcloudTree tree(Point(-5, 10), Point(5, 0));
 
-    // Test single point insertion
     Vertex *v = new Vertex(0, 0, 0);
     tree.add(v);
     Node searchNode(Point(0, 0), 0);
     assert(tree.find(&searchNode) != nullptr);
 
-    // Test multiple point insertion
     Node *a = new Node(Point(1.0, 1.0), 1);
     Node *b = new Node(Point(2, 5), 2);
     Node *c = new Node(Point(7, 6), 3);
@@ -53,14 +51,13 @@ void testPointcloudTreeDuplicateInsertion()
 
     Node *a = new Node(Point(1.0, 1.0), 1);
     tree.add(a);
-    tree.add(a); // Duplicate insertion
+    tree.add(a);
 
+    // Should print only one instance of the node
     tree.print(0);
 
     assert(tree.find(a) != nullptr);
 
-    // Verify only one instance exists
-    // This depends on your implementation's duplicate handling
     tree.clear();
     std::cout << "Duplicate insertion test passed!" << std::endl;
 }

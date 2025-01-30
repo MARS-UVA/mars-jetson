@@ -9,7 +9,7 @@
 #include "models/pc_adacency_tree.h"
 #include "realsense_capture.h"
 
-std::shared_ptr<Matrices> runMatrixCollector(std::vector<Vertex> &vertices);
-void runPcTreeCollector(PointcloudTree *tree, std::vector<Vertex> &vertices);
+std::shared_ptr<Matrices> runMatrixCollector(std::vector<Vertex> &vertices, int decimationKernelSize);
+void runPcTreeCollector(PointcloudTree *tree, std::vector<Vertex> &vertices, int decimationKernelSize);
 
 #endif

@@ -1,5 +1,14 @@
 #pragma once
+#include <librealsense2/rs.hpp>
+#include <fstream>
+#include <iostream>
 #include <vector>
+#include <cmath>
+#include <thread>
+#include <mutex>
+#include <vector>
+
+#define M_PI 3.14159265358979323846
 
 struct Vertex
 {
