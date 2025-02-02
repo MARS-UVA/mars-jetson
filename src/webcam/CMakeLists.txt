@@ -39,6 +39,7 @@ endif()
 ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/webcam_publisher.py
+  scripts/webcam_publisher_Nav2.py
   scripts/display.py
   DESTINATION lib/${PROJECT_NAME})
 

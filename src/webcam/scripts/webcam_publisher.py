@@ -11,19 +11,22 @@ webcam_image (type sensor_msgs.msg.Image): BGR8 images from a webcam (QOS: 10).
 """
 
 # ROS Python Libraries
-import rclpy
+#import numpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-#from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CameraInfo
+import sys
 
 # OpenCV imports, use 'pip install opencv-python' to get OpenCV for Python
 from cv_bridge import CvBridge
+from apriltag_pose_estimation.core import CameraParameters, PnPMethod, Transform
 import cv2
+
+sys.path.append('/home/mars_host/mars-jetson/apriltag_pose_estimation/')
 
 
 VIDEO_CAPTURE_PORT = 0
 FRAME_RATE_PER_SECOND = 10
-
 
 class WebcamPublisher(Node):
     """
@@ -38,8 +41,8 @@ class WebcamPublisher(Node):
         # GStreamer. CAP_V4L2 refers to Video for Linux 2, which we're using
         # as an alternative.
         self.cap = cv2.VideoCapture(VIDEO_CAPTURE_PORT, cv2.CAP_V4L2)
-        self.info_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.info_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        #self.info_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        #self.info_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.bridge = CvBridge()
         self.timer = self.create_timer(1 / FRAME_RATE_PER_SECOND,
                                        self.publish_frame)
@@ -55,8 +58,9 @@ class WebcamPublisher(Node):
         if ret:
             img_msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
             self.publisher_.publish(img_msg)
-            print("height ", self.info_height)
-            print("width ", self.info_width)
+            # print("height ", self.info_height)
+            # print("width ", self.info_width)
+            # print ("cx:", CameraParameters.cx)
 
     # def publish_camera_info(self):
     #     cam_msg = self.info_width
