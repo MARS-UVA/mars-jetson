@@ -36,6 +36,7 @@ class WebcamPublisher(Node):
     def __init__(self):
         super().__init__('webcam')  # Calling base class to assign node name 
         self.publisher_ = self.create_publisher(Image, 'webcam_image', 10)
+        self.publisher_ = self.create_publisher(CameraInfo, 'webcam_info', 10)
         #self.publisher_ = self.create_publisher(CameraInfo,'webcam_info', 10)
         # The second parameter is there because we were having issues with
         # GStreamer. CAP_V4L2 refers to Video for Linux 2, which we're using
@@ -62,13 +63,11 @@ class WebcamPublisher(Node):
             # print("width ", self.info_width)
             # print ("cx:", CameraParameters.cx)
 
-    # def publish_camera_info(self):
-    #     cam_msg = self.info_width
-    #     self.publisher_.publish(cam_msg)
-    #     self.get_logger().info('Publishing: "%d"' % cam_msg)
-    #     cam_msg = self.info_height
-    #     self.publisher_.publish(cam_msg)
-    #     self.get_logger().info('Publishing: "%d"' % cam_msg)
+    def publish_camera_info(self):
+        ret = self.cap.read()
+        if ret:
+            print()
+
     def destroy_node(self):
         super().destroy_node()  # Release the video capture on node destruction
         self.cap.release()

@@ -23,9 +23,10 @@ import sys
 from cv_bridge import CvBridge
 from apriltag_pose_estimation.core.camera import CameraParameters
 from apriltag_pose_estimation.localization.estimator import PoseEstimator
+
 import cv2
 
-sys.path.append('/home/mars_host/mars-jetson/apriltag_pose_estimation/')
+#sys.path.append('/home/mars_host/mars-jetson/apriltag_pose_estimation/')
 
 
 VIDEO_CAPTURE_PORT = 0
