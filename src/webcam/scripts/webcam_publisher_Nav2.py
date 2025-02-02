@@ -91,6 +91,7 @@ class WebcamPublisher(Node):
     #         # print("height ", self.info_height)
     #         # print("width ", self.info_width)
     #         print ("cx:", CameraParameters.cx)
+    #
 
     def publish_camera_info(self):
         ret = self.cap.read()
