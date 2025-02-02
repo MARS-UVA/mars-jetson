@@ -19,7 +19,7 @@ import sys
 
 # OpenCV imports, use 'pip install opencv-python' to get OpenCV for Python
 from cv_bridge import CvBridge
-from apriltag_pose_estimation.core import CameraParameters, PnPMethod, Transform
+#from apriltag_pose_estimation.core import CameraParameters, PnPMethod, Transform
 import cv2
 
 sys.path.append('/home/mars_host/mars-jetson/apriltag_pose_estimation/')
