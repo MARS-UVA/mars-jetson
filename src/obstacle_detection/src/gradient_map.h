@@ -5,6 +5,7 @@
 #include <cmath>
 #include "models/realsense.h"
 #include "realsense_capture.h"
+#include "models/obstacle_clustering_tree.h"
 
 #define OVERLAP 1
 
@@ -53,7 +54,8 @@ public:
     static std::vector<std::vector<float>> calculateGradientsParallel(
         const std::vector<std::vector<float>> &heights,
         const std::vector<std::vector<Coordinate>> &actualCoordinates,
-        int numThreads, std::vector<Vertex> &obstacleVertices);
+        int numThreads, std::vector<Vertex> &obstacleVertices,
+        ObstacleClusteringTree &obstacleTree);
 
 private:
     static Tile createTileWithOverlap(

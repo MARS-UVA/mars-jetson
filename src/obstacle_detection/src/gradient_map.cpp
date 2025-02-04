@@ -26,7 +26,8 @@ float magnitude(float x, float y)
 std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsParallel(
     const std::vector<std::vector<float>> &heights,
     const std::vector<std::vector<Coordinate>> &actualCoordinates,
-    int numThreads, std::vector<Vertex> &obstacleVertices)
+    int numThreads, std::vector<Vertex> &obstacleVertices,
+    ObstacleClusteringTree &obstacleTree)
 {
   Stats globalStats;
   std::vector<Stats> localStats(numThreads);
@@ -50,11 +51,11 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   std::vector<float> localGradMeans(numThreads, 0.0f);
   std::vector<float> localGradSquareSums(numThreads, 0.0f);
   std::vector<int> localValidPoints(numThreads, 0);
-  int n = 0;
+  int n;
   auto start = std::chrono::high_resolution_clock::now();
   for (int tileStart = 0; tileStart < fullRows; tileStart += tileRows)
   {
-    threads.emplace_back([&, tileStart, n]()
+    threads.emplace_back([&, tileStart, n = tileStart / tileRows]()
                          {
                            int actualTileRows = std::min(tileRows, fullRows - tileStart);
 
@@ -64,16 +65,13 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
 
                            auto tileGradients = calculateTileGradients(tile);
 
-                           //  std::lock_guard<std::mutex> lock(resultMutex);
-                           copyTileResults(result, tileGradients, tile);
-
                            localMeans[n] = tile.tileMean;
                            localStdevs[n] = tile.tileStdDev;
                            localSquareSums[n] = tile.tileSquareSum;
                            localGradSquareSums[n] = tile.gradientSquareSum;
                            localValidPoints[n] = tile.numValidPoints;
-                           localGradMeans[n] = tile.gradientSum / tile.numValidPoints; });
-    n++;
+                           localGradMeans[n] = tile.gradientSum / tile.numValidPoints;
+                           copyTileResults(result, tileGradients, tile); });
   }
 
   for (auto &thread : threads)
@@ -93,6 +91,10 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   globalStats.gradStdDev = std::sqrt((std::accumulate(localGradSquareSums.begin(), localGradSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.gradMean, 2));
 
   // 2nd pass to identify outliers - need to refactor this to be more optimal
+  std::cout << "Global mean: " << globalStats.mean << std::endl;
+  std::cout << "Global std dev: " << globalStats.stdDev << std::endl;
+  std::cout << "Global gradient mean: " << globalStats.gradMean << std::endl;
+  std::cout << "Global gradient std dev: " << globalStats.gradStdDev << std::endl;
 #pragma omp parallel for collapse(2)
   for (int i = 0; i < fullRows; ++i)
   {
@@ -102,13 +104,15 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
       {
         float localMean = localStats[i / tileRows].mean;
         float localStdDev = localStats[i / tileRows].stdDev;
-        bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 1.5 * localStdDev;
-        bool hasHighLocalVariance = localStdDev > 2 * globalStats.stdDev;
-        bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > globalStats.stdDev;
-        bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 2 * globalStats.gradStdDev;
-        if (((isLocalOutlier || hasHighLocalVariance) && isGlobalOutlier) || isGradientOutlier)
+        bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 2.5 * localStdDev;
+        bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
+        bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > 2.5 * globalStats.stdDev;
+        bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
+        if (isGlobalOutlier || isGradientOutlier)
         {
-          obstacleVertices.push_back(Vertex(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]));
+          Vertex partOfObstacle(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]);
+          obstacleVertices.push_back(partOfObstacle);
+          obstacleTree.add(partOfObstacle);
         }
       }
     }

@@ -62,6 +62,7 @@ int ObstacleNode::size()
 
 void ObstacleClusteringTree::add(Vertex &vertex)
 {
+    // std::cout << "Adding vertex: " << vertex.x << ", " << vertex.y << std::endl;
     if (this->root == nullptr)
     {
         this->root = new ObstacleNode(vertex);
@@ -82,6 +83,10 @@ ObstacleNode *ObstacleClusteringTree::findNearestObstacle(ObstacleNode &subject,
     {
         return nullptr;
     }
+    // else
+    // {
+    //     std::cout << "Node: " << node->getVertex().x << ", " << node->getVertex().y << std::endl;
+    // }
 
     ObstacleNode *nextBranch;
     ObstacleNode *oppositeBranch;
@@ -90,15 +95,28 @@ ObstacleNode *ObstacleClusteringTree::findNearestObstacle(ObstacleNode &subject,
     {
         nextBranch = node->getLeft();
         oppositeBranch = node->getRight();
+        // std::cout << "Next branch: " << nextBranch->getVertex().x << ", " << nextBranch->getVertex().y << std::endl;
+        // std::cout << "Opposite branch: " << oppositeBranch->getVertex().x << ", " << oppositeBranch->getVertex().y << std::endl;
     }
     else
     {
         nextBranch = node->getRight();
         oppositeBranch = node->getLeft();
+        // std::cout << "Next branch: " << nextBranch->getVertex().x << ", " << nextBranch->getVertex().y << std::endl;
+        // std::cout << "Opposite branch: " << oppositeBranch->getVertex().x << ", " << oppositeBranch->getVertex().y << std::endl;
     }
 
+    // if (nextBranch != nullptr)
+    // {
+    //     std::cout << "Next branch: " << nextBranch->getVertex().x << ", " << nextBranch->getVertex().y << std::endl;
+    // }
+    // if (oppositeBranch != nullptr)
+    // {
+    //     // std::cout << "Opposite branch: " << oppositeBranch->getVertex().x << ", " << oppositeBranch->getVertex().y << std::endl;
+    // }
+
     ObstacleNode *temp = this->findNearestObstacle(subject, nextBranch, depth + 1);
-    ObstacleNode *best = this->closestNode(temp, best, subject);
+    ObstacleNode *best = this->closestNode(temp, node, subject);
 
     double radiusSquared = this->distanceSquared(subject, best);
     double distanceSquared = pow(subject.get(depth) - node->get(depth), 2);
@@ -108,6 +126,7 @@ ObstacleNode *ObstacleClusteringTree::findNearestObstacle(ObstacleNode &subject,
         temp = this->findNearestObstacle(subject, oppositeBranch, depth + 1);
         best = this->closestNode(temp, best, subject);
     }
+    return best;
 }
 
 double ObstacleClusteringTree::distanceSquared(ObstacleNode &subject, ObstacleNode *node)

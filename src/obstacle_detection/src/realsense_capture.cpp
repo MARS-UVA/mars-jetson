@@ -34,7 +34,8 @@ void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
                           const std::vector<std::vector<Coordinate>> &actualCoordinates,
                           const std::string &filename)
 {
-    std::ofstream out(filename);
+    fs::path filepath = fs::path("../../../test/assets/matrix_benchmarks") / filename;
+    std::ofstream out(filepath);
 
     out << heights.size() << " " << heights[0].size() << "\n";
 
