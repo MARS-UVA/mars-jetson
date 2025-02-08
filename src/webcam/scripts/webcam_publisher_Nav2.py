@@ -23,6 +23,13 @@ import sys
 from cv_bridge import CvBridge
 from apriltag_pose_estimation.core.camera import CameraParameters
 from apriltag_pose_estimation.localization.estimator import PoseEstimator
+from apriltag_pose_estimation.localization.strategies import MultiTagPnPEstimationStrategy, \
+    LowestAmbiguityEstimationStrategy
+
+from apriltag_pose_estimation.core.field import load_field
+
+with open('field.json', mode='r') as f:
+    field = load_field(f)
 
 import cv2
 

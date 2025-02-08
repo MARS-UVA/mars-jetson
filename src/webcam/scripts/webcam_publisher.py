@@ -11,11 +11,12 @@ webcam_image (type sensor_msgs.msg.Image): BGR8 images from a webcam (QOS: 10).
 """
 
 # ROS Python Libraries
-#import numpy
+import numpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 import sys
+import rclpy
 
 # OpenCV imports, use 'pip install opencv-python' to get OpenCV for Python
 from cv_bridge import CvBridge
@@ -36,7 +37,7 @@ class WebcamPublisher(Node):
     def __init__(self):
         super().__init__('webcam')  # Calling base class to assign node name 
         self.publisher_ = self.create_publisher(Image, 'webcam_image', 10)
-        self.publisher_ = self.create_publisher(CameraInfo, 'webcam_info', 10)
+        #self.publisher_ = self.create_publisher(CameraInfo, 'webcam_info', 10)
         #self.publisher_ = self.create_publisher(CameraInfo,'webcam_info', 10)
         # The second parameter is there because we were having issues with
         # GStreamer. CAP_V4L2 refers to Video for Linux 2, which we're using
@@ -47,8 +48,8 @@ class WebcamPublisher(Node):
         self.bridge = CvBridge()
         self.timer = self.create_timer(1 / FRAME_RATE_PER_SECOND,
                                        self.publish_frame)
-        # self.timer2 = self.create_timer(1 / FRAME_RATE_PER_SECOND,
-        #                                self.publish_camera_info)
+        self.timer2 = self.create_timer(1 / FRAME_RATE_PER_SECOND,
+                                        self.publish_camera_info)
 
     def publish_frame(self):
         """
@@ -66,7 +67,10 @@ class WebcamPublisher(Node):
     def publish_camera_info(self):
         ret = self.cap.read()
         if ret:
-            print()
+            self.info_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            self.info_height= self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            print("height: ", self.info_height)
+            print("width: ", self.info_width)
 
     def destroy_node(self):
         super().destroy_node()  # Release the video capture on node destruction
