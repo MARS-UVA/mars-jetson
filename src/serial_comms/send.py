@@ -13,7 +13,6 @@ def send(data : list[int], messageType : int = 0):
 
 if __name__ == "__main__":
         import sys
-
         header = 0 # 0 for motor commands
         data = [ord('A') for i in range(totalDataBytes)]
         for i in range(1,len(sys.argv)):
