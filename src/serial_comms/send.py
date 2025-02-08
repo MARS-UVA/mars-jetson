@@ -15,10 +15,8 @@ if __name__ == "__main__":
         import sys
 
         header = 0 # 0 for motor commands
-        data = [0x00 for i in range(totalDataBytes)]
+        data = [ord('A') for i in range(totalDataBytes)]
         for i in range(1,len(sys.argv)):
                 data[i-1] = int(sys.argv[i])
-        for i in range(len(sys.argv)-1, totalDataBytes):
-                data[i] = ord('A')
         print(f"Data {data}")
         send(data)
