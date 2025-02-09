@@ -17,18 +17,21 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseWithCovariance
 from sensor_msgs.msg import CameraInfo
 from typing import Dict, List, Optional, TextIO
+from std_msgs.msg import String
 import sys
+import json
+import rclpy
 
 # OpenCV imports, use 'pip install opencv-python' to get OpenCV for Python
 from cv_bridge import CvBridge
-from apriltag_pose_estimation.core.camera import CameraParameters
-from apriltag_pose_estimation.localization.estimator import PoseEstimator
-from apriltag_pose_estimation.localization.strategies import MultiTagPnPEstimationStrategy, \
-    LowestAmbiguityEstimationStrategy
+from apriltag_pose_estimation.core import CameraParameters
+from apriltag_pose_estimation.localization import PoseEstimator
+from apriltag_pose_estimation.localization.strategies import (MultiTagPnPEstimationStrategy, 
+                                                              LowestAmbiguityEstimationStrategy)
 
-from apriltag_pose_estimation.core.field import load_field
+from apriltag_pose_estimation.core import load_field
 
-with open('field.json', mode='r') as f:
+with open('/home/mars_host/mars-jetson/src/webcam/scripts/resources/field.json', mode='r') as f:
     field = load_field(f)
 
 import cv2
@@ -60,14 +63,14 @@ estimator = PoseEstimator(
         decode_sharpening=0.25
     )
 
-class WebcamPublisher(Node):
+class Apriltag_pose_estimate(Node):
     """
     A node that publishes information from a webcam.
     """
 
     def __init__(self):
-        super().__init__('webcam')  # Calling base class to assign node name 
-        self.publisher_ = self.create_publisher(PoseWithCovariance, 'webcam_pose_with_convariance', 10)
+        super().__init__('apriltag_estimation')  # Calling base class to assign node name 
+        #self.publisher_ = self.create_publisher(PoseWithCovariance, 'webcam_pose_with_convariance', 10)
         self.subscription = self.create_subscription(  # Creating a subscription with a callback
             Image,
             'webcam_image',
@@ -78,12 +81,12 @@ class WebcamPublisher(Node):
         # The second parameter is there because we were having issues with
         # GStreamer. CAP_V4L2 refers to Video for Linux 2, which we're using
         # as an alternative.
-        self.cap = cv2.VideoCapture(VIDEO_CAPTURE_PORT, cv2.CAP_V4L2)
+        # self.cap = cv2.VideoCapture(VIDEO_CAPTURE_PORT, cv2.CAP_V4L2)
         #self.info_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         #self.info_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.bridge = CvBridge()
-        self.timer = self.create_timer(1 / FRAME_RATE_PER_SECOND,
-                                       self.publish_frame)
+        # self.timer = self.create_timer(1 / FRAME_RATE_PER_SECOND,
+        #                                self.publish_frame)
         # self.timer2 = self.create_timer(1 / FRAME_RATE_PER_SECOND,
         #                                self.publish_camera_info)
 
@@ -101,23 +104,39 @@ class WebcamPublisher(Node):
     #         print ("cx:", CameraParameters.cx)
     #
 
-    def publish_camera_info(self):
-        ret = self.cap.read()
-        if ret:
-            cam_msg = self.info_width
-            self.publisher_.publish(cam_msg)
-            self.get_logger().info('Publishing: "%d"' % cam_msg)
-            cam_msg = self.info_height
-            self.publisher_.publish(cam_msg)
-            self.get_logger().info('Publishing: "%d"' % cam_msg)
-    def destroy_node(self):
-        super().destroy_node()  # Release the video capture on node destruction
-        self.cap.release()
+    # def publish_camera_info(self):
+    #     ret = self.cap.read()
+    #     if ret:
+    #         cam_msg = self.info_width
+    #         self.publisher_.publish(cam_msg)
+    #         self.get_logger().info('Publishing: "%d"' % cam_msg)
+    #         cam_msg = self.info_height
+    #         self.publisher_.publish(cam_msg)
+    #         self.get_logger().info('Publishing: "%d"' % cam_msg)
+    # def destroy_node(self):
+    #     super().destroy_node()  # Release the video capture on node destruction
+    #     self.cap.release()
+
+    def listener_callback(self, msg: String):
+        """
+        Displays the given image to the local display.
+            
+        :param msg: A message containing a BGR8 image.
+        """
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')  #Convert image to OpenCV matrix
+
+        # cv2.imshow('Image', cv_image)
+        # cv2.waitKey(1)
+            
+        image=cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+
+        result = estimator.estimate_pose(image)
+        print(result.estimated_pose)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = WebcamPublisher()
+    node = Apriltag_pose_estimate()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
