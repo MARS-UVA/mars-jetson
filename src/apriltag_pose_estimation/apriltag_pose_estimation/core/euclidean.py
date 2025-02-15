@@ -60,7 +60,7 @@ class Transform:
                 raise ValueError('the rotation component of the matrix must have determinant +1 or -1')
             if not np.isclose(self.matrix[-1, :-1], 0).all():
                 raise ValueError(f'the bottom row should be [0, 0, 0, 1] '
-                                 f'(got [{', '.join(str(x) for x in self.matrix[-1])}]')
+                                 f'(got [{", ".join(str(x) for x in self.matrix[-1])}]')
 
     @classmethod
     def identity(cls,
