@@ -7,7 +7,7 @@ package_name = 'apriltag_pose_estimation'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=find_packages(include=[package_name, f'{package_name}.*']),
+    packages=find_packages(include=[package_name, f'{package_name}.*'], exclude=['*.testcase']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -17,14 +17,22 @@ setup(
         'setuptools',
         'numpy',
         'opencv-python',
-        'pupil-apriltags',
+        'pupil_apriltags',
         'scipy'
     ],
-    zip_safe=True,
+    extras_require={
+        'render': [
+            'meshio',
+            'pyvista',
+            'pyvistaqt',
+            'PyQt5'
+        ]
+    },
+    zip_safe=False,
     author='MARS @ UVA',
     maintainer='rosdev',
     maintainer_email='ivan.post24@gmail.com',
-    description='A Python library for estimating the pose of AprilTags.',
+    description='A Python library for pose estimation using AprilTags.',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
