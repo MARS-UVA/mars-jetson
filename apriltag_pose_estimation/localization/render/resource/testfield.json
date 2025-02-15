@@ -1,0 +1,45 @@
+{
+  "fiducials": [
+    {
+      "id": 0,
+      "rotation_vector": [
+        -1.2091995761561456,
+        1.2091995761561452,
+        -1.2091995761561458
+      ],
+      "translation_vector": [
+        0,
+        0.105,
+        0.56
+      ]
+    },
+    {
+      "id": 1,
+      "rotation_vector": [
+        -1.5707963267948968,
+        0,
+        0
+      ],
+      "translation_vector": [
+        0.21,
+        -0.9,
+        0.82
+      ]
+    },
+    {
+      "id": 2,
+      "rotation_vector": [
+        0,
+        1.5707963267948963,
+        0
+      ],
+      "translation_vector": [
+        -0.018,
+        -0.445,
+        0.34
+      ]
+    }
+  ],
+  "tag_size": 0.080,
+  "tag_family": "tagStandard41h12"
+}
