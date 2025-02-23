@@ -3,6 +3,7 @@
 
 #include "teleop/control.hpp"
 #include "teleop/signal_processing.hpp"
+#include "teleop_msgs/msg/gamepad_state.hpp"
 
 namespace teleop {
 
@@ -29,7 +30,7 @@ public:
     const bool& invert_turn() const { return _invert_turn; }
     bool& invert_turn() { return _invert_turn; }
 
-    virtual WheelSpeeds operator()(GamepadState gamepad_state);
+    virtual WheelSpeeds operator()(teleop_msgs::msg::GamepadState gamepad_state);
 
 };
 
