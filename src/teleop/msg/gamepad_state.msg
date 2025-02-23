@@ -22,9 +22,9 @@ bool du_pressed false
 bool dl_pressed false
 #d-pad right#
 bool dr_pressed false
-#left stick#
+#left stick pressed#
 bool l3_pressed false
-#right stick#
+#right stick pressed#
 bool r3_pressed false
 #back button#
 bool back_pressed false
