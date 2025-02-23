@@ -7,7 +7,7 @@
 
 #define PORT 8080
 
-int create_server() {
+int create_server(ThreadInfo* data) {
     int socket_desc;
     struct sockaddr_in server_addr, client_addr;
     char server_message[2000], client_message[2000];
@@ -52,6 +52,12 @@ int create_server() {
         
         printf("Msg from client: %s\n", client_message);
         
+        data -> flag = True
+        data -> client_message = client_message
+
+        while(data -> flag){
+        }
+
         // Respond to client:
         strcpy(server_message, client_message);
         
