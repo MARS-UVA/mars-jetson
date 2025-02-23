@@ -2,6 +2,9 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/Image.h>
+#include <opencv2/opencv.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -10,6 +13,8 @@
 
 using namespace std::chrono_literals;
 
+const String CONTROL_STATION_IP = "127.0.0.1"
+const int MOTOR_CURRENT_BYTES = 4;
 
 class NetNode : public rclcpp::Node
 {
@@ -20,14 +25,19 @@ class NetNode : public rclcpp::Node
       publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
       timer_ = this->create_wall_timer(
       500ms, std::bind(&MinimalPublisher::timer_callback, this));
-      subscription_ = this->create_subscriber<std_msgs:msg::String>(
-      "topic", 10, std::bind(&netNode::topic_callback, this, _1));
+      subscription_ = this->create_subscriber<sensor_msgs:msg::Image>(
+      "webcam_image", 10, std::bind(&netNode::topic_callback, this, _1));
     }
 
   private:
-    void topic_callback(const std_msgs::msg::String::SharedPtr msg) const
+    void topic_callback(const sensor_msgs::msg::String::SharedPtr msg) const
     {
-      RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg->data.c_str());
+      RCLCPP_INFO(this->get_logger(), "Recieved a webcam frame");
+      cv_bridge::CvImagePtr cv_ptr;
+      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8)
+      cv::Mat img = cv_ptr->img
+
+      client_send(CONTROL_STATION_IP, img)
     }
 
     void timer_callback()
