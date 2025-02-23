@@ -1,5 +1,5 @@
-#ifndef TELEOP_RAMP_HPP
-#define TELEOP_RAMP_HPP
+#ifndef TELEOP_SIGNAL_PROCESSING_HPP
+#define TELEOP_SIGNAL_PROCESSING_HPP
 
 #include <cmath>
 #include <exception>
@@ -21,7 +21,7 @@ class Ramp {
 public:
 
     Ramp(const double& ramp_rate, rclcpp::Clock& clock) noexcept(false)
-    : _falling_ramp_rate(-abs(ramp_rate)), _rising_ramp_rate(abs(ramp_rate)), clock(clock) {
+    : _falling_ramp_rate(-std::fabs(ramp_rate)), _rising_ramp_rate(std::fabs(ramp_rate)), clock(clock) {
         check_valid_ramp_rate();
     }
 
@@ -48,6 +48,29 @@ private:
             throw std::logic_error("rising_ramp_rate must be positive");
         }
     }
+
+};
+
+class Deadband {
+
+    double _min_magnitude;
+
+public:
+
+    Deadband()
+    : _min_magnitude(0) {
+
+    }
+
+    Deadband(double min_magnitude)
+    : _min_magnitude(abs(min_magnitude)) {
+
+    }
+
+    const double& min_magnitude() const { return _min_magnitude; }
+    double& min_magnitude() { return _min_magnitude; }
+
+    double operator()(double signal) const;
 
 };
 

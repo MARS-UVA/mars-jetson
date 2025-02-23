@@ -1,4 +1,4 @@
-#include "teleop/ramp.hpp"
+#include "teleop/signal_processing.hpp"
 
 namespace teleop {
 
@@ -28,6 +28,14 @@ double Ramp::operator()(double signal) {
 void Ramp::reset() {
     last_time = std::nullopt;
     last_output = std::nullopt;
+}
+
+double Deadband::operator()(double signal) const {
+    if (signal < 0) {
+        return (signal <= -_min_magnitude) ? signal : 0;
+    } else {
+        return (signal >= _min_magnitude) ? signal : 0;
+    }
 }
 
 }  /* namespace teleop */
