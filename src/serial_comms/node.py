@@ -5,10 +5,11 @@ from std_msgs.msg import String
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
+MOTOR_STILL = 127
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [127] # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
+        self.data = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
         super().__init__('Reading from Tele-op')
         self.subscription = self.create_subscription(
             String,
