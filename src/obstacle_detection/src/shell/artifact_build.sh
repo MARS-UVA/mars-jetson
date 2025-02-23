@@ -1,5 +1,7 @@
 BUILD_DIR=../build
 DEBUG_DIR=../build/Debug
+sudo apt-get install xorg-dev libglu1-mesa-dev
+sudo apt install libssl-dev
 if [ $# == 0 ]; then
     if [ ! -d $BUILD_DIR ]; then
         mkdir $BUILD_DIR
@@ -7,6 +9,7 @@ if [ $# == 0 ]; then
     fi
     if [ ! -f $DEBUG_DIR/realsense_capture ]; then
         cd $BUILD_DIR
+        rm $BUILD_DIR ## austen was here hehehehoohohoohoho
         cmake ..
         make
     fi
@@ -21,3 +24,4 @@ elif [ $1 == "run" ]; then
 else
     echo "Invalid argument"
 fi
+

@@ -7,7 +7,7 @@ from std_msgs.msg import String
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [0,0,0,0,0,0,0] # 0:header, [1:5]:4 wheels, 5:bucket drum, 6:linear actuator
+        self.data = [127] * 7 # 0:header, [1:5]:4 wheels, 5:bucket drum, 6:linear actuator
         super().__init__('Reading from Tele-op')
         self.subscription = self.create_subscription(
             String,
