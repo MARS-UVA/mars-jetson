@@ -33,4 +33,4 @@ bool start_pressed false
 #right stick#
 StickPosition left_stick
 #left stick#
-StickPosition right stick
+StickPosition right_stick
