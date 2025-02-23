@@ -1,13 +1,14 @@
 import rclpy
 from rclpy.node import Node
-
+from send import send
 from std_msgs.msg import String
 
-
+MOTOR_CURRENT_MSG = 0
+SEND_DELAY_SEC = 0.1
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [127] * 7 # 0:header, [1:5]:4 wheels, 5:bucket drum, 6:linear actuator
+        self.data = [127] # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
         super().__init__('Reading from Tele-op')
         self.subscription = self.create_subscription(
             String,
@@ -15,10 +16,12 @@ class SerialNode(Node):
             self.listener_callback,
             1) #1 queued message
         self.subscription  # prevent unused variable warning
+        self.timed_publisher = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
 
     def listener_callback(self, msg):
         self.get_logger().info('I heard: "%s"' % msg.data)
-
+    def sendCurrents(self):
+        send(MOTOR_CURRENT_MSG, self.data)
 def main(args=None):
     rclpy.init(args=args)
 
