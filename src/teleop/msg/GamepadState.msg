@@ -31,6 +31,6 @@ bool back_pressed false
 #start button#
 bool start_pressed false
 #right stick#
-stick_position left_stick
+StickPosition left_stick
 #left stick#
-stick_position right stick
+StickPosition right stick
