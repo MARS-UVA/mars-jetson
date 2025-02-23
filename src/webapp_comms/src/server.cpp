@@ -7,7 +7,7 @@
 
 #define PORT 8080
 
-int main() {
+int create_server() {
     int socket_desc;
     struct sockaddr_in server_addr, client_addr;
     char server_message[2000], client_message[2000];
