@@ -7,7 +7,7 @@
 
 namespace teleop {
 
-WheelSpeeds ArcadeDrive::operator()(teleop_msgs::msg::GamepadState gamepad_state) {
+WheelSpeeds ArcadeDrive::get_wheel_speeds(teleop_msgs::msg::GamepadState gamepad_state) {
     double linear_rate = (_invert_linear ? -1 : 1) * std::clamp(gamepad_state.left_stick.y, -1.0, 1.0);
     double turn_rate = (_invert_turn ? -1 : 1) * std::clamp(gamepad_state.left_stick.x, -1.0, 1.0);
 

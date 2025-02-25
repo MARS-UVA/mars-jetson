@@ -30,7 +30,7 @@ public:
     const bool& invert_turn() const { return _invert_turn; }
     bool& invert_turn() { return _invert_turn; }
 
-    virtual WheelSpeeds operator()(teleop_msgs::msg::GamepadState gamepad_state);
+    virtual WheelSpeeds get_wheel_speeds(teleop_msgs::msg::GamepadState gamepad_state);
 
 };
 
