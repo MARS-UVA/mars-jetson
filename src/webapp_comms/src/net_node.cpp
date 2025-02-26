@@ -31,7 +31,7 @@ class NetNode : public rclcpp::Node
     : Node("NetNode"), count_(0)
     {
       publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
-      timer_ = this->create_wall_timer(100000ms, std::bind(&NetNode::timer_callback, this));
+      timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
       subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
         "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
     }

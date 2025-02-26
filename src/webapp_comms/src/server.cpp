@@ -55,7 +55,7 @@ int create_server(ThreadInfo* data) {
         printf("Msg from client: %s\n", client_message);
         
         data -> flag = true;
-        //data -> client_message = client_message;
+        data -> client_message = client_message;
 
         while(data -> flag){
         }
