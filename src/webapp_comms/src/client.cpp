@@ -13,7 +13,7 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip, int 
 
     /* Set port and IP for control station laptop: */
     struct sockaddr_in control_station_addr;
-    socklen_t contol_station_struct_len = sizeof(control_station_addr);
+    socklen_t control_station_struct_len = sizeof(control_station_addr);
     control_station_addr.sin_family = AF_INET;
     control_station_addr.sin_port = htons(port);
     control_station_addr.sin_addr.s_addr = inet_addr(control_station_ip);
@@ -48,7 +48,8 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
     ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
 
     size_t sent_bytes = 0;
-    int seqNo = 0;
+    uint16_t seqNo = 0;
+    uint16_t totalChunks = data_size / CHUNK_SIZE;
     char sendBuffer[CHUNK_SIZE + HEADER_SIZE];
     memset(sendBuffer, '\0', sizeof(sendBuffer));
 
@@ -57,7 +58,8 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
         size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
         DataHeader header_struct;
         DataHeader *header = &header_struct;
-        header->sequence = (uint32_t)seqNo;
+        header->packetNum = seqNo;
+        header->totalPackets = totalChunks;
         header->fragment_size = (uint16_t)bytes_to_send;
         header->crc = crc32bit((char *)(data + sent_bytes), bytes_to_send);
         memcpy(sendBuffer, header, HEADER_SIZE);

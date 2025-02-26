@@ -17,7 +17,8 @@ ConnectionHeaders create_connection_headers(const char *control_station_ip);
 
 struct DataHeader
 {
-    int sequence;
+    uint16_t packetNum;
+    uint16_t totalPackets;
     uint16_t fragment_size;
     uint32_t crc;
 } __attribute__((packed));

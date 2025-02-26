@@ -20,25 +20,19 @@ find_package(OpenCV REQUIRED)
 # find_package(<dependency> REQUIRED)
 include_directories(include)
 
-#add_executable(cam_pub src/simple_publisher.cpp)
-#add_executable(cam_sub src/simple_subscriber.cpp)
-add_executable(dummy_pub src/dummy_image_publisher.cpp)
-add_executable(image_sub src/image_sub.cpp)
+add_executable(net_node
+  src/net_node.cpp
+  src/server.cpp
+  src/client.cpp
+  src/frame_sender.cpp
+)
 
-target_link_libraries(dummy_pub ${OpenCV_LIBS})
-target_link_libraries(image_sub ${OpenCV_LIBS})
-target_include_directories(dummy_pub PRIVATE ${OpenCV_INCLUDE_DIRS})
-target_include_directories(image_sub PRIVATE ${OpenCV_INCLUDE_DIRS})
-#ament_target_dependencies(cam_pub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
-#ament_target_dependencies(cam_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
-ament_target_dependencies(dummy_pub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
-ament_target_dependencies(image_sub rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
+target_link_libraries(net_node ${OpenCV_LIBS})
+target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
+ament_target_dependencies(net_node rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV)
 
 install(TARGETS
- #cam_pub
- # cam_sub
-  dummy_pub
-  image_sub
+  net_node
   DESTINATION lib/${PROJECT_NAME})
 
 

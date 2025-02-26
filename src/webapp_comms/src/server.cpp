@@ -1,9 +1,11 @@
+#include "./server.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <thread>
 
 #define PORT 8080
 
@@ -52,8 +54,8 @@ int create_server(ThreadInfo* data) {
         
         printf("Msg from client: %s\n", client_message);
         
-        data -> flag = True
-        data -> client_message = client_message
+        data -> flag = true;
+        //data -> client_message = client_message;
 
         while(data -> flag){
         }

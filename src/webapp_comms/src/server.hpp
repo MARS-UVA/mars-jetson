@@ -5,11 +5,11 @@
 #include <netinet/in.h>
 #include "main.hpp"
 
-struct {
-    char[2000] client_message
-    bool global_flag
-  } ThreadInfo;
+struct ThreadInfo {
+    char client_message[2000];
+    bool flag;
+};
 
-int create_server();
+int create_server(ThreadInfo* info);
 
 #endif
