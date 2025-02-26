@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "teleop/control.hpp"
+#include "teleop/arcade_drive.hpp"
 #include "teleop_msgs/msg/gamepad_state.hpp"
 
 namespace teleop {
@@ -23,7 +24,7 @@ public:
         gamepad_state_subscription = create_subscription<teleop_msgs::msg::GamepadState>(
             "gamepad_state",
             10,
-            std::bind(&on_receive_gamepad_state, this, _1)
+            std::bind(&teleop::TeleopNode::on_receive_gamepad_state, this, _1)
         );
     }
 
@@ -47,7 +48,7 @@ private:
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<teleop::TeleopNode>());
+    rclcpp::spin(std::make_shared<teleop::TeleopNode>(std::make_unique<teleop::ArcadeDrive>()));
     rclcpp::shutdown();
     return 0;
 }

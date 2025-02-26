@@ -27,7 +27,7 @@ struct WheelSpeeds {
 class DriveControlStrategy {
 public:
 
-    virtual WheelSpeeds get_wheel_speeds(teleop_msgs::msg::GamepadState state) = 0;
+    virtual WheelSpeeds get_wheel_speeds(teleop_msgs::msg::GamepadState gamepad_state) = 0;
 
 };
 
