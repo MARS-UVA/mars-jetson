@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from send import send
+from serial_ros.send import send
 from std_msgs.msg import String
 
 MOTOR_CURRENT_MSG = 0
@@ -23,6 +23,7 @@ class SerialNode(Node):
         self.get_logger().info('I heard: "%s"' % msg.data)
     def sendCurrents(self):
         send(MOTOR_CURRENT_MSG, self.data)
+
 def main(args=None):
     rclpy.init(args=args)
 
