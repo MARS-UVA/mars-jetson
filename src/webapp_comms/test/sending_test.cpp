@@ -91,7 +91,7 @@ TEST_CASE("Test client sending small data to a server [client_udp.h]")
         buffer[received] = '\0';
         REQUIRE(received - HEADER_SIZE == data_size);
         REQUIRE(memcmp(buffer + HEADER_SIZE, data, data_size) == 0);
-        REQUIRE(((DataHeader *)buffer)->sequence == 0);
+        REQUIRE(((DataHeader *)buffer)->packetNum == 0);
         REQUIRE(((DataHeader *)buffer)->fragment_size == data_size);
         REQUIRE(((DataHeader *)buffer)->crc == crc32bit((char *)data, data_size));
         break;
