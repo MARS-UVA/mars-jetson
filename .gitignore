@@ -4,3 +4,15 @@ build
 install
 devel
 log
+
+# Built Python packages
+*.egg-info
+
+# Ignore dev containers for now
+.devcontainer
+
+# Also ignore Python virtual environments
+.venv
+
+# macOS filesystem files
+.DS_Store
