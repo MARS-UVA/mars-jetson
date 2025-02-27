@@ -27,6 +27,7 @@ uint32_t crc32bit(const char *data, size_t data_size)
     uint32_t crc = 0xFFFFFFFF;
     for (size_t i = 0; i < data_size; i++)
     {
+        // std::cout << "Data: " << data[i] << std::endl;
         crc = crc ^ data[i];
         for (size_t j = 0; j < 8; j++)
         {

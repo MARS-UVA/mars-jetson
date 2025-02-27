@@ -2,7 +2,8 @@
 
 void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
 {
-    uint16_t total_chunks, start, end;
+    uint16_t total_chunks;
+    uint32_t start, end;
 
     /* Frame compression and encoding */
     std::vector<unsigned char> buffer;
@@ -21,11 +22,11 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
     memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
     for (uint16_t i = 0; i < total_chunks; i++)
     {
-        std::cout << i << " out of " << total_chunks << std::endl;
+        std::cout << i+1 << " out of " << total_chunks << std::endl;
         start = i * CHUNK_SIZE;
-        end = (start + CHUNK_SIZE > buffer_size) ? buffer_size : start + CHUNK_SIZE;
+        end = (start + CHUNK_SIZE >= buffer_size) ? buffer_size : start + CHUNK_SIZE;
 
-        DataHeader header = {i, total_chunks, (uint16_t)(end - start), crc32bit((char *)(buffer.data() + start), end - start)};
+        DataHeader header = {i, total_chunks, (uint16_t)(end - start), crc32bit((char *)(buffer.data() + start), (uint16_t)(end - start))};
         memcpy(sendBuffer, &header, HEADER_SIZE);
         memcpy(sendBuffer + HEADER_SIZE, buffer.data() + start, end - start);
 
@@ -34,13 +35,13 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
                                              (end - start) + HEADER_SIZE, 0,
                                              (struct sockaddr *)&(connectionHeaders.control_station_addr),
                                              sizeof(connectionHeaders.control_station_addr));
+
         if (transmission_result < 0)
         {
             throw std::runtime_error("Unable to send message");
             return;
         }
         memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
-        usleep(100000);
     }
     free(sendBuffer);
 }
