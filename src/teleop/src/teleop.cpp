@@ -1,10 +1,12 @@
-#include <cstdio>
+#include <iostream>
 
-int main(int argc, char ** argv)
+#include "teleop_msgs/msg/gamepad_state.hpp"
+
+int main()
 {
-  (void) argc;
-  (void) argv;
+  teleop_msgs::msg::GamepadState state;
 
-  printf("hello world teleop package\n");
+  std::cout << state.a_pressed << std::endl;
+
   return 0;
 }

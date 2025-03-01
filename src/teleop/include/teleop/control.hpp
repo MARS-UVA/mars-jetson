@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include "teleop_msgs/msg/gamepad_state.hpp"
+
 namespace teleop {
 
 struct WheelSpeeds {
@@ -15,20 +17,10 @@ struct WheelSpeeds {
     }
 };
 
-struct GamepadState {
-    StickPosition left_stick;
-    StickPosition right_stick;
-};
-
-struct StickPosition {
-    double x;
-    double y;
-};
-
 class DriveControlStrategy {
 public:
 
-    virtual WheelSpeeds operator()(GamepadState gamepad_state) = 0;
+    virtual WheelSpeeds operator()(teleop_msgs::msg::GamepadState state) = 0;
 
 };
 
