@@ -1,6 +1,6 @@
 import math
 
-from teleop_msgs.msg import GamepadState
+from teleop_msgs.msg import GamepadState, StickPosition
 
 from .base import DriveControlStrategy, WheelSpeeds
 
@@ -36,8 +36,8 @@ class ArcadeDrive(DriveControlStrategy):
         self.__square_inputs = bool(value)
 
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
-        linear_rate = self.__linear_factor() * gamepad_state.left_stick.y
-        turn_rate = self.__turn_factor() * gamepad_state.left_stick.x
+        linear_rate = self.__linear_factor() * (gamepad_state.left_stick.y / abs(StickPosition.MAX_Y))
+        turn_rate = -self.__turn_factor() * (gamepad_state.left_stick.x / abs(StickPosition.MAX_X))
 
         if self.__square_inputs:
             linear_rate = math.copysign(linear_rate * linear_rate, linear_rate)
