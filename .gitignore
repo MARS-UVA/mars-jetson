@@ -4,4 +4,19 @@ build
 install
 devel
 log
+<<<<<<< HEAD
 **/realsense-source/
+=======
+
+# Built Python packages
+*.egg-info
+
+# Ignore dev containers for now
+.devcontainer
+
+# Also ignore Python virtual environments
+.venv
+
+# macOS filesystem files
+.DS_Store
+>>>>>>> origin/tele-op
