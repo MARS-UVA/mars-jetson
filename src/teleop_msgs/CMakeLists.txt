@@ -27,6 +27,7 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/GamepadState.msg"
     "msg/StickPosition.msg"
+    "msg/SetMotorVelocity.msg"
 )
 
 ament_package()
