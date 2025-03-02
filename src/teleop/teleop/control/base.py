@@ -12,6 +12,12 @@ class WheelSpeeds:
     def __init__(self, left: float, right: float):
         self.__left = self.__clamp(float(left))
         self.__right = self.__clamp(float(right))
+    
+    def left(self) -> float:
+        return self.__left
+    
+    def right(self) -> float:
+        return self.__right
 
     def __eq__(self, value: Any) -> bool:
         if not isinstance(value, WheelSpeeds):
@@ -30,7 +36,7 @@ class WheelSpeeds:
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(left={self.__left!r}, right={self.__right!r})'
-
+    
 
 class DriveControlStrategy(abc.ABC):
     @abc.abstractmethod
