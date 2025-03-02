@@ -32,7 +32,7 @@ class TeleopNode(Node):
         self.__drive_control_strategy = copy.copy(value)
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
-        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state)
+        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
 
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
