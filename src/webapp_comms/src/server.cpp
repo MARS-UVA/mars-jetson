@@ -34,8 +34,8 @@ int create_server(ThreadInfo *info)
 
     // Set port and IP:
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr("192.168.0.200");
 
     // Bind to the set port and IP:
     int reuse_option = 1;

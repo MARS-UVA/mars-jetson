@@ -42,7 +42,7 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
             return;
         }
         memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
-        usleep(1000);
+        usleep(10000);
     }
     free(sendBuffer);
 }

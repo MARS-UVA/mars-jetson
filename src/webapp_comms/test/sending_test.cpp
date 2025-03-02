@@ -248,6 +248,7 @@ TEST_CASE("Test client sending image to a server [client_udp.h]")
     }
 
     client_thread.join();
+    std::cout << "Finished thread" << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
@@ -256,7 +257,6 @@ TEST_CASE("Test client sending image to a server [client_udp.h]")
     REQUIRE(memcmp(received_data.data(), imgBuffer.data(), imgBuffer.size()) == 0);
     cv::Mat receivedImage = cv::imdecode(received_data, cv::IMREAD_COLOR);
     cv::imshow("Received Image", receivedImage);
-    cv::imwrite("output_image.jpg", receivedImage);
     std::cout << "Elapsed time of [Image Data] test: " << elapsed_seconds.count() << "s\n";
     REQUIRE(receivedImage.rows == imageMatrix.rows);
     REQUIRE(receivedImage.cols == imageMatrix.cols);

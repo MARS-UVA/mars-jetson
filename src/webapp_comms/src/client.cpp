@@ -50,7 +50,7 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
 
     size_t sent_bytes = 0;
     uint16_t seqNo = 0;
-    uint16_t totalChunks = data_size / CHUNK_SIZE;
+    uint16_t totalChunks = data_size / CHUNK_SIZE + (data_size % CHUNK_SIZE > 0 ? 1 : 0);
     char sendBuffer[CHUNK_SIZE + HEADER_SIZE];
     memset(sendBuffer, '\0', sizeof(sendBuffer));
 
