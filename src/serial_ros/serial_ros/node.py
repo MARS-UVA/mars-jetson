@@ -22,7 +22,8 @@ class SerialNode(Node):
 
     def listener_callback(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)
-        
+        for change in msg.changes:
+            self.data[change.index] = change.velocity
         
     def sendCurrents(self):
         send(MOTOR_CURRENT_MSG, self.data)
