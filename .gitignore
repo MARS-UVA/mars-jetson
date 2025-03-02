@@ -4,9 +4,7 @@ build
 install
 devel
 log
-<<<<<<< HEAD
 **/realsense-source/
-=======
 
 # Built Python packages
 *.egg-info
@@ -19,4 +17,3 @@ log
 
 # macOS filesystem files
 .DS_Store
->>>>>>> origin/tele-op
