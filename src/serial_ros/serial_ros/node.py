@@ -7,14 +7,15 @@ from teleop_msgs.msg import MotorChanges
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
 MOTOR_STILL = 127
+
 class SerialNode(Node):
 
     def __init__(self):
         self.data = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
-        super().__init__('Reading from Tele-op')
+        super().__init__('read_from_teleop')
         self.subscription = self.create_subscription(
             MotorChanges,
-            'tele-op',
+            'teleop',
             self.listener_callback,
             1) #1 queued message
         self.subscription  # prevent unused variable warning
@@ -26,6 +27,7 @@ class SerialNode(Node):
             self.data[change.index] = change.velocity
         
     def sendCurrents(self):
+        #print(ok)
         send(MOTOR_CURRENT_MSG, self.data)
 
 def main(args=None):
