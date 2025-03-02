@@ -6,6 +6,7 @@ find_package(OpenCV REQUIRED)
 
 add_executable(test
     sending_test.cpp
+    jetson_server_test.cpp
     ../src/client.cpp
     ../src/frame_sender.cpp
     ../src/server.cpp

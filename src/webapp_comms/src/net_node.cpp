@@ -46,13 +46,12 @@ private:
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = cv_ptr->image;
 
-    client_send(CONTROL_STATION_IP, img);
+    client_send(CONTROL_STATION_IP, img, WEBCAM_PORT);
     RCLCPP_INFO(this->get_logger(), "Sent");
   }
 
   void timer_callback()
   {
-    RCLCPP_INFO(this->get_logger(), "Started timer_callback");
     auto message = std_msgs::msg::String();
     if (info.flag == true)
     {
@@ -63,7 +62,6 @@ private:
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
       publisher_->publish(message);
     }
-    // RCLCPP_INFO(this->get_logger(), "Ending timer_callback");
   }
 
   rclcpp::TimerBase::SharedPtr timer_;

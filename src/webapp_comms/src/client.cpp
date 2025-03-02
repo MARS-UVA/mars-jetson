@@ -44,9 +44,9 @@ uint32_t crc32bit(const char *data, size_t data_size)
     return ~crc;
 }
 
-void client_send(const char *control_station_ip, unsigned char *data, size_t data_size)
+void client_send(const char *control_station_ip, unsigned char *data, size_t data_size, int server_port)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, server_port);
 
     size_t sent_bytes = 0;
     uint16_t seqNo = 0;
@@ -81,9 +81,9 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
     close(connection_headers.client_socket_fd);
 }
 
-void client_send(const char *control_station_ip, cv::Mat &image)
+void client_send(const char *control_station_ip, cv::Mat &image, int server_port)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, server_port);
     send_frame(connection_headers, image);
     close(connection_headers.client_socket_fd);
 }
