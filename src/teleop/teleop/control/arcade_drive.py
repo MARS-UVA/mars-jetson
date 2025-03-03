@@ -6,10 +6,30 @@ from .base import DriveControlStrategy, WheelSpeeds
 
 
 class ArcadeDrive(DriveControlStrategy):
-    def __init__(self, invert_linear: bool = False, invert_turn: bool = False, square_inputs: bool = True):
+    """Drive control strategy where linear and angular velocity are controlled separately."""
+
+    def __init__(self, full_forward_magnitude: float, invert_linear: bool = False, invert_turn: bool = False, shape: float = 1):
+        if not (0 < full_forward_magnitude <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 (exclusive) and 1 (inclusive) (got {full_forward_magnitude})')
+        self.__full_forward_magnitude = float(full_forward_magnitude)
         self.__invert_linear = invert_linear
         self.__invert_turn = invert_turn
-        self.__square_inputs = square_inputs
+        self.__shape = shape
+
+    @property
+    def full_forward_magnitude(self) -> float:
+        return self.full_forward_magnitude
+
+    @full_forward_magnitude.setter
+    def full_forward_magnitude(self, value: float) -> float:
+        if not (0 < value <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 (exclusive) and 1 (inclusive) (got {value})')
+        self.__full_forward_magnitude = float(value)
+
+    @property
+    def __virtual_half_wheel_distance(self) -> float:
+        # (1 / full_forward_magnitude) - 1
+        return (1 / self.__full_forward_magnitude) - 1
 
     @property
     def invert_linear(self) -> bool:
@@ -28,33 +48,26 @@ class ArcadeDrive(DriveControlStrategy):
         self.__invert_turn = bool(value)
 
     @property
-    def square_inputs(self) -> bool:
-        return self.__square_inputs
+    def shape(self) -> float:
+        return self.__shape
 
-    @square_inputs.setter
-    def square_inputs(self, value: bool) -> bool:
-        self.__square_inputs = bool(value)
+    @shape.setter
+    def shape(self, value: float):
+        self.__shape = float(value)
 
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
         linear_rate = self.__linear_factor() * (gamepad_state.left_stick.y / abs(StickPosition.MAX_Y))
         turn_rate = -self.__turn_factor() * (gamepad_state.left_stick.x / abs(StickPosition.MAX_X))
 
-        if self.__square_inputs:
-            linear_rate = math.copysign(linear_rate * linear_rate, linear_rate)
-            turn_rate = math.copysign(turn_rate * turn_rate, turn_rate)
+        if self.__shape != 1:
+            linear_rate = math.copysign(linear_rate ** self.__shape, linear_rate)
+            turn_rate = math.copysign(turn_rate ** self.__shape, turn_rate)
 
-        left_speed = linear_rate - turn_rate
-        right_speed = linear_rate + turn_rate
-
-        greater_input = max(abs(linear_rate), abs(turn_rate))
-        lesser_input = min(abs(linear_rate), abs(turn_rate))
-
-        if greater_input == 0.0:
-            return WheelSpeeds(left=0, right=0)
-
-        saturated_input = (greater_input + lesser_input) / greater_input
-        left_speed /= saturated_input
-        right_speed /= saturated_input
+        angular_factor = self.__virtual_half_wheel_distance * turn_rate
+        left_speed = linear_rate - angular_factor
+        right_speed = linear_rate + angular_factor
+        left_speed *= self.__full_forward_magnitude
+        right_speed *= self.__full_forward_magnitude
 
         return WheelSpeeds(left=left_speed, right=right_speed)
 

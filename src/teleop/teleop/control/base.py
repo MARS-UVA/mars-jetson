@@ -13,6 +13,14 @@ class WheelSpeeds:
         self.__left = self.__clamp(float(left))
         self.__right = self.__clamp(float(right))
 
+    @property
+    def left(self) -> float:
+        return self.__left
+
+    @property
+    def right(self) -> float:
+        return self.__right
+
     def __eq__(self, value: Any) -> bool:
         if not isinstance(value, WheelSpeeds):
             return False
