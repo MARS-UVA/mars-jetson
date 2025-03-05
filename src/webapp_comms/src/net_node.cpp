@@ -5,6 +5,8 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
+#include <teleop_msgs/msg/GamepadState.msg>
+#include <teleop_msgs/msg/HumanInputState.msg>
 #include <opencv2/opencv.hpp>
 #include <thread>
 
@@ -32,7 +34,7 @@ public:
   NetNode()
       : Node("NetNode"), count_(0)
   {
-    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+    publisher_ = this->create_publisher<teleop_msgs::msg::GamepadState>("gamepad_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
         "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
@@ -52,15 +54,18 @@ private:
 
   void timer_callback()
   {
-    auto message = std_msgs::msg::String();
+    std::string message;
+    auto msg = teleop_msgs::msg::GamePad();
     if (info.flag == true)
     {
-      memcpy(message.data.data(), info.client_message, sizeof(info.client_message));
-      message.data = info.client_message;
+      memcpy(message, info.client_message, sizeof(info.client_message));
+      
+      
+
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-      publisher_->publish(message);
+      publisher_->publish(msg);
     }
   }
 
