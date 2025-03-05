@@ -1,8 +1,10 @@
 import abc
+from dataclasses import dataclass
+from enum import Enum, auto
 import math
 from typing import Any
 from ..signal_processing import Clamp
-from teleop_msgs.msg import GamepadState
+from teleop_msgs.msg import GamepadState, StickPosition
 
 
 class WheelSpeeds:
@@ -38,6 +40,44 @@ class WheelSpeeds:
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(left={self.__left!r}, right={self.__right!r})'
+
+
+class _GamepadAxisId(Enum):
+    LEFT_X = auto()
+    LEFT_Y = auto()
+    RIGHT_X = auto()
+    RIGHT_Y = auto()
+
+
+@dataclass(frozen=True, kw_only=True)
+class AxisProperties:
+    id_: _GamepadAxisId
+    inverted: bool
+
+
+class GamepadAxis(Enum):
+    LEFT_X = AxisProperties(id_=_GamepadAxisId.LEFT_X, inverted=False)
+    LEFT_Y = AxisProperties(id_=_GamepadAxisId.LEFT_Y, inverted=False)
+    RIGHT_X = AxisProperties(id_=_GamepadAxisId.RIGHT_X, inverted=False)
+    RIGHT_Y = AxisProperties(id_=_GamepadAxisId.RIGHT_Y, inverted=False)
+
+    LEFT_X_INVERTED = AxisProperties(id_=_GamepadAxisId.LEFT_X, inverted=True)
+    LEFT_Y_INVERTED = AxisProperties(id_=_GamepadAxisId.LEFT_Y, inverted=True)
+    RIGHT_X_INVERTED = AxisProperties(id_=_GamepadAxisId.RIGHT_X, inverted=True)
+    RIGHT_Y_INVERTED = AxisProperties(id_=_GamepadAxisId.RIGHT_Y, inverted=True)
+
+    def of(self, gamepad_state: GamepadState) -> float:
+        if self.value.id_ == _GamepadAxisId.LEFT_X:
+            value = gamepad_state.left_stick.x / StickPosition.MAX_X
+        elif self.value.id_ == _GamepadAxisId.LEFT_Y:
+            value = gamepad_state.left_stick.y / StickPosition.MAX_Y
+        elif self.value.id_ == _GamepadAxisId.RIGHT_X:
+            value = gamepad_state.right_stick.x / StickPosition.MAX_X
+        elif self.value.id_ == _GamepadAxisId.RIGHT_Y:
+            value = gamepad_state.right_stick.y / StickPosition.MAX_Y
+        else:
+            raise RuntimeError('axis is invalid; implementation error likely')
+        return -value if self.value.inverted else value
 
 
 class DriveControlStrategy(abc.ABC):
