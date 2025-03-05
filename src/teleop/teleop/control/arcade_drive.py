@@ -51,8 +51,8 @@ class ArcadeDrive(DriveControlStrategy):
         turn_rate = self.__turn_axis.of(gamepad_state)
 
         if self.__shape != 1:
-            linear_rate = math.copysign(linear_rate ** self.__shape, linear_rate)
-            turn_rate = math.copysign(turn_rate ** self.__shape, turn_rate)
+            linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
+            turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
 
         angular_factor = self.__virtual_half_wheel_distance * turn_rate
         left_speed = linear_rate - angular_factor
