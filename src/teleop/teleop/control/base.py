@@ -2,7 +2,7 @@ import abc
 from dataclasses import dataclass
 from enum import Enum, auto
 import math
-from typing import Any
+from typing import Any, Self
 from ..signal_processing import Clamp
 from teleop_msgs.msg import GamepadState, StickPosition
 
@@ -22,6 +22,10 @@ class WheelSpeeds:
     @property
     def right(self) -> float:
         return self.__right
+
+    def scaled_by(self, scale_factor: float) -> Self:
+        return type(self)(left=self.__left * scale_factor,
+                          right=self.__right * scale_factor)
 
     def __eq__(self, value: Any) -> bool:
         if not isinstance(value, WheelSpeeds):
