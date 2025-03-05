@@ -15,6 +15,8 @@ class ArcadeDrive(DriveControlStrategy):
             raise TypeError(f'linear_axis must be of type {GamepadAxis.__name__}')
         if not isinstance(turn_axis, GamepadAxis):
             raise TypeError(f'turn_axis must be of type {GamepadAxis.__name__}')
+        if shape <= 0:
+            raise ValueError('shape must be positive')
         self.__linear_axis = linear_axis
         self.__turn_axis = turn_axis
         self.__full_forward_magnitude = float(full_forward_magnitude)
