@@ -1,9 +1,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#define IMAGE_PORT 2000
-#define CHUNK_SIZE 1400
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "main.hpp"

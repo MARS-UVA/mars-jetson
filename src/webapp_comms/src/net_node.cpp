@@ -5,10 +5,10 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
-#include <teleop_msgs/msg/GamepadState.msg>
-#include <teleop_msgs/msg/HumanInputState.msg>
+#include <teleop_msgs/msg/gamepad_state.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include "main.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -48,29 +48,29 @@ private:
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = cv_ptr->image;
 
-    client_send(CONTROL_STATION_IP, img, WEBCAM_PORT);
+    client_send(CONTROL_STATION_IP, img, IMAGE_PORT);
     RCLCPP_INFO(this->get_logger(), "Sent");
   }
 
   void timer_callback()
   {
     std::string message;
-    auto msg = teleop_msgs::msg::GamePad();
+    auto msg = teleop_msgs::msg::GamepadState();
     if (info.flag == true)
     {
-      memcpy(message, info.client_message, sizeof(info.client_message));
+      message = std::string(info.client_message);
       
       
 
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
-      RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+      RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", "something");
       publisher_->publish(msg);
     }
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  rclcpp::Publisher<teleop_msgs::msg::GamepadState>::SharedPtr publisher_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
   size_t count_;
 };
