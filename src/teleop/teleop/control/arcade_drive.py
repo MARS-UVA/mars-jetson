@@ -20,7 +20,7 @@ class ArcadeDrive(DriveControlStrategy):
         self.__linear_axis = linear_axis
         self.__turn_axis = turn_axis
         self.__full_forward_magnitude = float(full_forward_magnitude)
-        self.__shape = shape
+        self.__shape = float(shape)
 
     @property
     def linear_axis(self) -> GamepadAxis:
@@ -36,8 +36,8 @@ class ArcadeDrive(DriveControlStrategy):
 
     @full_forward_magnitude.setter
     def full_forward_magnitude(self, value: float) -> float:
-        if not (0 < value <= 1):
-            raise ValueError(f'full_forward_magnitude must be between 0 (exclusive) and 1 (inclusive) (got {value})')
+        if not (0 <= value <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {value})')
         self.__full_forward_magnitude = float(value)
 
     @property
@@ -55,15 +55,7 @@ class ArcadeDrive(DriveControlStrategy):
         if self.__shape != 1:
             linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
             turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
-
-        angular_factor = self.__virtual_half_wheel_distance * turn_rate
-        left_speed = linear_rate - angular_factor
-        right_speed = linear_rate + angular_factor
-        left_speed *= self.__full_forward_magnitude
-        right_speed *= self.__full_forward_magnitude
-
-        return WheelSpeeds(left=left_speed, right=right_speed)
-
-    @property
-    def __virtual_half_wheel_distance(self) -> float:
-        return (1 / self.__full_forward_magnitude) - 1
+        linear_component = self.__full_forward_magnitude * linear_rate
+        angular_component = (1 - self.__full_forward_magnitude) * turn_rate
+        return WheelSpeeds(left=linear_component - angular_component,
+                           right=linear_component + angular_component)
