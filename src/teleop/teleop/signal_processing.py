@@ -4,16 +4,25 @@ from rclpy.clock import Clock, Time
 
 
 class SignalTransform(Protocol):
+    """Protocol for a callable which transforms a signal."""
     def __call__(self, signal: float) -> float:
         ...
 
 
 class Deadband:
+    """A signal transform which outputs 0 when the input signal has a magnitude less than the given magnitude.
+
+    The deadband transform helps prevent noisy signals from causing spurious behavior when the intended input is 0.
+    """
     def __init__(self, min_magnitude: float = 0.0):
+        """
+        :param min_magnitude: Minimum magnitude below which the signal is output as 0 (default: 0).
+        """
         self.__min_magnitude = max(float(min_magnitude), 0)
 
     @property
     def min_magnitude(self) -> float:
+        """Minimum magnitude below which the signal is output as 0."""
         return self.__min_magnitude
 
     @min_magnitude.setter
@@ -28,12 +37,18 @@ class Deadband:
 
 
 class Clamp:
+    """A signal transform which clamps the input signal within the given range."""
     def __init__(self, min_value: float = -float('inf'), max_value: float = float('inf')):
+        """
+        :param min_value: Minimum value of the output signal (default: -inf).
+        :param max_value: Maximum value of the output signal (default: +inf).
+        """
         self.__min_value = float(min_value)
         self.__max_value = float(max_value)
 
     @property
     def min_value(self) -> float:
+        """ Minimum value of the output signal."""
         return self.__min_value
 
     @min_value.setter
@@ -42,6 +57,7 @@ class Clamp:
 
     @property
     def max_value(self) -> float:
+        """Maximum value of the output signal."""
         return self.__max_value
 
     @max_value.setter
@@ -53,7 +69,17 @@ class Clamp:
 
 
 class Ramp:
+    """A signal transform which limits how fast the output signal can change.
+
+    Instances of ``Ramp`` have a falling and rising ramp rate and a ROS clock.
+    """
     def __init__(self, ramp_rate: float | tuple[float, float], clock: Clock):
+        """
+        :param ramp_rate: Either a single value representing the maximum rate of change of the output signal in units
+                          per second or a pair of values representing the maximum rate of decrease and increase,
+                          respectively.
+        :param clock: A ROS clock which indicates to the ramp how much time passes between signals.
+        """
         self.__clamp = Clamp()
         if isinstance(ramp_rate, Real):
             self.__clamp.max_value = abs(float(ramp_rate))
@@ -73,6 +99,7 @@ class Ramp:
 
     @property
     def falling_ramp_rate(self) -> float:
+        """Maximum rate at which the output signal can decrease, in units per second."""
         return self.__clamp.min_value
 
     @falling_ramp_rate.setter
@@ -83,6 +110,7 @@ class Ramp:
 
     @property
     def rising_ramp_rate(self) -> float:
+        """Maximum rate at which the output signal can increase, in units per second."""
         return self.__clamp.max_value
 
     @rising_ramp_rate.setter
@@ -105,5 +133,6 @@ class Ramp:
         return output
 
     def reset(self) -> None:
+        """Resets the ramp so that the next input signal is not transformed."""
         self.__last_time = None
         self.__last_output = None

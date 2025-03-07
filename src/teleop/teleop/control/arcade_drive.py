@@ -1,4 +1,5 @@
 import math
+from typing import override
 
 from teleop_msgs.msg import GamepadState
 
@@ -6,11 +7,30 @@ from .base import DriveControlStrategy, WheelSpeeds, GamepadAxis
 
 
 class ArcadeDrive(DriveControlStrategy):
-    """Drive control strategy where linear and angular velocity are controlled separately."""
+    """Drive control strategy where linear and angular velocity are controlled separately.
 
-    def __init__(self, linear_axis: GamepadAxis, turn_axis: GamepadAxis, full_forward_magnitude: float, shape: float = 1):
-        if not (0 < full_forward_magnitude <= 1):
-            raise ValueError(f'full_forward_magnitude must be between 0 (exclusive) and 1 (inclusive) (got {full_forward_magnitude})')
+    The client specifies the gamepad axes corresponding to linear and angular movement, magni
+    """
+
+    def __init__(self,
+                 linear_axis: GamepadAxis,
+                 turn_axis: GamepadAxis,
+                 full_forward_magnitude: float,
+                 shape: float = 1):
+        """
+        :param linear_axis: The gamepad axis which corresponds to linear velocity. Positive values indicate
+                            forward movement.
+        :param turn_axis: The gamepad axis which corresponds to angular velocity. Positive values indicate
+                          counterclockwise turning.
+        :param full_forward_magnitude: The magnitude of both wheel's speeds when the user inputs
+                                       completely forward. This affects the amount of wheel speed which will
+                                       be devoted to turning. 0 indicates the robot can only spin in place,
+                                       and 1 indicates the robot can only move forward and backward.
+        :param shape: A parameter describing the shape of the curve that converts axis inputs into speeds.
+                      The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).
+        """
+        if not (0 <= full_forward_magnitude <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {full_forward_magnitude})')
         if not isinstance(linear_axis, GamepadAxis):
             raise TypeError(f'linear_axis must be of type {GamepadAxis.__name__}')
         if not isinstance(turn_axis, GamepadAxis):
@@ -24,14 +44,27 @@ class ArcadeDrive(DriveControlStrategy):
 
     @property
     def linear_axis(self) -> GamepadAxis:
+        """Gamepad axis which corresponds to linear velocity.
+
+        Positive values indicate forward movement.
+        """
         return self.__linear_axis
 
     @property
     def turn_axis(self) -> GamepadAxis:
+        """Gamepad axis which corresponds to angular velocity.
+
+        Positive values indicate counterclockwise movement.
+        """
         return self.__turn_axis
 
     @property
     def full_forward_magnitude(self) -> float:
+        """The magnitude of both wheel's speeds when the user inputs completely forward.
+
+        This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin
+        in place, and 1 indicates the robot can only move forward and backward.
+        """
         return self.__full_forward_magnitude
 
     @full_forward_magnitude.setter
@@ -42,12 +75,19 @@ class ArcadeDrive(DriveControlStrategy):
 
     @property
     def shape(self) -> float:
+        """A parameter describing the shape of the curve that converts axis inputs into speeds.
+
+        The axis input is raised to this power (keeping the sign), so 1 is linear. In general, larger inputs make it
+        easier for the user to make inputs for slow movement, whereas smaller inputs make it easier for the user to
+        make inputs for fast movement.
+        """
         return self.__shape
 
     @shape.setter
     def shape(self, value: float):
         self.__shape = float(value)
 
+    @override
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
         linear_rate = self.__linear_axis.of(gamepad_state)
         turn_rate = self.__turn_axis.of(gamepad_state)

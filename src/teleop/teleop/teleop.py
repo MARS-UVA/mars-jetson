@@ -11,6 +11,7 @@ from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 
 
 class TeleopNode(Node):
+    """A ROS node which converts inputs from a human at the contorl station into motor current commands."""
 
     supported_gamepad_axes = {
         'left_x': GamepadAxis.LEFT_X,
@@ -38,7 +39,10 @@ class TeleopNode(Node):
     full_forward_magnitude_param_descriptor = ParameterDescriptor(
         name='full_forward_magnitude',
         type=ParameterType.PARAMETER_DOUBLE,
-        description='The linear speed (as a proportion) when the user inputs completely forward.',
+        description='The magnitude of both wheel\'s speeds when the user inputs '
+                    'completely forward. This affects the amount of wheel speed which will '
+                    'be devoted to turning. 0 indicates the robot can only spin in place, '
+                    'and 1 indicates the robot can only move forward and backward.',
         floating_point_range=[FloatingPointRange(from_value=0,
                                                  to_value=1)],
         dynamic_typing=True,
@@ -47,8 +51,8 @@ class TeleopNode(Node):
     shape_param_descriptor = ParameterDescriptor(
         name='shape',
         type=ParameterType.PARAMETER_DOUBLE,
-        description='The shape of the function used to convert gamepad inputs into wheel speeds. '
-                    'A shape value represents the power to which inputs are raised (default: 1).',
+        description='A parameter describing the shape of the curve that converts axis inputs into speeds. '
+                    'The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).',
         floating_point_range=[FloatingPointRange(from_value=0,
                                                  to_value=float('inf'))]
     )
