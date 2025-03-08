@@ -5,10 +5,10 @@ import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 import rclpy.parameter
-from teleop.teleop.signal_processing import Deadband
 from teleop_msgs.msg import GamepadState
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
+from .signal_processing import Deadband
 
 
 class TeleopNode(Node):
@@ -59,7 +59,7 @@ class TeleopNode(Node):
     )
 
     deadband_param_descriptor = ParameterDescriptor(
-        name='shape',
+        name='deadband',
         type=ParameterType.PARAMETER_DOUBLE,
         description='Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0).',
         floating_point_range=[FloatingPointRange(from_value=0,
@@ -113,6 +113,7 @@ class TeleopNode(Node):
         self.get_logger().info(f'turn axis: {self.__drive_control_strategy.turn_axis}')
         self.get_logger().info(f'full forward magnitude: {self.__drive_control_strategy.full_forward_magnitude}')
         self.get_logger().info(f'shape: {self.__drive_control_strategy.shape}')
+        self.get_logger().info(f'deadband: {self.__drive_control_strategy.deadband.min_magnitude}')
 
     @property
     def drive_control_strategy(self) -> DriveControlStrategy:
