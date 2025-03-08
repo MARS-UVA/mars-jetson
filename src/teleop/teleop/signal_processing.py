@@ -83,7 +83,7 @@ class Ramp:
         self.__clamp = Clamp()
         if isinstance(ramp_rate, Real):
             self.__clamp.max_value = abs(float(ramp_rate))
-            self.__clamp.min_value = -self.__rising_ramp_rate
+            self.__clamp.min_value = -self.__clamp.max_value
         else:
             self.__clamp.min_value, self.__clamp.max_value = ramp_rate
 

@@ -4,7 +4,7 @@ from typing import override
 from teleop_msgs.msg import GamepadState
 
 from .base import DriveControlStrategy, WheelSpeeds, GamepadAxis
-from ..signal_processing import Deadband
+from ..signal_processing import Deadband, SignalTransform
 
 
 class ArcadeDrive(DriveControlStrategy):
@@ -18,7 +18,8 @@ class ArcadeDrive(DriveControlStrategy):
                  turn_axis: GamepadAxis,
                  full_forward_magnitude: float,
                  shape: float = 1,
-                 deadband: Deadband = Deadband()):
+                 deadband: Deadband = Deadband(),
+                 wheel_speed_transformation: SignalTransform | None = None):
         """
         :param linear_axis: The gamepad axis which corresponds to linear velocity. Positive values indicate
                             forward movement.
@@ -28,6 +29,7 @@ class ArcadeDrive(DriveControlStrategy):
                                        completely forward. This affects the amount of wheel speed which will
                                        be devoted to turning. 0 indicates the robot can only spin in place,
                                        and 1 indicates the robot can only move forward and backward.
+        :param wheel_speeds_transformation: A signal transformation which will be applied to the final wheel speeds.
         :param shape: A parameter describing the shape of the curve that converts axis inputs into speeds.
                       The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).
         :param deadband: A ``Deadband`` transformation which will be applied to the gamepad inputs
@@ -46,6 +48,7 @@ class ArcadeDrive(DriveControlStrategy):
         self.__full_forward_magnitude = float(full_forward_magnitude)
         self.__shape = float(shape)
         self.__deadband = deadband
+        self.__wheel_speed_transformation = wheel_speed_transformation
 
     @property
     def linear_axis(self) -> GamepadAxis:
@@ -97,6 +100,11 @@ class ArcadeDrive(DriveControlStrategy):
         """A ``Deadband`` signal transform applied to gamepad axis values."""
         return self.__deadband
 
+    @property
+    def wheel_speed_transformation(self) -> SignalTransform:
+        """A signal transformation which will be applied to the final wheel speeds."""
+        return self.__wheel_speed_transformation
+
     @override
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
         linear_rate = self.__deadband(self.__linear_axis.of(gamepad_state))
@@ -107,5 +115,8 @@ class ArcadeDrive(DriveControlStrategy):
             turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
         linear_component = self.__full_forward_magnitude * linear_rate
         angular_component = (1 - self.__full_forward_magnitude) * turn_rate
-        return WheelSpeeds(left=linear_component - angular_component,
-                           right=linear_component + angular_component)
+        wheel_speeds = WheelSpeeds(left=linear_component - angular_component, right=linear_component + angular_component)
+        if self.__wheel_speed_transformation is None:
+            return wheel_speeds
+        else:
+            return wheel_speeds.apply(self.__wheel_speed_transformation)

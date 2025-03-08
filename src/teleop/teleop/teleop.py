@@ -7,7 +7,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import HumanInputState, MotorChanges
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
-from .signal_processing import Deadband
+from .signal_processing import Deadband, Ramp
 from .motor_queries import wheel_speed_to_motor_queries
 
 
@@ -61,6 +61,14 @@ class TeleopNode(Node):
                                                  to_value=1)]
     )
 
+    wheel_speed_ramp_rate_descriptor = ParameterDescriptor(
+        name='wheel_speed_ramp_rate',
+        type=ParameterType.PARAMETER_DOUBLE,
+        description='Maximum speed at which wheel speeds change (default: infinity).',
+        floating_point_range=[FloatingPointRange(from_value=0,
+                                                 to_value=float('inf'))]
+    )
+
     def __init__(self, **kwargs):
         super().__init__('teleop', **kwargs)
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -75,6 +83,9 @@ class TeleopNode(Node):
         self.declare_parameter(self.deadband_param_descriptor.name,
                                value=0.0,
                                descriptor=self.deadband_param_descriptor)
+        self.declare_parameter(self.wheel_speed_ramp_rate_descriptor.name,
+                               value=float('inf'),
+                               descriptor=self.wheel_speed_ramp_rate_descriptor)
         self.__drive_control_strategy = ArcadeDrive(
             linear_axis=getattr(GamepadAxis,
                                 self.get_parameter(self.linear_axis_param_descriptor.name)
@@ -94,7 +105,11 @@ class TeleopNode(Node):
                       .double_value,
             deadband=Deadband(min_magnitude=self.get_parameter(self.deadband_param_descriptor.name)
                                                 .get_parameter_value()
-                                                .double_value)
+                                                .double_value),
+            wheel_speed_transformation=Ramp(self.get_parameter(self.wheel_speed_ramp_rate_descriptor.name)
+                                                .get_parameter_value()
+                                                .double_value,
+                                            clock=self.get_clock())
         )
         self.__human_input_state_subscription = self.create_subscription(
             msg_type=HumanInputState,
@@ -104,7 +119,7 @@ class TeleopNode(Node):
         )
         self._wheel_speed_publisher = self.create_publisher(
             msg_type=MotorChanges,
-            topic='tele-op',
+            topic='teleop',
             qos_profile=10,
         )
         self.__add_parameter_event_handlers()
@@ -114,6 +129,7 @@ class TeleopNode(Node):
         self.get_logger().info(f'full forward magnitude: {self.__drive_control_strategy.full_forward_magnitude}')
         self.get_logger().info(f'shape: {self.__drive_control_strategy.shape}')
         self.get_logger().info(f'deadband: {self.__drive_control_strategy.deadband.min_magnitude}')
+        self.get_logger().info(f'wheel speed ramp rate: {(self.__drive_control_strategy.wheel_speed_transformation.rising_ramp_rate)}')
 
     @property
     def drive_control_strategy(self) -> DriveControlStrategy:
@@ -152,35 +168,15 @@ class TeleopNode(Node):
             node_name=self.get_name(),
             callback=self.__on_shape_changed
         )
-
-    def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
-        self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.get_parameter_value().double_value
-
-    def __on_shape_changed(self, shape: rclpy.parameter.Parameter) -> None:
-        self.__drive_control_strategy.shape = shape.get_parameter_value().double_value
-
-    def __add_parameter_event_handlers(self) -> None:
-        try:
-            from rclpy.parameter_event_handler import ParameterEventHandler
-        except ImportError:
-            self.get_logger().warning('ParameterEventHandler requires ROS 2 Jazzy. Updates to mutable parameters on '
-                                      'this node will have no effect.')
-            return
-        self.__parameter_event_handler = ParameterEventHandler(self)
-        self.__full_forward_magnitude_change_handler = self.__parameter_event_handler.add_parameter_callback(
-            parameter_name=self.full_forward_magnitude_param_descriptor.name,
-            node_name=self.get_name(),
-            callback=self.__on_full_forward_magnitude_changed
-        )
-        self.__shape_change_handler = self.__parameter_event_handler.add_parameter_callback(
-            parameter_name=self.shape_param_descriptor.name,
-            node_name=self.get_name(),
-            callback=self.__on_shape_changed
-        )
         self.__deadband_change_handler = self.__parameter_event_handler.add_parameter_callback(
             parameter_name=self.deadband_param_descriptor.name,
             node_name=self.get_name(),
             callback=self.__on_deadband_changed
+        )
+        self.__wheel_speed_ramp_rate_change_handler = self.__parameter_event_handler.add_parameter_callback(
+            parameter_name=self.wheel_speed_ramp_rate_descriptor.name,
+            node_name=self.get_name(),
+            callback=self.__on_wheel_speed_ramp_rate_changed
         )
 
     def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
@@ -192,6 +188,11 @@ class TeleopNode(Node):
     def __on_deadband_changed(self, deadband: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.deadband.min_magnitude = deadband.get_parameter_value().double_value
 
+    def __on_wheel_speed_ramp_rate_changed(self, ramp_rate: rclpy.parameter.Parameter) -> None:
+        ramp_rate_value = ramp_rate.get_parameter_value().double_value
+
+        self.__drive_control_strategy.wheel_speed_transformation.falling_ramp_rate = -ramp_rate_value
+        self.__drive_control_strategy.wheel_speed_transformation.rising_ramp_rate = ramp_rate_value
 
 def main() -> None:
     rclpy.init(args=sys.argv)

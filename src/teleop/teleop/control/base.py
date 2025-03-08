@@ -1,4 +1,5 @@
 import abc
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 import math
@@ -39,6 +40,14 @@ class WheelSpeeds:
         """
         return type(self)(left=self.__left * scale_factor,
                           right=self.__right * scale_factor)
+
+    def apply(self, func: Callable[[float], float]) -> Self:
+        """Return a new `WheelSpeeds` where the wheel speeds are the image of the originals under the given function.
+
+        If the new wheel speed exceeds 1.0 in magnitude, the value is clamped to be between -1 and 1.
+        """
+        return type(self)(left=func(self.__left),
+                          right=func(self.__right))
 
     def __eq__(self, value: Any) -> bool:
         if not isinstance(value, WheelSpeeds):
