@@ -4,10 +4,11 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import HumanInputState
+from teleop_msgs.msg import HumanInputState, MotorChanges
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
+from .motor_queries import wheel_speed_to_motor_queries
 
 
 class TeleopNode(Node):
@@ -106,6 +107,11 @@ class TeleopNode(Node):
             callback=self.__on_receive_human_input_state,
             qos_profile=10,
         )
+        self._wheel_speed_publisher = self.create_publisher(
+            msg_type=MotorChanges,
+            topic='tele-op',
+            qos_profile=10,
+        )
         self.__add_parameter_event_handlers()
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
@@ -130,7 +136,33 @@ class TeleopNode(Node):
 
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
-        # TODO: Finish implementing TeleopNode.__on_receive_gamepad_state
+        wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
+        self._wheel_speed_publisher.publish(wheel_speed_msg)
+
+    def __add_parameter_event_handlers(self) -> None:
+        try:
+            from rclpy.parameter_event_handler import ParameterEventHandler
+        except ImportError:
+            self.get_logger().warning('ParameterEventHandler requires ROS 2 Jazzy. Updates to mutable parameters on '
+                                      'this node will have no effect.')
+            return
+        self.__parameter_event_handler = ParameterEventHandler(self)
+        self.__full_forward_magnitude_change_handler = self.__parameter_event_handler.add_parameter_callback(
+            parameter_name=self.full_forward_magnitude_param_descriptor.name,
+            node_name=self.get_name(),
+            callback=self.__on_full_forward_magnitude_changed
+        )
+        self.__shape_change_handler = self.__parameter_event_handler.add_parameter_callback(
+            parameter_name=self.shape_param_descriptor.name,
+            node_name=self.get_name(),
+            callback=self.__on_shape_changed
+        )
+
+    def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
+        self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.get_parameter_value().double_value
+
+    def __on_shape_changed(self, shape: rclpy.parameter.Parameter) -> None:
+        self.__drive_control_strategy.shape = shape.get_parameter_value().double_value
 
     def __add_parameter_event_handlers(self) -> None:
         try:
