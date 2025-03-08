@@ -29,11 +29,11 @@ class ArcadeDrive(DriveControlStrategy):
                                        completely forward. This affects the amount of wheel speed which will
                                        be devoted to turning. 0 indicates the robot can only spin in place,
                                        and 1 indicates the robot can only move forward and backward.
-        :param wheel_speeds_transformation: A signal transformation which will be applied to the final wheel speeds.
         :param shape: A parameter describing the shape of the curve that converts axis inputs into speeds.
                       The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).
         :param deadband: A ``Deadband`` transformation which will be applied to the gamepad inputs
                         (default: ``Deadband(min_magnitude=0)``).
+        :param wheel_speeds_transformation: A signal transformation which will be applied to the final wheel speeds.
         """
         if not (0 <= full_forward_magnitude <= 1):
             raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {full_forward_magnitude})')
