@@ -14,11 +14,6 @@ from .motor_queries import wheel_speed_to_motor_queries
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""
 
-    supported_gamepad_axes = {
-        'left_x': GamepadAxis.LEFT_X,
-        'left_x_inverted': GamepadAxis.LEFT_X_INVERTED,
-    }
-
     linear_axis_param_descriptor = ParameterDescriptor(
         name='linear_axis',
         type=ParameterType.PARAMETER_STRING,
@@ -182,12 +177,20 @@ class TeleopNode(Node):
             node_name=self.get_name(),
             callback=self.__on_shape_changed
         )
+        self.__deadband_change_handler = self.__parameter_event_handler.add_parameter_callback(
+            parameter_name=self.deadband_param_descriptor.name,
+            node_name=self.get_name(),
+            callback=self.__on_deadband_changed
+        )
 
     def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.get_parameter_value().double_value
 
     def __on_shape_changed(self, shape: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.shape = shape.get_parameter_value().double_value
+
+    def __on_deadband_changed(self, deadband: rclpy.parameter.Parameter) -> None:
+        self.__drive_control_strategy.deadband.min_magnitude = deadband.get_parameter_value().double_value
 
 
 def main() -> None:
