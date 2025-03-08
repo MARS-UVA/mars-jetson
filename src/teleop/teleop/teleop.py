@@ -5,13 +5,14 @@ import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 import rclpy.parameter
+from teleop.teleop.signal_processing import Deadband
 from teleop_msgs.msg import GamepadState
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 
 
 class TeleopNode(Node):
-    """A ROS node which converts inputs from a human at the contorl station into motor current commands."""
+    """A ROS node which converts inputs from a human at the control station into motor current commands."""
 
     supported_gamepad_axes = {
         'left_x': GamepadAxis.LEFT_X,
@@ -57,6 +58,14 @@ class TeleopNode(Node):
                                                  to_value=float('inf'))]
     )
 
+    deadband_param_descriptor = ParameterDescriptor(
+        name='shape',
+        type=ParameterType.PARAMETER_DOUBLE,
+        description='Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0).',
+        floating_point_range=[FloatingPointRange(from_value=0,
+                                                 to_value=1)]
+    )
+
     def __init__(self, **kwargs):
         super().__init__('teleop', **kwargs)
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -68,6 +77,9 @@ class TeleopNode(Node):
         self.declare_parameter(self.shape_param_descriptor.name,
                                value=1.0,
                                descriptor=self.shape_param_descriptor)
+        self.declare_parameter(self.deadband_param_descriptor.name,
+                               value=0.0,
+                               descriptor=self.deadband_param_descriptor)
         self.__drive_control_strategy = ArcadeDrive(
             linear_axis=getattr(GamepadAxis,
                                 self.get_parameter(self.linear_axis_param_descriptor.name)
@@ -83,8 +95,11 @@ class TeleopNode(Node):
                                        .get_parameter_value()
                                        .double_value,
             shape=self.get_parameter(self.shape_param_descriptor.name)
-                                         .get_parameter_value()
-                                         .double_value,
+                      .get_parameter_value()
+                      .double_value,
+            deadband=Deadband(min_magnitude=self.get_parameter(self.deadband_param_descriptor.name)
+                                                .get_parameter_value()
+                                                .double_value)
         )
         self.__gamepad_state_subscription = self.create_subscription(
             msg_type=GamepadState,

@@ -4,6 +4,7 @@ from typing import override
 from teleop_msgs.msg import GamepadState
 
 from .base import DriveControlStrategy, WheelSpeeds, GamepadAxis
+from ..signal_processing import Deadband
 
 
 class ArcadeDrive(DriveControlStrategy):
@@ -16,7 +17,8 @@ class ArcadeDrive(DriveControlStrategy):
                  linear_axis: GamepadAxis,
                  turn_axis: GamepadAxis,
                  full_forward_magnitude: float,
-                 shape: float = 1):
+                 shape: float = 1,
+                 deadband: Deadband = Deadband()):
         """
         :param linear_axis: The gamepad axis which corresponds to linear velocity. Positive values indicate
                             forward movement.
@@ -28,6 +30,8 @@ class ArcadeDrive(DriveControlStrategy):
                                        and 1 indicates the robot can only move forward and backward.
         :param shape: A parameter describing the shape of the curve that converts axis inputs into speeds.
                       The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).
+        :param deadband: A ``Deadband`` transformation which will be applied to the gamepad inputs
+                        (default: ``Deadband(min_magnitude=0)``).
         """
         if not (0 <= full_forward_magnitude <= 1):
             raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {full_forward_magnitude})')
@@ -41,6 +45,7 @@ class ArcadeDrive(DriveControlStrategy):
         self.__turn_axis = turn_axis
         self.__full_forward_magnitude = float(full_forward_magnitude)
         self.__shape = float(shape)
+        self.__deadband = deadband
 
     @property
     def linear_axis(self) -> GamepadAxis:
@@ -87,10 +92,15 @@ class ArcadeDrive(DriveControlStrategy):
     def shape(self, value: float):
         self.__shape = float(value)
 
+    @property
+    def deadband(self) -> Deadband:
+        """A ``Deadband`` signal transform applied to gamepad axis values."""
+        return self.__deadband
+
     @override
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
-        linear_rate = self.__linear_axis.of(gamepad_state)
-        turn_rate = self.__turn_axis.of(gamepad_state)
+        linear_rate = self.__deadband(self.__linear_axis.of(gamepad_state))
+        turn_rate = self.__deadband(self.__turn_axis.of(gamepad_state))
 
         if self.__shape != 1:
             linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
