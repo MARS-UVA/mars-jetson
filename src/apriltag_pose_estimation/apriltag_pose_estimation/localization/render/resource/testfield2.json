@@ -1,0 +1,58 @@
+{
+  "fiducials": [
+    {
+      "id": 0,
+      "rotation_vector": [
+        -1.5707963267948963,
+        0,
+        0
+      ],
+      "translation_vector": [
+        0,
+        0,
+        1.349
+      ]
+    },
+    {
+      "id": 1,
+      "rotation_vector": [
+        -1.5707963267948963,
+        0,
+        0
+      ],
+      "translation_vector": [
+        0.2155,
+        0,
+        1.349
+      ]
+    },
+    {
+      "id": 2,
+      "rotation_vector": [
+        -1.5707963267948963,
+        0,
+        0
+      ],
+      "translation_vector": [
+        0.4315,
+        0,
+        1.349
+      ]
+    },
+    {
+      "id": 3,
+      "rotation_vector": [
+        -1.5707963267948963,
+        0,
+        0
+      ],
+      "translation_vector": [
+        0.6467,
+        0,
+        1.349
+      ]
+    }
+  ],
+  "tag_size": 0.080,
+  "tag_family": "tagStandard41h12"
+}

@@ -20,11 +20,11 @@ class AprilTagField(Mapping[int, Transform]):
     the world frame.
     """
 
-    def __init__(self, tag_size: float, tag_positions: dict[int, Transform], tag_family: str = 'tag36h11'):
+    def __init__(self, tag_size: float, tag_positions: dict[int, Transform], tag_family: str = 'tagStandard41h12'):
         """
         :param tag_size: The size of the AprilTags on the field in meters.
         :param tag_positions: A dictionary from the IDs of tags on the field to their poses in the world frame.
-        :param tag_family: The AprilTag family of which the tags on the field are a part.
+        :param tag_family: The AprilTag family of which the tags on the field are a part (default: tagStandard41h12).
         """
         self.__input_space = (next(iter(tag_positions.values())).input_space
                               if all(pos.input_space is not None for pos in tag_positions.values())
@@ -165,7 +165,7 @@ def load_field(fp: TextIO) -> AprilTagField:
     """
     field_dict = json.load(fp)
     return AprilTagField(tag_size=field_dict['tag_size'],
-                         tag_family=field_dict['tag_family'],
+                         tag_family=field_dict.get('tag_family', 'tagStandard41h12'),
                          tag_positions={tag_data['id']: Transform.make(rotation=Rotation.from_rotvec(tag_data['rotation_vector']),
                                                                        translation=tag_data['translation_vector'],
                                                                        input_space='tag_optical',

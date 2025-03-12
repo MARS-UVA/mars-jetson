@@ -26,6 +26,18 @@ setup(
             'pyvista',
             'pyvistaqt',
             'PyQt5'
+        ],
+        'generate': [
+            'Pillow',
+            'fpdf2'
+        ],
+        'complete': [
+            'meshio',
+            'pyvista',
+            'pyvistaqt',
+            'PyQt5',
+            'Pillow',
+            'fpdf2'
         ]
     },
     zip_safe=False,
