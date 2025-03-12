@@ -10,6 +10,7 @@ except ImportError as e:
     raise
 
 from . import resource
+from ... import tag_images
 from ...core import Transform
 from ...core.field import AprilTagField
 
@@ -39,7 +40,7 @@ class CameraPoseDisplay:
         """
         self.__plotter = BackgroundPlotter(**kwargs)
         for tag_id, tag_pose in field.items():
-            texture = (pv.read_texture(str(files(resource).joinpath(f'{tag_id}.png')))
+            texture = (pv.read_texture(str(files(tag_images).joinpath(f'{tag_id}.png')))
                        .flip_x()
                        .flip_y())
             plane_scale_factor = PLANE_SCALE_FACTORS.get(field.tag_family,

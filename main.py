@@ -4,7 +4,7 @@ import cv2
 from PyQt5 import Qt
 
 from apriltag_pose_estimation.apriltag.render import OverlayWriter
-from apriltag_pose_estimation.core import DEPSTECH_CAM_PARAMETERS, load_field
+from apriltag_pose_estimation.core import IPHONE_13_MINI_MAIN_CAM_PARAMETERS, load_field
 from apriltag_pose_estimation.localization import PoseEstimator
 from apriltag_pose_estimation.localization.render import CameraPoseDisplay, resource
 from apriltag_pose_estimation.localization.strategies import MultiTagPnPEstimationStrategy, \
@@ -26,20 +26,20 @@ def main() -> None:
         overlay_writer.overlay_label()
         cv2.imshow('camera', frame)
 
-    with files(resource).joinpath('testfield.json').open(mode='r') as f:
+    with files(resource).joinpath('testfield2.json').open(mode='r') as f:
         field = load_field(f)
 
     estimator = PoseEstimator(
         strategy=MultiTagPnPEstimationStrategy(fallback_strategy=LowestAmbiguityEstimationStrategy()),
         field=field,
-        camera_params=DEPSTECH_CAM_PARAMETERS,
+        camera_params=IPHONE_13_MINI_MAIN_CAM_PARAMETERS,
         nthreads=2,
         quad_sigma=0,
         refine_edges=1,
         decode_sharpening=0.25
     )
 
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(1)
 
     cv2.namedWindow('camera')
 
