@@ -1,30 +1,46 @@
-import argparse
 import heapq
 from pathlib import Path
 import sys
 
+from ament_index_python import get_package_share_directory
 import rclpy
-from std_msgs.msg import Empty
+from rclpy.node import Node
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Image, Imu
 
 from .data import load_data
 
 
-class SimulatedDataNode(rclpy.Node):
+class SimulatedDataNode(Node):
     """A ROS node which simulates data from a webcam and IMU.
 
     The node takes a single argument which is a path to a directory containing data recorded by Motion Recorder. This
     data is then processed into messages and will be published in chronological order.
 
-    The node waits for a message from /simulation/start to start the simulation.
-
     This node controls the clock via the /clock topic to maximize accuracy to the recorded data. This will cause
     time skipping.
     """
-    def __init__(self, data_path: str | Path, **kwargs):
+
+    test_dir_param_descriptor = ParameterDescriptor(
+        name='test_dir',
+        type=ParameterType.PARAMETER_STRING,
+        description='The name of the directory which contains the test data which will be played back',
+        read_only=True
+    )
+
+    def __init__(self, **kwargs):
         super().__init__('simulated_data', **kwargs)
-        self.__queue = load_data(Path(data_path))
+
+        self.declare_parameter(name=self.test_dir_param_descriptor.name,
+                               value='test1',
+                               descriptor=self.test_dir_param_descriptor)
+
+        data_path = (Path(get_package_share_directory('localization_sim'))
+                          / 'sim_data'
+                          / self.get_parameter(self.test_dir_param_descriptor.name).get_parameter_value().string_value)
+
+        self.__queue = load_data(data_path, logger=self.get_logger())
 
         self.__clock_publisher = self.create_publisher(msg_type=Clock,
                                                             topic='/clock',
@@ -35,20 +51,10 @@ class SimulatedDataNode(rclpy.Node):
         self.__imu_publisher = self.create_publisher(msg_type=Imu,
                                                           topic='/localization/imu',
                                                           qos_profile=10)
-        self.__start_subscriber = self.create_subscription(msg_type=Empty,
-                                                                topic='/simulation/start',
-                                                                callback=self.on_receive_start_signal,
-                                                                qos_profile=10)
-        self.__simulation_started = False
 
         self.__clock_publisher.publish(Clock())
 
-        self.get_logger().info()
-
-    def on_receive_start_signal(self, msg: Empty) -> None:
-        if not self.__simulation_started:
-            self.__simulation_started = True
-            self.run()
+        self.run()
 
     def run(self) -> None:
         self.get_logger().info('Simulation started.')
@@ -65,14 +71,8 @@ class SimulatedDataNode(rclpy.Node):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Simulate data from a webcam and IMU')
-    parser.add_argument('data_dir',
-                        type=Path,
-                        help='a directory containing three files video.mov, motion.json, and metadata.json from'
-                             'a Motion Recorder recording')
-    args = parser.parse_args()
-    rclpy.init(sys.argv)
-    node = SimulatedDataNode(data_path=args.data_dir)
+    rclpy.init(args=sys.argv)
+    node = SimulatedDataNode()
     rclpy.spin(node)
     rclpy.shutdown()
 

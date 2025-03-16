@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import heapq
 from itertools import count
 import json
@@ -11,15 +11,16 @@ from cv_bridge import CvBridge
 from geometry_msgs.msg import Quaternion, Vector3
 from rclpy.impl.rcutils_logger import RcutilsLogger
 from sensor_msgs.msg import Imu
+from std_msgs.msg import Header
 
 from .simulation import Event
 
 
 @dataclass(frozen=True)
 class ImuInfo:
-    orientation_covariance: npt.NDArray[np.float64] = np.zeros((3, 3))
-    angular_velocity_covariance: npt.NDArray[np.float64] = np.zeros((3, 3))
-    linear_acceleration_covariance: npt.NDArray[np.float64] = np.zeros((3, 3))
+    orientation_covariance: npt.NDArray[np.float64] = field(default_factory=lambda: np.zeros((3, 3)))
+    angular_velocity_covariance: npt.NDArray[np.float64] = field(default_factory=lambda: np.zeros((3, 3)))
+    linear_acceleration_covariance: npt.NDArray[np.float64] = field(default_factory=lambda: np.zeros((3, 3)))
 
 
 def load_data(data_path: Path,
@@ -51,11 +52,11 @@ def _load_video(data_path: Path,
     frame_counter = count()
     while not_closed:
         frame_count = next(frame_counter)
-        frame_id = f'video_{frame_count}'
         current_time = start_time + (rate * frame_count)
         not_closed, frame = capture.read()
+        if frame is None:
+            continue
         image_msg = bridge.cv2_to_imgmsg(frame)
-        image_msg.header.frame_id = frame_id
         heapq.heappush(queue,
                        Event(timestamp=current_time,
                              message=image_msg))
@@ -76,7 +77,8 @@ def _load_motion(data_path: Path,
     for datapoint in motion_data_raw['motion_data']:
         heapq.heappush(queue,
                        Event(timestamp=start_time + (datapoint['timestamp'] - motion_start_time),
-                             message=Imu(orientation=Quaternion(**datapoint['orientation']),
+                             message=Imu(header=Header(frame_id='base_link'),
+                                         orientation=Quaternion(**datapoint['orientation']),
                                          orientation_covariance=imu_info.orientation_covariance.reshape(-1),
                                          angular_velocity=Vector3(**datapoint['angular_velocity']),
                                          angular_velocity_covariance=imu_info.angular_velocity_covariance.reshape(-1),

@@ -1,0 +1,15 @@
+/ekf_filter_node:
+  ros__parameters:
+    map_frame: map
+    odom_frame: odom
+    world_frame: odom
+    base_link_frame: base_link
+    frequency: 30.0
+    imu0: "/localization/imu"
+    imu0_config: [false, false, false, true, true, true, false, false, false, true, true, true, true, true, true]
+    imu0_remove_gravitational_acceleration: false
+    pose0: "/localization/estimated_pose"
+    pose0_config: [true, true, true, true, true, true, false, false, false, false, false, false, false, false, false]
+/simulated_data:
+  ros__parameters:
+    test_dir: "test1"
