@@ -47,8 +47,9 @@ class ArcadeDrive(DriveControlStrategy):
         self.__turn_axis = turn_axis
         self.__full_forward_magnitude = float(full_forward_magnitude)
         self.__shape = float(shape)
-        self.__deadband = deadband
-        self.__wheel_speed_transformation = wheel_speed_transformation
+        self.__deadband = deadband.copy()
+        self.__wheel_speed_transformation = (
+            wheel_speed_transformation.copy() if wheel_speed_transformation is not None else None)
 
     @property
     def linear_axis(self) -> GamepadAxis:

@@ -7,7 +7,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import HumanInputState, MotorChanges
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
-from .signal_processing import Deadband, Ramp
+from .signal_processing import Deadband
 from .motor_queries import wheel_speed_to_motor_queries
 
 
@@ -39,8 +39,8 @@ class TeleopNode(Node):
                     'completely forward. This affects the amount of wheel speed which will '
                     'be devoted to turning. 0 indicates the robot can only spin in place, '
                     'and 1 indicates the robot can only move forward and backward.',
-        floating_point_range=[FloatingPointRange(from_value=0,
-                                                 to_value=1)],
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)],
         dynamic_typing=True,
     )
 
@@ -49,7 +49,7 @@ class TeleopNode(Node):
         type=ParameterType.PARAMETER_DOUBLE,
         description='A parameter describing the shape of the curve that converts axis inputs into speeds. '
                     'The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).',
-        floating_point_range=[FloatingPointRange(from_value=0,
+        floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=float('inf'))]
     )
 
@@ -57,16 +57,8 @@ class TeleopNode(Node):
         name='deadband',
         type=ParameterType.PARAMETER_DOUBLE,
         description='Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0).',
-        floating_point_range=[FloatingPointRange(from_value=0,
-                                                 to_value=1)]
-    )
-
-    wheel_speed_ramp_rate_descriptor = ParameterDescriptor(
-        name='wheel_speed_ramp_rate',
-        type=ParameterType.PARAMETER_DOUBLE,
-        description='Maximum speed at which wheel speeds change (default: infinity).',
-        floating_point_range=[FloatingPointRange(from_value=0,
-                                                 to_value=float('inf'))]
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)]
     )
 
     def __init__(self, **kwargs):
@@ -83,9 +75,6 @@ class TeleopNode(Node):
         self.declare_parameter(self.deadband_param_descriptor.name,
                                value=0.0,
                                descriptor=self.deadband_param_descriptor)
-        self.declare_parameter(self.wheel_speed_ramp_rate_descriptor.name,
-                               value=float('inf'),
-                               descriptor=self.wheel_speed_ramp_rate_descriptor)
         self.__drive_control_strategy = ArcadeDrive(
             linear_axis=getattr(GamepadAxis,
                                 self.get_parameter(self.linear_axis_param_descriptor.name)
@@ -105,11 +94,7 @@ class TeleopNode(Node):
                       .double_value,
             deadband=Deadband(min_magnitude=self.get_parameter(self.deadband_param_descriptor.name)
                                                 .get_parameter_value()
-                                                .double_value),
-            wheel_speed_transformation=Ramp(self.get_parameter(self.wheel_speed_ramp_rate_descriptor.name)
-                                                .get_parameter_value()
-                                                .double_value,
-                                            clock=self.get_clock())
+                                                .double_value)
         )
         self.__human_input_state_subscription = self.create_subscription(
             msg_type=HumanInputState,
@@ -129,7 +114,6 @@ class TeleopNode(Node):
         self.get_logger().info(f'full forward magnitude: {self.__drive_control_strategy.full_forward_magnitude}')
         self.get_logger().info(f'shape: {self.__drive_control_strategy.shape}')
         self.get_logger().info(f'deadband: {self.__drive_control_strategy.deadband.min_magnitude}')
-        self.get_logger().info(f'wheel speed ramp rate: {(self.__drive_control_strategy.wheel_speed_transformation.rising_ramp_rate)}')
 
     @property
     def drive_control_strategy(self) -> DriveControlStrategy:
@@ -173,11 +157,6 @@ class TeleopNode(Node):
             node_name=self.get_name(),
             callback=self.__on_deadband_changed
         )
-        self.__wheel_speed_ramp_rate_change_handler = self.__parameter_event_handler.add_parameter_callback(
-            parameter_name=self.wheel_speed_ramp_rate_descriptor.name,
-            node_name=self.get_name(),
-            callback=self.__on_wheel_speed_ramp_rate_changed
-        )
 
     def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.get_parameter_value().double_value
@@ -188,11 +167,6 @@ class TeleopNode(Node):
     def __on_deadband_changed(self, deadband: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.deadband.min_magnitude = deadband.get_parameter_value().double_value
 
-    def __on_wheel_speed_ramp_rate_changed(self, ramp_rate: rclpy.parameter.Parameter) -> None:
-        ramp_rate_value = ramp_rate.get_parameter_value().double_value
-
-        self.__drive_control_strategy.wheel_speed_transformation.falling_ramp_rate = -ramp_rate_value
-        self.__drive_control_strategy.wheel_speed_transformation.rising_ramp_rate = ramp_rate_value
 
 def main() -> None:
     rclpy.init(args=sys.argv)
