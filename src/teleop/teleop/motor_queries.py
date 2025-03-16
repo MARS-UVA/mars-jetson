@@ -8,7 +8,7 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
     given wheel speed."""
     left_speed_uint = 127 + int(127 * wheel_speeds.left)
     right_speed_uint = 127 + int(127 * wheel_speeds.right)
-    return MotorChanges([
+    return MotorChanges(changes=[
         SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR,
                          velocity=left_speed_uint),
         SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR,
