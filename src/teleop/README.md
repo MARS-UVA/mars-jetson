@@ -32,4 +32,3 @@ Executable name: `teleop`
 | `full_forward_magnitude` | `double` | The magnitude of both wheel's speeds when the user inputs completely forward. This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin in place, and 1 indicates the robot can only move forward and backward. Must be between 0 and 1. |
 | `shape` | `double` | A parameter describing the shape of the curve that converts axis inputs into speeds. The axis input is raised to this power (keeping the sign), so 1 is linear. Must be positive (default: 1). |
 | `deadband` | `double` | Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0). |
-| `wheel_speed_ramp_rate` | `double` | Maximum speed at which wheel speeds change (default: infinity). |
