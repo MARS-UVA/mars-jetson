@@ -39,8 +39,8 @@ class TeleopNode(Node):
                     'completely forward. This affects the amount of wheel speed which will '
                     'be devoted to turning. 0 indicates the robot can only spin in place, '
                     'and 1 indicates the robot can only move forward and backward.',
-        floating_point_range=[FloatingPointRange(from_value=0,
-                                                 to_value=1)],
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)],
         dynamic_typing=True,
     )
 
@@ -49,7 +49,7 @@ class TeleopNode(Node):
         type=ParameterType.PARAMETER_DOUBLE,
         description='A parameter describing the shape of the curve that converts axis inputs into speeds. '
                     'The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).',
-        floating_point_range=[FloatingPointRange(from_value=0,
+        floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=float('inf'))]
     )
 
@@ -57,15 +57,15 @@ class TeleopNode(Node):
         name='deadband',
         type=ParameterType.PARAMETER_DOUBLE,
         description='Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0).',
-        floating_point_range=[FloatingPointRange(from_value=0,
-                                                 to_value=1)]
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)]
     )
 
     wheel_speed_ramp_rate_descriptor = ParameterDescriptor(
         name='wheel_speed_ramp_rate',
         type=ParameterType.PARAMETER_DOUBLE,
         description='Maximum speed at which wheel speeds change (default: infinity).',
-        floating_point_range=[FloatingPointRange(from_value=0,
+        floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=float('inf'))]
     )
 
