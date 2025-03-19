@@ -1,65 +1,123 @@
 import math
+from typing import override
 
-from teleop_msgs.msg import GamepadState, StickPosition
+from teleop_msgs.msg import GamepadState
 
-from .base import DriveControlStrategy, WheelSpeeds
+from .base import DriveControlStrategy, WheelSpeeds, GamepadAxis
+from ..signal_processing import Deadband, SignalTransform
 
 
 class ArcadeDrive(DriveControlStrategy):
-    def __init__(self, invert_linear: bool = False, invert_turn: bool = False, square_inputs: bool = True):
-        self.__invert_linear = invert_linear
-        self.__invert_turn = invert_turn
-        self.__square_inputs = square_inputs
+    """Drive control strategy where linear and angular velocity are controlled separately.
+
+    The client specifies the gamepad axes corresponding to linear and angular movement, magni
+    """
+
+    def __init__(self,
+                 linear_axis: GamepadAxis,
+                 turn_axis: GamepadAxis,
+                 full_forward_magnitude: float,
+                 shape: float = 1,
+                 deadband: Deadband = Deadband(),
+                 wheel_speed_transformation: SignalTransform | None = None):
+        """
+        :param linear_axis: The gamepad axis which corresponds to linear velocity. Positive values indicate
+                            forward movement.
+        :param turn_axis: The gamepad axis which corresponds to angular velocity. Positive values indicate
+                          counterclockwise turning.
+        :param full_forward_magnitude: The magnitude of both wheel's speeds when the user inputs
+                                       completely forward. This affects the amount of wheel speed which will
+                                       be devoted to turning. 0 indicates the robot can only spin in place,
+                                       and 1 indicates the robot can only move forward and backward.
+        :param shape: A parameter describing the shape of the curve that converts axis inputs into speeds.
+                      The axis input is raised to this power (keeping the sign), so 1 is linear (default: 1).
+        :param deadband: A ``Deadband`` transformation which will be applied to the gamepad inputs
+                        (default: ``Deadband(min_magnitude=0)``).
+        :param wheel_speeds_transformation: A signal transformation which will be applied to the final wheel speeds.
+        """
+        if not (0 <= full_forward_magnitude <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {full_forward_magnitude})')
+        if not isinstance(linear_axis, GamepadAxis):
+            raise TypeError(f'linear_axis must be of type {GamepadAxis.__name__}')
+        if not isinstance(turn_axis, GamepadAxis):
+            raise TypeError(f'turn_axis must be of type {GamepadAxis.__name__}')
+        if shape <= 0:
+            raise ValueError('shape must be positive')
+        self.__linear_axis = linear_axis
+        self.__turn_axis = turn_axis
+        self.__full_forward_magnitude = float(full_forward_magnitude)
+        self.__shape = float(shape)
+        self.__deadband = deadband.copy()
+        self.__wheel_speed_transformation = (
+            wheel_speed_transformation.copy() if wheel_speed_transformation is not None else None)
 
     @property
-    def invert_linear(self) -> bool:
-        return self.__invert_linear
+    def linear_axis(self) -> GamepadAxis:
+        """Gamepad axis which corresponds to linear velocity.
 
-    @invert_linear.setter
-    def invert_linear(self, value: bool) -> bool:
-        self.__invert_linear = bool(value)
-
-    @property
-    def invert_turn(self) -> bool:
-        return self.__invert_turn
-
-    @invert_turn.setter
-    def invert_turn(self, value: bool) -> bool:
-        self.__invert_turn = bool(value)
+        Positive values indicate forward movement.
+        """
+        return self.__linear_axis
 
     @property
-    def square_inputs(self) -> bool:
-        return self.__square_inputs
+    def turn_axis(self) -> GamepadAxis:
+        """Gamepad axis which corresponds to angular velocity.
 
-    @square_inputs.setter
-    def square_inputs(self, value: bool) -> bool:
-        self.__square_inputs = bool(value)
+        Positive values indicate counterclockwise movement.
+        """
+        return self.__turn_axis
 
+    @property
+    def full_forward_magnitude(self) -> float:
+        """The magnitude of both wheel's speeds when the user inputs completely forward.
+
+        This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin
+        in place, and 1 indicates the robot can only move forward and backward.
+        """
+        return self.__full_forward_magnitude
+
+    @full_forward_magnitude.setter
+    def full_forward_magnitude(self, value: float) -> float:
+        if not (0 <= value <= 1):
+            raise ValueError(f'full_forward_magnitude must be between 0 and 1 (got {value})')
+        self.__full_forward_magnitude = float(value)
+
+    @property
+    def shape(self) -> float:
+        """A parameter describing the shape of the curve that converts axis inputs into speeds.
+
+        The axis input is raised to this power (keeping the sign), so 1 is linear. In general, larger inputs make it
+        easier for the user to make inputs for slow movement, whereas smaller inputs make it easier for the user to
+        make inputs for fast movement.
+        """
+        return self.__shape
+
+    @shape.setter
+    def shape(self, value: float):
+        self.__shape = float(value)
+
+    @property
+    def deadband(self) -> Deadband:
+        """A ``Deadband`` signal transform applied to gamepad axis values."""
+        return self.__deadband
+
+    @property
+    def wheel_speed_transformation(self) -> SignalTransform:
+        """A signal transformation which will be applied to the final wheel speeds."""
+        return self.__wheel_speed_transformation
+
+    @override
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
-        linear_rate = self.__linear_factor() * (gamepad_state.left_stick.y / abs(StickPosition.MAX_Y))
-        turn_rate = -self.__turn_factor() * (gamepad_state.left_stick.x / abs(StickPosition.MAX_X))
+        linear_rate = self.__deadband(self.__linear_axis.of(gamepad_state))
+        turn_rate = self.__deadband(self.__turn_axis.of(gamepad_state))
 
-        if self.__square_inputs:
-            linear_rate = math.copysign(linear_rate * linear_rate, linear_rate)
-            turn_rate = math.copysign(turn_rate * turn_rate, turn_rate)
-
-        left_speed = linear_rate - turn_rate
-        right_speed = linear_rate + turn_rate
-
-        greater_input = max(abs(linear_rate), abs(turn_rate))
-        lesser_input = min(abs(linear_rate), abs(turn_rate))
-
-        if greater_input == 0.0:
-            return WheelSpeeds(left=0, right=0)
-
-        saturated_input = (greater_input + lesser_input) / greater_input
-        left_speed /= saturated_input
-        right_speed /= saturated_input
-
-        return WheelSpeeds(left=left_speed, right=right_speed)
-
-    def __linear_factor(self) -> int:
-        return -1 if self.__invert_linear else 1
-
-    def __turn_factor(self) -> int:
-        return -1 if self.__invert_turn else 1
+        if self.__shape != 1:
+            linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
+            turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
+        linear_component = self.__full_forward_magnitude * linear_rate
+        angular_component = (1 - self.__full_forward_magnitude) * turn_rate
+        wheel_speeds = WheelSpeeds(left=linear_component - angular_component, right=linear_component + angular_component)
+        if self.__wheel_speed_transformation is None:
+            return wheel_speeds
+        else:
+            return wheel_speeds.apply(self.__wheel_speed_transformation)
