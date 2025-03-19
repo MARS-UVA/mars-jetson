@@ -17,7 +17,6 @@ def check_speeds(observed: MotorChanges, expected: MotorChanges) -> None:
         if expected_copy.count(j) > 0:
             assert j==expected_copy[expected_copy.index(j)].velocity
             expected_copy.remove(j)
-s
 def test_no_wheel_speed() -> None:
     speed=WheelSpeeds(0.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
