@@ -12,7 +12,7 @@ def median_filter(data, kernel_size):
     kernel_size (int): Size of the median filter kernel.
     
     Returns:
-    numpy.ndarray: Filtered data.
+    numpy.ndarray: Filtered data.1
     """
     filtered_data = np.zeros_like(data)
     

@@ -1,4 +1,3 @@
-#include "extract_capture.h"
 #include "realsense_capture.h"
 #include <ctime>
 #include <string>
@@ -6,6 +5,8 @@
 #include "gradient_map.h"
 #include "local_path_planner_graph.h"
 #include <chrono>
+
+#define DECIMATION_KERNEL_SIZE 4
 
 // bool reachedGoal(const RobotState &state, float goal_x, float goal_y)
 // {
@@ -28,14 +29,15 @@ int main(int argc, char *argv[])
     {
         capture_format = std::stoi(argv[1]);
     }
-    std::vector<Vertex> vertices;
+    std::optional<std::vector<Vertex> *> vertices;
+    vertices = new std::vector<Vertex>();
     if (capture_format == 1)
     {
-        runMatrixCollector(vertices, 4);
+        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
     }
     else if (capture_format == 2)
     {
-        std::shared_ptr<Matrices> retMatrices = runMatrixCollector(vertices, 4);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
@@ -45,17 +47,24 @@ int main(int argc, char *argv[])
     }
     else if (capture_format == 3)
     {
-        runMatrixCollector(vertices, 4);
+        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
         strftime(buffer, 80, "%Y-%m-%d-%H-%M-%S", localtm);
         std::string filename = "vertices_" + std::string(buffer) + ".ply";
-        save_to_ply(vertices, filename);
+        if (vertices.has_value() && vertices.value() != nullptr)
+        {
+            save_to_ply(*(vertices.value()), filename);
+        }
+        else
+        {
+            std::cerr << "Error: vertices is either empty or null." << std::endl;
+        }
     }
     else if (capture_format == 4)
     {
-        std::shared_ptr<Matrices> retMatrices = runMatrixCollector(vertices, 4);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
@@ -63,11 +72,18 @@ int main(int argc, char *argv[])
         std::string filename_mat = "matrix_benchmark_" + std::string(buffer) + ".txt";
         save_matrices_to_txt(retMatrices->heights, retMatrices->actualCoordinates, filename_mat);
         std::string filename_vert = "vertices_" + std::string(buffer) + ".ply";
-        save_to_ply(vertices, filename_vert);
+        if (vertices.has_value() && vertices.value() != nullptr)
+        {
+            save_to_ply(*(vertices.value()), filename_vert);
+        }
+        else
+        {
+            std::cerr << "Error: vertices is either empty or null." << std::endl;
+        }
     }
     else if (capture_format == 5 || capture_format == 6)
     {
-        std::shared_ptr<Matrices> retMatrices = runMatrixCollector(vertices, 4);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
         std::vector<Vertex> obstacleVertices;
         ObstacleClusteringTree obstacleTree(2);
         std::vector<std::vector<float>> gradients = ParallelGradientCalculator::calculateGradientsParallel(retMatrices->heights, retMatrices->actualCoordinates, 3, obstacleVertices, obstacleTree);
@@ -91,7 +107,14 @@ int main(int argc, char *argv[])
         strftime(buffer, 80, "%Y-%m-%d-%H-%M-%S", localtm);
         std::string filename;
         filename = "vertices_" + std::string(buffer) + ".ply";
-        save_to_ply(vertices, filename);
+        if (vertices.has_value() && vertices.value() != nullptr)
+        {
+            save_to_ply(*(vertices.value()), filename);
+        }
+        else
+        {
+            std::cerr << "Error: vertices is either empty or null." << std::endl;
+        }
         filename = "gradients_" + std::string(buffer) + ".ply";
         save_to_ply(gradientVertices, filename);
         filename = "obstacles_" + std::string(buffer) + ".ply";
@@ -107,11 +130,18 @@ int main(int argc, char *argv[])
     else if (capture_format == 7)
     {
         auto start = std::chrono::high_resolution_clock::now();
-        std::shared_ptr<Matrices> retMatrices = runMatrixCollector(vertices, 4);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
         std::vector<Vertex> obstacleVertices;
         std::string filename;
         filename = "vertices_python.ply";
-        save_to_ply(vertices, filename);
+        if (vertices.has_value() && vertices.value() != nullptr)
+        {
+            save_to_ply(*(vertices.value()), filename);
+        }
+        else
+        {
+            std::cerr << "Error: vertices is either empty or null." << std::endl;
+        }
         ObstacleClusteringTree obstacleTree(2);
         std::vector<std::vector<float>> gradients = ParallelGradientCalculator::calculateGradientsParallel(retMatrices->heights, retMatrices->actualCoordinates, 3, obstacleVertices, obstacleTree);
 
@@ -147,14 +177,12 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
         std::cout << "Time for robot to traverse a single frame: " << elapsed.count() << "s" << std::endl;
 
-        filename = "path_python1.ply";
+        filename = "path_python.ply";
         save_to_ply(pointsOnPath, filename);
     }
-    else
+    if (vertices.has_value() && vertices.value() != nullptr)
     {
-        PointcloudTree *tree = new PointcloudTree(Point(-5, 10), Point(5, 0));
-        runPcTreeCollector(tree, vertices, 4);
-        delete tree;
+        delete vertices.value();
+        vertices.reset();
     }
-    std::cout << "Finished!" << std::endl;
 }

@@ -5,3 +5,4 @@ install
 devel
 log
 **/realsense-source/
+**/*.ply

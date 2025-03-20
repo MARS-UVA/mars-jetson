@@ -3,10 +3,149 @@
 #include <vector>
 #include <queue>
 #include <map>
+#include <utility>
+#include <string>
+#include <sstream>
+
+#ifdef _WIN32
+void usleep_simulation(unsigned int microseconds);
+#define usleep usleep_simulation
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <stdio.h>
+#pragma comment(lib, "Ws2_32.lib")
+#define close closesocket
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#endif
+
+using socket_t = decltype(socket(0, 0, 0));
+
+void usleep_simulation(unsigned int microseconds)
+{
+    volatile unsigned long long i;
+    for (i = 0; i < (unsigned long long)microseconds * 1000; i++)
+    {
+        // Do nothing, just burn CPU cycles
+    }
+}
+
+struct Twist
+{
+    float linear;  // Linear velocity
+    float angular; // Angular velocity
+
+    Twist(float lin = 0.0f, float ang = 0.0f) : linear(lin), angular(ang) {}
+};
+
+class VisualizationSocket
+{
+private:
+    socket_t sockfd;
+    struct sockaddr_in serv_addr;
+    bool connected;
+
+public:
+    VisualizationSocket(const std::string &ip = "127.0.0.1", int port = 12345) : connected(false)
+    {
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        {
+            std::cerr << "WSAStartup failed" << std::endl;
+            return;
+        }
+        // Create socket
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0)
+        {
+            std::cerr << "ERROR opening socket" << std::endl;
+            return;
+        }
+
+        // Set up server address
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(port);
+
+        if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0)
+        {
+            std::cerr << "Invalid address or address not supported" << std::endl;
+            close(sockfd);
+            return;
+        }
+
+        if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+        {
+            std::cerr << "Connection Failed. Python visualization server might not be running." << std::endl;
+            close(sockfd);
+            return;
+        }
+
+        connected = true;
+        std::cout << "Connected to visualization server" << std::endl;
+    }
+
+    ~VisualizationSocket()
+    {
+        if (connected)
+        {
+            sendMessage("TERMINATE");
+            close(sockfd);
+        }
+    }
+
+    void sendMessage(const std::string &message)
+    {
+        if (!connected)
+            return;
+
+        send(sockfd, message.c_str(), message.length(), 0);
+    }
+
+    void sendExploredPoint(float currentX, float currentY, float parentX, float parentY)
+    {
+        if (!connected)
+            return;
+
+        std::stringstream ss;
+        ss << "EXPLORE," << currentX << "," << currentY << "," << parentX << "," << parentY;
+        sendMessage(ss.str());
+    }
+
+    void sendTwist(float linVelocity, float angVelocity, int order)
+    {
+        if (!connected)
+            return;
+
+        std::stringstream ss;
+        ss << "TWIST," << linVelocity << "," << angVelocity << "," << order;
+        sendMessage(ss.str());
+    }
+
+    void sendPathPoint(float x, float y)
+    {
+        if (!connected)
+            return;
+
+        std::stringstream ss;
+        ss << "PATH," << x << "," << y;
+        sendMessage(ss.str());
+    }
+
+    bool isConnected() const
+    {
+        return connected;
+    }
+};
 
 float AStarPathPlanner::hValue(float x, float y)
 {
-    return sqrt(pow(x - goal.x, 2) + pow(y - goal.y, 2));
+    return static_cast<float>(sqrt(pow(x - goal.x, 2) + pow(y - goal.y, 2)));
 }
 
 struct CompareCoordinate
@@ -19,10 +158,54 @@ struct CompareCoordinate
 
 std::vector<Vertex> AStarPathPlanner::retracePath(PathPoint *current)
 {
+    std::vector<Twist> twists;
+    VisualizationSocket vizSocket;
     std::vector<Vertex> path;
+    PathPoint *prev = nullptr;
+    float prev_heading = 0.0f;
     while (current != nullptr)
     {
         path.push_back(Vertex(current->coordinate->x, current->coordinate->y, 0));
+        if (prev != nullptr)
+        {
+            // Calculate heading to current point
+            float dx = current->coordinate->x - prev->coordinate->x;
+            float dy = current->coordinate->y - prev->coordinate->y;
+            float target_heading = atan2(dy, dx);
+
+            // Calculate angular difference (need to handle wrap-around)
+            float angular_diff = target_heading - prev_heading;
+            float angular_delta = static_cast<float>(2 * M_PI);
+            if (angular_diff > M_PI)
+                angular_diff -= angular_delta;
+            if (angular_diff < -M_PI)
+                angular_diff += angular_delta;
+
+            // Calculate linear velocity (can be based on distance)
+            float distance = sqrt(dx * dx + dy * dy);
+            float linear_velocity = distance; // You might want to scale this
+
+            // Calculate angular velocity
+            float angular_velocity = angular_diff; // You might want to scale this
+
+            // Add Twist to the vector
+            twists.push_back(Twist(linear_velocity, angular_velocity));
+            if (vizSocket.isConnected())
+            {
+                vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
+                usleep(25000); // 25ms delay
+            }
+
+            // Update previous heading for next iteration
+            prev_heading = target_heading;
+        }
+        if (vizSocket.isConnected())
+        {
+            vizSocket.sendPathPoint(current->coordinate->x, current->coordinate->y);
+            // vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
+            usleep(50000); // 50ms delay
+        }
+        prev = current;
         current = current->parent;
     }
     return path;
@@ -45,6 +228,8 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
 
     constexpr float INVALID_POINT_PENALTY = 5.0f;       // Penalty for invalid points
     constexpr float OBSTACLE_PROXIMITY_PENALTY = 10.0f; // Penalty for being near obstacles
+
+    VisualizationSocket vizSocket;
 
     costArray.clear();
     costArray.resize(actualCoordinates.size() * actualCoordinates[0].size(), nullptr);
@@ -77,7 +262,6 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
 
     costArray[startIndex] = startNode;
     openSet.push({startIndex, startCost});
-    std::cout << "Added start node to openSet. OpenSet size: " << openSet.size() << std::endl;
 
     std::unordered_map<int, bool> closedSet;
 
@@ -96,18 +280,14 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
             continue;
         }
 
-        // std::cout << "\nIteration " << iterations << std::endl;
-        // std::cout << "Current position: (" << current->coordinate->x << ","
-        //           << current->coordinate->y << ")" << std::endl;
-
         if (isDestination(current))
         {
-            // Clean up dynamically allocated memory
             std::cout << "Path found after " << iterations << " iterations!" << std::endl;
             std::vector<Vertex> path = retracePath(current);
             for (auto &point : costArray)
             {
                 delete point;
+                point = nullptr;
             }
             std::cout << "Final OpenSet size: " << openSet.size() << std::endl;
             std::cout << "path size: " << path.size() << std::endl;
@@ -116,18 +296,17 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
 
         if (closedSet.find(currentIndex) != closedSet.end())
         {
-            // std::cout << "Node already in closedSet, skipping" << std::endl;
             continue;
         }
 
         closedSet[currentIndex] = true;
 
         int neighborsFound = 0;
-// Generate neighbors (8-connected grid)
-#pragma omp parallel for collapse(2)
-        for (int dy = -1; dy <= 1; dy++)
+
+#pragma omp parallel for collapse(2) shared(costArray, openSet)
+        for (int dy = -2; dy <= 2; dy += 2)
         {
-            for (int dx = -1; dx <= 1; dx++)
+            for (int dx = -2; dx <= 2; dx += 2)
             {
                 if (dx == 0 && dy == 0)
                     continue;
@@ -135,9 +314,10 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                 int newRow = current->indices.first + dy;
                 int newCol = current->indices.second + dx;
 
-                // Check bounds
+                // Check bounds and whether the actualCoordinates array is empty
                 if (newRow < 0 || newRow >= actualCoordinates.size() ||
-                    newCol < 0 || newCol >= actualCoordinates[0].size())
+                    newCol < 0 || newCol >= actualCoordinates[0].size() ||
+                    actualCoordinates.empty() || actualCoordinates[0].empty())
                 {
                     continue;
                 }
@@ -145,35 +325,27 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                 Coordinate *nextCoord = &actualCoordinates[newRow][newCol];
                 float moveCost = 0.0; //  = (abs(dx) + abs(dy) == 2) ? 1.414f : 1.0f
 
-                // Add penalty for invalid points instead of skipping
                 if (!nextCoord->valid)
                 {
                     moveCost += INVALID_POINT_PENALTY;
-                    // std::cout << "Invalid point found at (" << nextCoord->x << ","
-                    //   << nextCoord->y << "), adding penalty" << std::endl;
                 }
 
-                // Add penalty for obstacle proximity instead of skipping
-                auto obstacle = obstacleTree.findNearestObstacle(
-                    Vertex(nextCoord->x, nextCoord->y, 0));
-                // std::cout << "Obstacle found: " << (obstacle ? "true" : "false") << std::endl;
+                auto obstacle = obstacleTree.findNearestObstacle(Vertex(nextCoord->x, nextCoord->y, 0));
                 if (obstacle)
                 {
-                    float obstacle_dist = sqrt(
+                    float obstacle_dist = static_cast<float>(sqrt(
                         pow(obstacle->getVertex().x - nextCoord->x, 2) +
-                        pow(obstacle->getVertex().y - nextCoord->y, 2));
-                    if (obstacle_dist < 0.1)
+                        pow(obstacle->getVertex().y - nextCoord->y, 2)));
+                    if (obstacle_dist < 0.2)
                     {
-                        // moveCost += OBSTACLE_PROXIMITY_PENALTY * (0.2f - obstacle_dist);
                         continue;
                     }
-                    // std::cout << "Obstacle proximity penalty: " << moveCost << std::endl;
                 }
 
                 float localCost = current->costs.first;
                 if (nextCoord->valid)
                 {
-                    localCost += sqrt(pow(nextCoord->x - current->coordinate->x, 2) + pow(nextCoord->y - current->coordinate->y, 2));
+                    localCost += static_cast<float>(sqrt(pow(nextCoord->x - current->coordinate->x, 2) + pow(nextCoord->y - current->coordinate->y, 2)));
                 }
                 else
                 {
@@ -182,198 +354,60 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                 float newCost = localCost + moveCost;
                 int neighborIndex = newRow * actualCoordinates[0].size() + newCol;
                 PathPoint *neighbor = costArray[neighborIndex];
-                // std::cout << "Neighbor index: " << neighborIndex << std::endl;
                 if (!neighbor)
                 {
                     neighborsFound++;
-                    // std::cout << "Neighbor local cost updated to " << localCost << std::endl;
-                    // std::cout << "Neighbor coordinate valid" << std::endl;
                     if (nextCoord->valid)
                     {
                         newCost += hValue(nextCoord->x, nextCoord->y);
-                        // std::cout << "Neighbor cost: " << newCost << std::endl;
                     }
                     neighbor = new PathPoint(current, nextCoord, newRow, newCol,
                                              localCost, newCost);
+                    neighbor->parent = current;
                     costArray[neighborIndex] = neighbor;
-                    openSet.push({neighborIndex, newCost});
-                    // std::cout << "Added new neighbor at (" << nextCoord->x << ","
-                    //           << nextCoord->y << ") with cost " << newCost << std::endl;
+#pragma omp critical
+                    {
+                        openSet.push({neighborIndex, newCost});
+                    }
+                    if (vizSocket.isConnected())
+                    {
+                        vizSocket.sendExploredPoint(
+                            nextCoord->x, nextCoord->y,
+                            current->coordinate->x, current->coordinate->y);
+                    }
                 }
                 else if (newCost < neighbor->costs.first)
                 {
                     neighborsFound++;
+                    PathPoint *oldParent = neighbor->parent;
                     neighbor->parent = current;
                     neighbor->costs.first = localCost;
-                    // std::cout << "Neighbor local cost updated to " << localCost << std::endl;
                     if (neighbor->coordinate->valid)
                     {
-                        // std::cout << "Neighbor coordinate valid" << std::endl;
                         newCost += hValue(nextCoord->x, nextCoord->y);
                     }
-                    // std::cout << "Neighbor cost: " << newCost << std::endl;
                     neighbor->costs.second = newCost;
-                    openSet.push({neighborIndex, newCost});
-                    // std::cout << "Updated neighbor at (" << nextCoord->x << ","
-                    //           << nextCoord->y << ") with new cost " << newCost << std::endl;
+#pragma omp critical
+                    {
+                        openSet.push({neighborIndex, newCost});
+                    }
+                    if (vizSocket.isConnected() && oldParent != current)
+                    {
+                        vizSocket.sendExploredPoint(
+                            nextCoord->x, nextCoord->y,
+                            current->coordinate->x, current->coordinate->y);
+                    }
                 }
             }
         }
-
-        // std::cout << "Found " << neighborsFound << " neighbors" << std::endl;
-        // std::cout << "OpenSet size: " << openSet.size() << std::endl;
     }
 
-    std::cout << "No path found after " << iterations << " iterations" << std::endl;
-    std::cout << "Final OpenSet size: " << openSet.size() << std::endl;
-    // Clean up dynamically allocated memory
+    // std::cout << "No path found after " << iterations << " iterations" << std::endl;
+    // std::cout << "Final OpenSet size: " << openSet.size() << std::endl;
     for (auto &point : costArray)
     {
         delete point;
+        point = nullptr;
     }
     return std::vector<Vertex>();
 }
-
-// std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinate>> &actualCoordinates, Vertex &start, std::pair<int, int> &startIndices)
-// {
-//     costArray.clear();
-//     costArray.resize(actualCoordinates.size() * actualCoordinates[0].size(), nullptr);
-
-//     std::priority_queue<std::pair<int, float>,
-//                         std::vector<std::pair<int, float>>,
-//                         CompareCoordinate>
-//         openSet;
-
-//     int startIndex = startIndices.first * actualCoordinates[0].size() + startIndices.second;
-//     float startHeuristic = hValue(start.x, start.y);
-//     PathPoint *startNode = new PathPoint(nullptr,
-//                                          &actualCoordinates[startIndices.first][startIndices.second],
-//                                          startIndices.first,
-//                                          startIndices.second,
-//                                          0,
-//                                          startHeuristic);
-
-//     std::cout << "Start node: (" << startNode->coordinate->x << ", " << startNode->coordinate->y << ")" << std::endl;
-
-//     costArray[startIndex] = startNode;
-//     openSet.push({startIndex, startHeuristic});
-
-//     std::unordered_map<int, bool> closedSet;
-
-//     int iterations = 0;
-//     const int MAX_ITERATIONS = 10000; // Prevent infinite loops
-
-//     while (openSet.size() > 0)
-//     {
-//         iterations++;
-//         int costArrayIndex = openSet.top().first;
-//         openSet.pop();
-//         PathPoint *parentPoint = costArray[costArrayIndex];
-//         if (!parentPoint)
-//         {
-//             std::cout << "Error: Null point in costArray at index " << costArrayIndex << std::endl;
-//             continue;
-//         }
-//         if (iterations % 1000 == 0)
-//         {
-//             std::cout << "Iteration " << iterations << ", current position: ("
-//                       << parentPoint->coordinate->x << ", " << parentPoint->coordinate->y << ")" << std::endl;
-//         }
-//         if (parentPoint != nullptr && isDestination(parentPoint))
-//         {
-//             std::cout << "Path found" << std::endl;
-//             return retracePath(parentPoint);
-//             break;
-//         }
-//         // std::cout << "Past destination check" << std::endl;
-//         std::vector<std::pair<int, int>> nextIndicesList;
-//         std::pair<int, int> currentIndices = parentPoint->indices;
-//         nextIndicesList.push_back({currentIndices.first - 1, currentIndices.second});     // Up
-//         nextIndicesList.push_back({currentIndices.first + 1, currentIndices.second});     // Down
-//         nextIndicesList.push_back({currentIndices.first, currentIndices.second - 1});     // Left
-//         nextIndicesList.push_back({currentIndices.first, currentIndices.second + 1});     // Right
-//         nextIndicesList.push_back({currentIndices.first - 1, currentIndices.second - 1}); // Up-Left
-//         nextIndicesList.push_back({currentIndices.first - 1, currentIndices.second + 1}); // Up-Right
-//         nextIndicesList.push_back({currentIndices.first + 1, currentIndices.second - 1}); // Down-Left
-//         nextIndicesList.push_back({currentIndices.first + 1, currentIndices.second + 1}); // Down-Right
-//         // std::cout << "Next indices list size: " << nextIndicesList.size() << std::endl;
-//         for (auto index : nextIndicesList)
-//         {
-//             if (index.first >= 0 && index.first < actualCoordinates.size() && index.second >= 0 && index.second < actualCoordinates[0].size())
-//             {
-//                 Coordinate *nextCoordinate = &actualCoordinates[index.first][index.second];
-
-//                 // Check if the next coordinate is an obstacle, if so, skip
-//                 auto obstacle = obstacleTree.findNearestObstacle(Vertex(nextCoordinate->x, nextCoordinate->y, 0));
-//                 if (obstacle != nullptr)
-//                 {
-//                     float obstacle_dist = sqrt(pow(obstacle->getVertex().x - nextCoordinate->x, 2) +
-//                                                pow(obstacle->getVertex().y - nextCoordinate->y, 2));
-//                     // Use both safety margin and minimum distance
-//                     if (obstacle_dist < 0.5)
-//                         continue;
-//                 }
-//                 std::cout << "Past obstacle check" << std::endl;
-
-//                 // Check if the next coordinate is invalid, if so, skip
-//                 // if (nextCoordinate->valid == false)
-//                 // {
-//                 //     std::cout << "Invalid coordinate at " << index.first << " " << index.second << std::endl;
-//                 //     continue;
-//                 // }
-//                 // std::cout << "Past valid check" << std::endl;
-
-//                 int indexForNewPoint = index.first * actualCoordinates[0].size() + index.second;
-//                 // Check if the next coordinate is in the closed set, if so, skip --> this is to avoid rechecking the same point
-//                 if (closedSet.find(indexForNewPoint) != closedSet.end())
-//                 {
-//                     continue;
-//                 }
-//                 // std::cout << "Past closed set check" << std::endl;
-//                 if (costArray[indexForNewPoint] == nullptr)
-//                 {
-//                     std::cout << "Creating new point" << std::endl;
-//                     float localCost = parentPoint->costs.first + 1;
-//                     float globalCost;
-//                     if (nextCoordinate->valid == false)
-//                     {
-//                         globalCost = std::numeric_limits<float>::max();
-//                     }
-//                     else
-//                     {
-//                         globalCost = hValue(nextCoordinate->x - parentPoint->coordinate->x, nextCoordinate->y - parentPoint->coordinate->y) + hValue(nextCoordinate->x - goal.x, nextCoordinate->y - goal.y);
-//                     }
-//                     PathPoint *nextPoint = new PathPoint(parentPoint, nextCoordinate, index.first, index.second, localCost, globalCost);
-//                     costArray[indexForNewPoint] = nextPoint;
-//                     openSet.push({indexForNewPoint, localCost});
-//                 }
-//                 if (costArray[indexForNewPoint]->costs.first > parentPoint->costs.first + 1)
-//                 {
-//                     std::cout << "Updating existing point" << std::endl;
-//                     costArray[indexForNewPoint]->costs.first = parentPoint->costs.first + 1;
-//                     costArray[indexForNewPoint]->parent = parentPoint;
-//                     float globalCost;
-//                     if (nextCoordinate->valid == false)
-//                     {
-//                         globalCost = std::numeric_limits<float>::max();
-//                     }
-//                     else
-//                     {
-//                         globalCost = hValue(nextCoordinate->x - parentPoint->coordinate->x, nextCoordinate->y - parentPoint->coordinate->y) + costArray[indexForNewPoint]->costs.second;
-//                     }
-//                     // Update the priority of the existing element in the priority queue
-//                     openSet.push({indexForNewPoint, costArray[indexForNewPoint]->costs.first});
-//                     std::cout << "Updated point" << std::endl;
-//                 }
-//             }
-//             else
-//             {
-//                 std::cout << "Invalid index" << std::endl;
-//             }
-//         }
-//         std::cout << "Past for loop" << std::endl;
-//         closedSet.insert({costArrayIndex, true});
-//     }
-//     std::cout << iterations << " iterations" << std::endl;
-//     std::cout << "No path found" << std::endl;
-// }

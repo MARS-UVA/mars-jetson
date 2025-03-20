@@ -62,7 +62,6 @@ int ObstacleNode::size()
 
 void ObstacleClusteringTree::add(Vertex &vertex)
 {
-    // std::cout << "Adding vertex: " << vertex.x << ", " << vertex.y << std::endl;
     if (this->root == nullptr)
     {
         this->root = new ObstacleNode(vertex);

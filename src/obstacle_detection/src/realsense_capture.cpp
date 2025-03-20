@@ -101,7 +101,6 @@ std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename)
 
 std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize)
 {
-    // std::vector<Vertex> verticesWithCommonCoordinates;
     rs2::pipeline pipe;
     rs2::config cfg;
 
@@ -112,10 +111,9 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
     {
         pipe.start();
 
-        std::cout << "Waiting for frames...\n";
         for (int i = 0; i < 30; i++)
         {
-            pipe.wait_for_frames(); // Warmup
+            pipe.wait_for_frames();
         }
 
         rs2::decimation_filter decimation;
@@ -123,18 +121,11 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
         rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
-        // rs2::depth_frame decimated_depth = decimation.process(depth);
         rs2::frame color = frames.get_color_frame();
 
         auto stream = depth.get_profile().as<rs2::video_stream_profile>();
         auto intrinsics = stream.get_intrinsics();
 
-        // std::vector<Vertex> vertices;
-        // std::vector<std::vector<float>> heights = std::vector<std::vector<float>>(depth.get_height(), std::vector<float>(depth.get_width(), 0.0));
-
-        // float REALSENSE_CAM_ANGLE = 2 * M_PI + ((-45.0 * M_PI) / 180.0); // -45 degree angle with respect to the horizontal plane
-        // float ANGLE_ROTATION = REALSENSE_CAM_ANGLE - M_PI / 2;
-        // std::cout << "Angle of rotation: " << ANGLE_ROTATION << std::endl;
         int num_vertices = 0;
         heights = std::vector<std::vector<float>>(depth.get_height(), std::vector<float>(depth.get_width(), 0.0));
         actualCoordinates = std::vector<std::vector<Coordinate>>(depth.get_height(), std::vector<Coordinate>(depth.get_width(), Coordinate()));
@@ -150,8 +141,6 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
                 {
                     float pixel[2] = {static_cast<float>(x), static_cast<float>(y)};
                     float point[3];
-
-                    // Deproject from pixel to 3D points using the depth value
                     rs2_deproject_pixel_to_point(point, &intrinsics, pixel, pixel_depth);
                     // float z = point[2] * sin(REALSENSE_CAM_ANGLE * M_PI / 180.0);
                     float angle = ((-180.0f + REALSENSE_ANGLE_FROM_HORIZONTAL) * M_PI) / 180.0f;
@@ -161,7 +150,6 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
                     Vertex vertex(point[0], y_rotated, z_rotated);
                     Vertex vertexCommonCoor(x, y, z_rotated);
 
-                    // verticesWithCommonCoordinates.push_back(vertexCommonCoor);
                     num_vertices++;
                     heights[y][x] = z_rotated;
                     actualCoordinates[y][x] = Coordinate(point[0], y_rotated);
@@ -178,10 +166,6 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
                 }
             }
         }
-
-        // save_to_ply(verticesWithCommonCoordinates, "out_common.ply");
-
-        std::cout << "Number of vertices: " << num_vertices << std::endl;
 
         pipe.stop();
     }

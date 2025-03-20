@@ -31,8 +31,8 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
 {
   Stats globalStats;
   std::vector<Stats> localStats(numThreads);
-  int fullRows = heights.size();
-  int fullCols = heights[0].size();
+  int fullRows = (int)heights.size();
+  int fullCols = (int)heights[0].size();
 
   std::vector<std::vector<float>> result(fullRows, std::vector<float>(fullCols));
 
@@ -51,7 +51,6 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   std::vector<float> localGradMeans(numThreads, 0.0f);
   std::vector<float> localGradSquareSums(numThreads, 0.0f);
   std::vector<int> localValidPoints(numThreads, 0);
-  int n;
   auto start = std::chrono::high_resolution_clock::now();
   for (int tileStart = 0; tileStart < fullRows; tileStart += tileRows)
   {
@@ -87,36 +86,86 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   globalStats.mean = std::accumulate(localMeans.begin(), localMeans.end(), 0.0f) / numThreads;
   globalStats.gradMean = std::accumulate(localGradMeans.begin(), localGradMeans.end(), 0.0f) / numThreads;
   int totalValidPoints = std::accumulate(localValidPoints.begin(), localValidPoints.end(), 0);
-  globalStats.stdDev = std::sqrt((std::accumulate(localSquareSums.begin(), localSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.mean, 2));
-  globalStats.gradStdDev = std::sqrt((std::accumulate(localGradSquareSums.begin(), localGradSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.gradMean, 2));
+  globalStats.stdDev = static_cast<float>(std::sqrt((std::accumulate(localSquareSums.begin(), localSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.mean, 2)));
+  globalStats.gradStdDev = static_cast<float>(std::sqrt((std::accumulate(localGradSquareSums.begin(), localGradSquareSums.end(), 0.0f) / totalValidPoints) - std::pow(globalStats.gradMean, 2)));
 
   // 2nd pass to identify outliers - need to refactor this to be more optimal
   std::cout << "Global mean: " << globalStats.mean << std::endl;
   std::cout << "Global std dev: " << globalStats.stdDev << std::endl;
   std::cout << "Global gradient mean: " << globalStats.gradMean << std::endl;
   std::cout << "Global gradient std dev: " << globalStats.gradStdDev << std::endl;
+
+  std::pair<int, int> leftIndices(fullCols / 2, fullRows / 2);
+  std::pair<int, int> rightIndices(leftIndices.first + 1, fullRows / 2);
+// float localMean = 0.0f, localStdDev = 0.0f, isLocalOutlier = false, hasHighLocalVariance = false, isGlobalOutlier = false, isGradientOutlier = false;
 #pragma omp parallel for collapse(2)
-  for (int i = 0; i < fullRows; ++i)
+  while (leftIndices.second > 0 || rightIndices.second < fullRows)
   {
-    for (int j = 0; j < fullCols; ++j)
+    while (leftIndices.first > 0 || rightIndices.first < fullCols)
     {
-      if (actualCoordinates[i][j].valid)
+      if (leftIndices.second > 0 && leftIndices.first > 0 && actualCoordinates[leftIndices.second][leftIndices.first].valid)
       {
-        float localMean = localStats[i / tileRows].mean;
-        float localStdDev = localStats[i / tileRows].stdDev;
-        bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 2.5 * localStdDev;
+        float localMean = localStats[leftIndices.second / tileRows].mean;
+        float localStdDev = localStats[leftIndices.second / tileRows].stdDev;
+        bool isLocalOutlier = std::abs(heights[leftIndices.second][leftIndices.first] - localMean) > 2.5 * localStdDev;
         bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
-        bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > 2.5 * globalStats.stdDev;
-        bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
+        bool isGlobalOutlier = std::abs(heights[leftIndices.second][leftIndices.first] - globalStats.mean) > 2.5 * globalStats.stdDev;
+        bool isGradientOutlier = std::abs(result[leftIndices.second][leftIndices.first] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
         if (isGlobalOutlier || isGradientOutlier)
         {
-          Vertex partOfObstacle(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]);
+          Vertex partOfObstacle(actualCoordinates[leftIndices.second][leftIndices.first].x, actualCoordinates[leftIndices.second][leftIndices.first].y, heights[leftIndices.second][leftIndices.first]);
           obstacleVertices.push_back(partOfObstacle);
           obstacleTree.add(partOfObstacle);
         }
       }
+
+      if (rightIndices.second < fullRows && rightIndices.first < fullCols && actualCoordinates[rightIndices.second][rightIndices.first].valid)
+      {
+        float localMean = localStats[rightIndices.second / tileRows].mean;
+        float localStdDev = localStats[rightIndices.second / tileRows].stdDev;
+        bool isLocalOutlier = std::abs(heights[rightIndices.second][rightIndices.first] - localMean) > 2.5 * localStdDev;
+        bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
+        bool isGlobalOutlier = std::abs(heights[rightIndices.second][rightIndices.first] - globalStats.mean) > 2.5 * globalStats.stdDev;
+        bool isGradientOutlier = std::abs(result[rightIndices.second][rightIndices.first] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
+        if (isGlobalOutlier || isGradientOutlier)
+        {
+          Vertex partOfObstacle(actualCoordinates[rightIndices.second][rightIndices.first].x, actualCoordinates[rightIndices.second][rightIndices.first].y, heights[rightIndices.second][rightIndices.first]);
+          obstacleVertices.push_back(partOfObstacle);
+          obstacleTree.add(partOfObstacle);
+        }
+      }
+
+      leftIndices.first--;
+      rightIndices.first++;
     }
+    leftIndices.second--;
+    rightIndices.second++;
+    leftIndices.first = fullCols - 1;
+    rightIndices.first = 0;
   }
+
+  // #pragma omp parallel for collapse(2)
+  //   for (int i = 0; i < fullRows; ++i)
+  //   {
+  //     for (int j = 0; j < fullCols; ++j)
+  //     {
+  //       if (actualCoordinates[i][j].valid)
+  //       {
+  //         float localMean = localStats[i / tileRows].mean;
+  //         float localStdDev = localStats[i / tileRows].stdDev;
+  //         bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 2.5 * localStdDev;
+  //         bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
+  //         bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > 2.5 * globalStats.stdDev;
+  //         bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
+  //         if (isGlobalOutlier || isGradientOutlier)
+  //         {
+  //           Vertex partOfObstacle(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]);
+  //           obstacleVertices.push_back(partOfObstacle);
+  //           obstacleTree.add(partOfObstacle);
+  //         }
+  //       }
+  //     }
+  //   }
 
   return result;
 }
