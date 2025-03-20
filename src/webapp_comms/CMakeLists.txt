@@ -16,6 +16,7 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
+find_package(nlohmann REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -30,7 +31,7 @@ add_executable(net_node
 
 target_link_libraries(net_node ${OpenCV_LIBS})
 target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
-ament_target_dependencies(net_node rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV teleop_msgs)
+ament_target_dependencies(net_node rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV teleop_msgs nlohmann)
 
 install(TARGETS
   net_node

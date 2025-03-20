@@ -12,11 +12,14 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include "./client.hpp"
 #include "./server.hpp"
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
+using json = nlohmann::json;
 
 const char CONTROL_STATION_IP[] = "127.0.0.1";
 ThreadInfo info;
@@ -65,7 +68,17 @@ private:
       message = std::string(info.client_message);
       RCLCPP_INFO(this->get_logger(), info.client_message);
       RCLCPP_INFO(this->get_logger(), "4");
-      
+
+      json data = json::parse(message);
+      float left_stick_x = data["leftStick"]["x"];
+      RCLCPP_INFO(this->get_logger(), "%f", left_stick_x);
+
+      // This block is handling everything in the JSON individually.
+      msg.left_stick.x = data["leftStick"]["x"];
+      msg.left_stick.y = data["leftStick"]["y"];
+      msg.right_stick.x = data["rightStick"]["x"];
+      msg.right_stick.y = data["rightStick"]["y"];
+
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", "something");
