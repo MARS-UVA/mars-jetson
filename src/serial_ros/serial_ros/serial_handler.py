@@ -1,4 +1,5 @@
 import serial
+from time import sleep
 
 # To run this script on Jetson independently, you can do
 # eg. python3 100 100 100 100 100 100
@@ -38,4 +39,6 @@ if __name__ == "__main__":
 		data[i-1] = int(sys.argv[i])
 	print(f"Data {data}")
 	handler = SerialHandler()
-	handler.send(header,data)
+	while True:
+		handler.send(header,data)
+		sleep(0.1)
