@@ -3,10 +3,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 import math
-from typing import Any, Self
+#from typing import Any, Self
 from ..signal_processing import Clamp
 from teleop_msgs.msg import GamepadState, StickPosition
-
+Any = Self = None
 
 class WheelSpeeds:
     """A class which represents speeds of the robot's left set and right set of wheels."""
