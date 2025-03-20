@@ -256,7 +256,7 @@ TEST_CASE("Test client sending image to a server [client_udp.h]")
     REQUIRE(received_data.size() == imgBuffer.size());
     REQUIRE(memcmp(received_data.data(), imgBuffer.data(), imgBuffer.size()) == 0);
     cv::Mat receivedImage = cv::imdecode(received_data, cv::IMREAD_COLOR);
-    cv::imshow("Received Image", receivedImage);
+    //cv::imshow("Received Image", receivedImage);
     std::cout << "Elapsed time of [Image Data] test: " << elapsed_seconds.count() << "s\n";
     REQUIRE(receivedImage.rows == imageMatrix.rows);
     REQUIRE(receivedImage.cols == imageMatrix.cols);

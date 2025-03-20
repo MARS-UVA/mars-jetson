@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 #include <thread>
 #include "./client.hpp"
+#include <cstdio>
+#include <stdexcept>
 
 #define PORT 8080
 
@@ -17,6 +19,24 @@ int create_server(ThreadInfo *info)
     memset(&server_addr, '\0', sizeof(server_addr));
     char server_message[2000], client_message[2000];
     socklen_t client_struct_length = sizeof(client_addr);
+
+    std::string cmd = "hostname -I | awk '{print $1}";
+    std::vector<char> inet_buffer(128);
+    std::string localIp;
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(inet_buffer.data(), inet_buffer.size(), pipe) != nullptr) {
+        localIp += inet_buffer.data();
+    }
+    pclose(pipe);
+
+    if (!localIp.empty() && localIp.back() == '\n') {
+        localIp.pop_back();
+    }
+
+    std::cout << localIp << std::endl;
 
     // Clean buffers:
     // memset(server_message, '\0', sizeof(server_message));
@@ -35,7 +55,7 @@ int create_server(ThreadInfo *info)
     // Set port and IP:
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
-    server_addr.sin_addr.s_addr = inet_addr("192.168.0.200");
+    server_addr.sin_addr.s_addr = inet_addr("172.25.153.79");
 
     // Bind to the set port and IP:
     int reuse_option = 1;
