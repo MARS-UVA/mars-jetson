@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from serial_ros.send import send
+from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
 
@@ -20,6 +20,7 @@ class SerialNode(Node):
             1) #1 queued message
         self.subscription  # prevent unused variable warning
         self.timed_publisher = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
+        self.serial_handler = SerialHandler()
 
     def listener_callback(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)
@@ -28,7 +29,8 @@ class SerialNode(Node):
         
     def sendCurrents(self):
         #print(ok)
-        send(MOTOR_CURRENT_MSG, self.data)
+        self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
+        
 
 def main(args=None):
     rclpy.init(args=args)
