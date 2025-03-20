@@ -2,7 +2,7 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
@@ -43,10 +43,12 @@ public:
 private:
   void topic_callback(const sensor_msgs::msg::Image::SharedPtr msg)
   {
+    RCLCPP_INFO(this->get_logger(), "1");
     RCLCPP_INFO(this->get_logger(), "Recieved a webcam frame");
     cv_bridge::CvImagePtr cv_ptr;
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = cv_ptr->image;
+    RCLCPP_INFO(this->get_logger(), "2");
 
     client_send(CONTROL_STATION_IP, img, IMAGE_PORT);
     RCLCPP_INFO(this->get_logger(), "Sent");
@@ -58,10 +60,12 @@ private:
     auto msg = teleop_msgs::msg::GamepadState();
     if (info.flag == true)
     {
+	    //std::cout << "3.-1" << std::endl;
+      RCLCPP_INFO(this->get_logger(), "3");
       message = std::string(info.client_message);
+      RCLCPP_INFO(this->get_logger(), info.client_message);
+      RCLCPP_INFO(this->get_logger(), "4");
       
-      
-
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", "something");
