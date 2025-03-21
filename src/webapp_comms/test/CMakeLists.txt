@@ -13,7 +13,16 @@ add_executable(test
     ../../platform_compat.c
 )
 
+add_executable(send
+    runners.cpp
+    ../src/client.cpp
+    ../src/server.cpp
+    ../src/frame_sender.cpp
+    ../../platform_compat.c
+)
+
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain ${OpenCV_LIBS})
+target_link_libraries(send PRIVATE Catch2::Catch2WithMain ${OpenCV_LIBS})
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")

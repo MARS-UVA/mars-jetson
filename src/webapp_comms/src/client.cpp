@@ -27,6 +27,7 @@ uint32_t crc32bit(const char *data, size_t data_size)
     uint32_t crc = 0xFFFFFFFF;
     for (size_t i = 0; i < data_size; i++)
     {
+        // std::cout << "Data: " << data[i] << std::endl;
         crc = crc ^ data[i];
         for (size_t j = 0; j < 8; j++)
         {
@@ -43,13 +44,13 @@ uint32_t crc32bit(const char *data, size_t data_size)
     return ~crc;
 }
 
-void client_send(const char *control_station_ip, unsigned char *data, size_t data_size)
+void client_send(const char *control_station_ip, unsigned char *data, size_t data_size, int server_port)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, server_port);
 
     size_t sent_bytes = 0;
     uint16_t seqNo = 0;
-    uint16_t totalChunks = data_size / CHUNK_SIZE;
+    uint16_t totalChunks = data_size / CHUNK_SIZE + (data_size % CHUNK_SIZE > 0 ? 1 : 0);
     char sendBuffer[CHUNK_SIZE + HEADER_SIZE];
     memset(sendBuffer, '\0', sizeof(sendBuffer));
 
@@ -80,9 +81,9 @@ void client_send(const char *control_station_ip, unsigned char *data, size_t dat
     close(connection_headers.client_socket_fd);
 }
 
-void client_send(const char *control_station_ip, cv::Mat &image)
+void client_send(const char *control_station_ip, cv::Mat &image, int server_port)
 {
-    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, PORT);
+    ConnectionHeaders connection_headers = create_connection_headers(control_station_ip, server_port);
     send_frame(connection_headers, image);
     close(connection_headers.client_socket_fd);
 }

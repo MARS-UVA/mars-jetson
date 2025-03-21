@@ -57,7 +57,7 @@ TEST_CASE("Test client sending small data to a server [client_udp.h]")
     // std::future<struct sockaddr *> result_future = result_promise.get_future();
 
     std::thread client_thread([&]()
-                              { client_send(ip, data, data_size); });
+                              { client_send(ip, data, data_size, IMAGE_PORT); });
 
     // Transmission should be within 1 second
     struct timeval tv;
@@ -133,7 +133,7 @@ TEST_CASE("Test client sending large data to a server [client_udp.h]")
     setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
 
     std::thread client_thread([&]()
-                              { client_send(ip, data.data(), data.size()); });
+                              { client_send(ip, data.data(), data.size(), IMAGE_PORT); });
 
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -210,7 +210,7 @@ TEST_CASE("Test client sending image to a server [client_udp.h]")
     setsockopt(server_socket_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
 
     std::thread client_thread([&]()
-                              { client_send(ip, imageMatrix); });
+                              { client_send(ip, imageMatrix, IMAGE_PORT); });
 
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -248,15 +248,16 @@ TEST_CASE("Test client sending image to a server [client_udp.h]")
     }
 
     client_thread.join();
+    std::cout << "Finished thread" << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
-    std::cout << "Elapsed time of [Image Data] test: " << elapsed_seconds.count() << "s\n";
 
     REQUIRE(received_data.size() == imgBuffer.size());
     REQUIRE(memcmp(received_data.data(), imgBuffer.data(), imgBuffer.size()) == 0);
     cv::Mat receivedImage = cv::imdecode(received_data, cv::IMREAD_COLOR);
-    cv::imshow("Received Image", receivedImage);
+    //cv::imshow("Received Image", receivedImage);
+    std::cout << "Elapsed time of [Image Data] test: " << elapsed_seconds.count() << "s\n";
     REQUIRE(receivedImage.rows == imageMatrix.rows);
     REQUIRE(receivedImage.cols == imageMatrix.cols);
     cv::waitKey(0);
