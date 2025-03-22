@@ -132,6 +132,7 @@ class TeleopNode(Node):
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
+        #Hopefully this will only send actuator message when Right Trigger is pressed
         right_trigger=human_input_state.gamepad_state.rt_pressed
         if right_trigger > 0.1:
             right_trigger_velocity = round(right_trigger*255)
