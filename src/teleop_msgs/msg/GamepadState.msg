@@ -11,9 +11,9 @@ bool lt_pressed false
 #right trigger#
 bool rt_pressed false
 #LB trigger#
-bool lb_pressed false
+float64 lb_pressed 0.0
 #RB trigger#
-bool rb_pressed false
+float64 rb_pressed 0.0
 #d-pad down#
 bool dd_pressed false
 #d-pad up#
