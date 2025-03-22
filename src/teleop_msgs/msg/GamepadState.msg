@@ -34,3 +34,5 @@ bool start_pressed false
 StickPosition left_stick
 #left stick#
 StickPosition right_stick
+#Max Trigger Value
+float64 MAX_TRIGGER_VALUE = 1.0

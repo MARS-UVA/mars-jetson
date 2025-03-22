@@ -133,9 +133,9 @@ class TeleopNode(Node):
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         right_trigger=human_input_state.gamepad_state.rt_pressed
-        if  right_trigger != 0:
+        if right_trigger > 0.1:
             right_trigger_velocity = round(right_trigger*255)
-            wheel_speed_msg.changes.add(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = right_trigger_velocity))
+            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = right_trigger_velocity))
         self._wheel_speed_publisher.publish(wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
