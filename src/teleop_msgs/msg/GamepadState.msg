@@ -7,13 +7,13 @@ bool a_pressed false
 #B button#
 bool b_pressed false
 #left trigger#
-bool lt_pressed false
+float64 lt_pressed 0.0
 #right trigger#
-bool rt_pressed false
+float64 rt_pressed 0.0
 #LB trigger#
-float64 lb_pressed 0.0
+bool lb_pressed false
 #RB trigger#
-float64 rb_pressed 0.0
+bool rb_pressed false
 #d-pad down#
 bool dd_pressed false
 #d-pad up#

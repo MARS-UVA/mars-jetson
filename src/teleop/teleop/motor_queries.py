@@ -8,7 +8,4 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
                                  SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
                                  SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)])
-def linear_actuator() -> MotorChanges:
 
-    return MotorChanges(changes=(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity=0)))
-    
