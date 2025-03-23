@@ -11,7 +11,7 @@ This package has primarily been tested on ROS 2 Jazzy, but it likely also suppor
 How to execute:
 
 ```shell
-ros2 run teleop teleop
+ros2 run teleop teleop --ros-args linear_axis:=VALUE -p turn_axis:=VALUE -p full_forward_magnitude:=VALUE [-p shape:=VALUE [-p deadband:=VALUE]]
 ```
 
 Executable name: `teleop`
@@ -27,8 +27,8 @@ Executable name: `teleop`
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| `linear_axis` | `string` (read-only) | The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted |
-| `turn_axis` | `string` (read-only) | The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted |
-| `full_forward_magnitude` | `double` | The magnitude of both wheel's speeds when the user inputs completely forward. This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin in place, and 1 indicates the robot can only move forward and backward. Must be between 0 and 1. |
+| `linear_axis` | `string` (read-only) | **Required.** The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted. |
+| `turn_axis` | `string` (read-only) | **Required.** The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted |
+| `full_forward_magnitude` | `double` | **Required.** The magnitude of both wheel's speeds when the user inputs completely forward. This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin in place, and 1 indicates the robot can only move forward and backward. Must be between 0 and 1. |
 | `shape` | `double` | A parameter describing the shape of the curve that converts axis inputs into speeds. The axis input is raised to this power (keeping the sign), so 1 is linear. Must be positive (default: 1). |
 | `deadband` | `double` | Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0). |

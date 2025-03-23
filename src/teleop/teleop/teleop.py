@@ -75,20 +75,30 @@ class TeleopNode(Node):
         self.declare_parameter(self.deadband_param_descriptor.name,
                                value=0.0,
                                descriptor=self.deadband_param_descriptor)
+        linear_axis_value = (self.get_parameter(self.linear_axis_param_descriptor.name)
+                                            .get_parameter_value()
+                                            .string_value
+                                            .upper())
+        if not linear_axis_value:
+            raise ValueError('linear_axis parameter is missing')
+        turn_axis_value = (self.get_parameter(self.turn_axis_param_descriptor.name)
+                                          .get_parameter_value()
+                                          .string_value
+                                          .upper())
+        if not turn_axis_value:
+            raise ValueError('turn_axis parameter is missing')
+        full_forward_magnitude_value = (self.get_parameter(self.full_forward_magnitude_param_descriptor.name)
+                                                         .get_parameter_value()
+                                                         .double_value)
+        if full_forward_magnitude_value <= 0:
+            raise ValueError(f'full_forward_magnitude parameter is non-positive or missing (got {full_forward_magnitude_value})')
+        elif full_forward_magnitude_value >= 1:
+            raise ValueError(f'full_forward_magnitude parameter must be less than 1 (got {full_forward_magnitude_value})')
+
         self.__drive_control_strategy = ArcadeDrive(
-            linear_axis=getattr(GamepadAxis,
-                                self.get_parameter(self.linear_axis_param_descriptor.name)
-                                    .get_parameter_value()
-                                    .string_value
-                                    .upper()),
-            turn_axis=getattr(GamepadAxis,
-                              self.get_parameter(self.turn_axis_param_descriptor.name)
-                                  .get_parameter_value()
-                                  .string_value
-                                  .upper()),
-            full_forward_magnitude=self.get_parameter(self.full_forward_magnitude_param_descriptor.name)
-                                       .get_parameter_value()
-                                       .double_value,
+            linear_axis=linear_axis_value,
+            turn_axis=turn_axis_value,
+            full_forward_magnitude=full_forward_magnitude_value,
             shape=self.get_parameter(self.shape_param_descriptor.name)
                       .get_parameter_value()
                       .double_value,
