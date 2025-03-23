@@ -8,12 +8,12 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
                                  SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
                                  SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)])
-def bucket_actuator_speed(human_input: HumanInputState) -> MotorChanges:
+def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
     bucket_actuator_velocity = 127
     if human_input.gamepad_state.du_pressed and not human_input.gamepad_state.dd_pressed:
         bucket_actuator_velocity = 191
     elif human_input.gamepad_state.dd_pressed and not human_input.gamepad_state.du_pressed:
         bucket_actuator_velocity = 63
-    return MotorChanges(changes=[SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity)])
+    return SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity)
 
 
