@@ -5,7 +5,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='teleop',
-            executable='teleop',  # Replace with actual executable
+            executable='teleop',
             name='teleop',
             output='screen',
             parameters=[{
@@ -16,8 +16,14 @@ def generate_launch_description():
         ),
         Node(
             package='webapp_comms',
-            executable='net_node',  # Replace with actual executable
+            executable='net_node',
             name='webapp_comms',
+            output='screen'
+        ),
+        Node(
+            package='serial_ros',
+            executable='op_reader',
+            name='serial_ros',
             output='screen'
         )
     ])
