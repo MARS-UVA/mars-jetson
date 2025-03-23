@@ -12,11 +12,6 @@
 #include "main.hpp"
 #include <cmath>
 
-#include <rosidl_runtime_cpp/message_initialization.hpp>
-#include <rosidl_typesupport_introspection_cpp/field_types.hpp>
-#include <rosidl_typesupport_introspection_cpp/message_introspection.hpp>
-#include <rosidl_typesupport_cpp/message_type_support.hpp>
-
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
@@ -32,24 +27,22 @@ using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
 
-namespace introspection = rosidl_typesupport_introspection_cpp;
-
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
-  {"x_pressed", &teleop_msgs::msg::GamepadState::x_pressed},
-  {"y_pressed", &teleop_msgs::msg::GamepadState::y_pressed},
-  {"a_pressed", &teleop_msgs::msg::GamepadState::a_pressed},
-  {"b_pressed", &teleop_msgs::msg::GamepadState::b_pressed},
-  {"lt_pressed", &teleop_msgs::msg::GamepadState::lt_pressed},
-  {"rt_pressed", &teleop_msgs::msg::GamepadState::rt_pressed},
-  {"lb_pressed", &teleop_msgs::msg::GamepadState::lb_pressed},
-  {"rb_pressed", &teleop_msgs::msg::GamepadState::rb_pressed},
-  {"dd_pressed", &teleop_msgs::msg::GamepadState::dd_pressed},
-  {"du_pressed", &teleop_msgs::msg::GamepadState::du_pressed},
-  {"l3_pressed", &teleop_msgs::msg::GamepadState::l3_pressed},
-  {"r3_pressed", &teleop_msgs::msg::GamepadState::r3_pressed},
-  {"back_pressed", &teleop_msgs::msg::GamepadState::back_pressed},
-  {"start_pressed", &teleop_msgs::msg::GamepadState::start_pressed}
+  {"x_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::x_pressed},
+  {"y_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::y_pressed},
+  {"a_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::a_pressed},
+  {"b_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::b_pressed},
+  {"lt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lt_pressed},
+  {"rt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rt_pressed},
+  {"lb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lb_pressed},
+  {"rb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rb_pressed},
+  {"dd_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::dd_pressed},
+  {"du_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::du_pressed},
+  {"l3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::l3_pressed},
+  {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
+  {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
+  {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}
 };
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
@@ -107,8 +100,8 @@ private:
     auto gamepad_msg = std::make_shared<GamepadState>();
     if (info.flag == true)
     {
-      auto type_support = rosidl_typesupport_cpp::get_message_type_support_handle<teleop_msgs::msg::GamepadState>();
-      auto members = static_cast<const rosidl_typesupport_introspection_cpp::MessageMembers *>(type_support->data);
+      // auto type_support = rosidl_typesupport_cpp::get_message_type_support_handle<teleop_msgs::msg::GamepadState>();
+      // auto members = static_cast<const rosidl_typesupport_introspection_cpp::MessageMembers *>(type_support->data);
 
       message = std::string(info.client_message);
       // RCLCPP_INFO(this->get_logger(), info.client_message);
@@ -119,10 +112,10 @@ private:
       token = strtok(info.client_message, delimiter);
       size_t field_i = 0;
       size_t subField = 0;
-      if (members == nullptr) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to get message members");
-        return;
-      }
+      // if (members == nullptr) {
+      //   RCLCPP_ERROR(this->get_logger(), "Failed to get message members");
+      //   return;
+      // }
     
       while (token != NULL) {
           double value = std::stod(token);
