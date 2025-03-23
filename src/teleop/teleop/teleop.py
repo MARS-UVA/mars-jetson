@@ -132,7 +132,7 @@ class TeleopNode(Node):
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
-        #Hopefully this will only send actuator message when Right Trigger is pressed
+        #Hopefully this will update the bucket actuator velocity when d-pad up and d-pad down are pressed
         bucket_actuator_velocity = 127
         while human_input_state.gamepad_state.du_pressed and not human_input_state.gamepad_state.dd_pressed:
             bucket_actuator_velocity = 191
@@ -141,10 +141,12 @@ class TeleopNode(Node):
         if not human_input_state.gamepad_state.dd_pressed and not human_input_state.gamepad_state.du_pressed:
             bucket_actuator_velocity = 127
         wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
+        ###OUTDATED CODE
         #right_trigger=human_input_state.gamepad_state.rt_pressed
         #if right_trigger > 0.1:
             ###right_trigger_velocity = round(right_trigger*255)###
             #wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
+        ### END OF OUTDATED CODE
         self._wheel_speed_publisher.publish(wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
