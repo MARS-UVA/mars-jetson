@@ -6,7 +6,7 @@
 #include "main.hpp"
 
 struct ThreadInfo {
-    char client_message[2000];
+    char client_message[100000];
     bool flag;
 };
 

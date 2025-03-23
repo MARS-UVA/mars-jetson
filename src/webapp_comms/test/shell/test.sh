@@ -1,7 +1,7 @@
 CATCH2_DIR=../../../../Catch2
 BUILD_DIR=../build
 DEBUG_DIR=../build/Debug
-if [ $# == 0 ]; then
+if [ $# -eq 0 ]; then
     cmake -S $CATCH2_DIR -B $CATCH2_DIR/build
     cmake --build $CATCH2_DIR/build
     sudo cmake --install $CATCH2_DIR/build
@@ -15,10 +15,10 @@ if [ $# == 0 ]; then
         make
     fi
     ./test
-elif [ $1 == "clean" ]; then
+elif [ $1 = "clean" ]; then
     echo "Cleaning build directory"
     rm -rf $BUILD_DIR
-elif [ $1 == "run" ]; then 
+elif [ $1 = "run" ]; then 
     echo "Running tests"
     cd $BUILD_DIR
     ./test

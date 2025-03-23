@@ -6,16 +6,46 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <thread>
+#include "./client.hpp"
+#include <cstdio>
+#include <stdexcept>
+#include <csignal>
 
 #define PORT 8080
 
-int create_server(ThreadInfo *data)
+int socket_desc;
+
+void signal_handler(int signum){
+	close(socket_desc);
+	exit(signum);
+}
+
+int create_server(ThreadInfo *info)
 {
-    int socket_desc;
     struct sockaddr_in server_addr, client_addr;
+    memset(&server_addr, '\0', sizeof(server_addr));
     char server_message[2000], client_message[2000];
     socklen_t client_struct_length = sizeof(client_addr);
+    
+    /*
+    const char* cmd = "hostname -I | awk '{print $1}\0";
+    std::vector<char> inet_buffer(128);
+    std::string localIp;
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) {
+        throw std::runtime_error("failed!");
+    }
+    while (fgets(inet_buffer.data(), inet_buffer.size(), pipe) != nullptr) {
+        localIp += inet_buffer.data();
+    }
+    pclose(pipe);
 
+    if (!localIp.empty() && localIp.back() == '\n') {
+        localIp.pop_back();
+    }
+
+    std::cout << localIp << std::endl;
+	*/
     // Clean buffers:
     // memset(server_message, '\0', sizeof(server_message));
     // memset(client_message, '\0', sizeof(client_message));
@@ -28,55 +58,68 @@ int create_server(ThreadInfo *data)
         printf("Error while creating socket\n");
         return -1;
     }
-    printf("Socket created successfully\n");
+    // printf("Socket created successfully\n");
 
     // Set port and IP:
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr("172.25.153.79");
 
     // Bind to the set port and IP:
-    if (bind(socket_desc, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    int reuse_option = 1;
+    if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse_option, sizeof(int)) < 0)
     {
-        printf("Couldn't bind to the port\n");
-        return -1;
+        throw std::runtime_error("Error setting socket options");
     }
-    printf("Done with binding\n");
+
+    struct sockaddr *server_addr_ptr = (struct sockaddr *)&server_addr;
+    if (bind(socket_desc, server_addr_ptr, sizeof(server_addr)) < 0)
+    {
+        std::cout << "Bind error number: " << errno << std::endl;
+        throw std::runtime_error("Error binding server socket");
+    }
+    // printf("Done with binding\n");
 
     printf("Listening for incoming messages...\n\n");
 
-    while (1)
-    {
-        // Receive client's message:
-        if (recvfrom(socket_desc, client_message, sizeof(client_message), 0,
-                     (struct sockaddr *)&client_addr, &client_struct_length) < 0)
-        {
-            printf("Couldn't receive\n");
-            return -1;
-        }
-        printf("Received message from IP: %s and port: %i\n",
-               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+    signal(SIGINT, signal_handler);
 
-        printf("Msg from client: %s\n", client_message);
+    std::vector<uint16_t> pkts_to_retry;
 
-        data->flag = true;
-        // data -> client_message = client_message;
+    socklen_t client_len = sizeof(client_addr);
+    // printf("1");
+    char buffer[1410];
+    while(true){
+    	memset(buffer, '\0', 1410);
+    	// printf("2");
+    	std::vector<unsigned char> received_data;
+    	// printf("3");
+    	ssize_t num_bytes = recvfrom(socket_desc,
+                                     buffer, sizeof(buffer), 0,
+                                     (struct sockaddr *)&client_addr,
+                                     &client_len);
 
-        while (data->flag)
-        {
-        }
+    	// printf("Recvieved message");
 
-        // Respond to client:
-        strcpy(server_message, client_message);
+    	if (num_bytes < 0)
+    	{
+        	std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
+    	}
+    	uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
+    	if(crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragment_size != num_bytes - HEADER_SIZE){
+        	// Handle this later
+    	}
+    	char *payloadStart = buffer + HEADER_SIZE;
+    	received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
 
-        if (sendto(socket_desc, server_message, strlen(server_message), 0,
-                   (struct sockaddr *)&client_addr, client_struct_length) < 0)
-        {
-            printf("Can't send\n");
-            return -1;
-        }
+    	received_data.push_back('\0');
+    	memset(info->client_message, '\0', 100000);
+    	memcpy(info->client_message, received_data.data(), received_data.size());
+
+    	info->flag = true;
+
+    	// std::cout << buffer << std::endl;
     }
-
     // Close the socket:
     close(socket_desc);
 

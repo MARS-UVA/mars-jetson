@@ -3,11 +3,9 @@
 
 import serial
 import serial.tools.list_ports
-import time
 #ports = [port.name for port in serial.tools.list_ports.comports()]
 #print(ports)
 
-#s = serial.Serial("/dev/ttyTHS1", 115200, timeout = None)
 s = serial.Serial("/dev/ttyUSB0", 115200, timeout = None)
 numMotors = 6
 bytesPerMotor = 1
@@ -24,21 +22,10 @@ def send(header,data): #messageType can be anything
 
 if __name__ == "__main__":
 	import sys
-	sys.stdout.flush()
 	header = 0 # 0 for motor commands
 	data = [ord('A') for i in range(totalDataBytes)] # populate a list with A's as default values
-	'''for i in range(1, len(sys.argv)): # populate data with (up to 6) args passed into command line
+	for i in range(1, len(sys.argv)): # populate data with (up to 6) args passed into command line
 		data[i-1] = int(sys.argv[i])
-	print(f"Data {data}")'''
-	
+	print(f"Data {data}")
 	while True:
-		line = sys.stdin.readline().strip()
-		if not line:
-			continue
-		args = line.split()
-		# data = [args[0], args[1], args[2], args[3], args[4], args[5]]
-		data = [int(args[i]) for i in range(6)]
-		print("Data: ", data)
-		send(header,data)
-		#time.sleep(0.1)
-		sys.stdout.flush()
+	    send(header,data)
