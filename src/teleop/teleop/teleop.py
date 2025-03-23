@@ -4,7 +4,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import HumanInputState, MotorChanges
+from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
@@ -132,6 +132,11 @@ class TeleopNode(Node):
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
+        #Hopefully this will only send actuator message when Right Trigger is pressed
+        right_trigger=human_input_state.gamepad_state.rt_pressed
+        if right_trigger > 0.1:
+            right_trigger_velocity = round(right_trigger*255)
+            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = right_trigger_velocity))
         self._wheel_speed_publisher.publish(wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:

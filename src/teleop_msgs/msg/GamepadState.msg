@@ -7,9 +7,9 @@ bool a_pressed false
 #B button#
 bool b_pressed false
 #left trigger#
-bool lt_pressed false
+float64 lt_pressed 0.0
 #right trigger#
-bool rt_pressed false
+float64 rt_pressed 0.0
 #LB trigger#
 bool lb_pressed false
 #RB trigger#
@@ -34,3 +34,5 @@ bool start_pressed false
 StickPosition left_stick
 #left stick#
 StickPosition right_stick
+#Max Trigger Value
+float64 MAX_TRIGGER_VALUE = 1.0

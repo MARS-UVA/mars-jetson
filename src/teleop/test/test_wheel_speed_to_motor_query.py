@@ -1,6 +1,6 @@
 from teleop.control import WheelSpeeds
 from teleop.motor_queries import wheel_speed_to_motor_queries
-from teleop_msgs.msg import MotorChanges, SetMotorVelocity
+from teleop_msgs.msg import MotorChanges, SetMotor
 def check_speeds(observed: MotorChanges, expected: MotorChanges) -> None:
     indices_in_observed={}
     indices_in_expected={}    
@@ -12,55 +12,55 @@ def check_speeds(observed: MotorChanges, expected: MotorChanges) -> None:
 def test_no_wheel_speed() -> None:
     speed=WheelSpeeds(0.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)
 
 def test_full_wheel_speed() -> None:
     speed=WheelSpeeds(1.0,1.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=254)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=254)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)
 def test_left_wheel_speed() -> None:
     speed=WheelSpeeds(1.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)
 def test_right_wheel_speed() -> None:
     speed=WheelSpeeds(0.0,1.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=254),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=254)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=254),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=254)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)
 def test_negative_wheel_speed_one() -> None:
     speed=WheelSpeeds(-1.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=0),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=0),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=0),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=0),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=127)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)
 def test_negative_wheel_speed_two() -> None:
     speed=WheelSpeeds(0.0,-1.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    expected_speed = MotorChanges(changes=[SetMotorVelocity(index=SetMotorVelocity.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_LEFT_DRIVE_MOTOR, velocity=127),
-                                 SetMotorVelocity(index=SetMotorVelocity.FRONT_RIGHT_DRIVE_MOTOR, velocity=0),
-                                 SetMotorVelocity(index=SetMotorVelocity.BACK_RIGHT_DRIVE_MOTOR, velocity=0)])
+    expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=127),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=0),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=0)])
     #maintain dict with expected values for indices and maintain set of checked indicies; loop through and if index is in set, index dictionary and remove index from set: check if index is in dictionary
     check_speeds(observed_speed, expected_speed)

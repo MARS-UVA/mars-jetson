@@ -28,7 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/GamepadState.msg"
     "msg/HumanInputState.msg"
     "msg/StickPosition.msg"
-    "msg/SetMotorVelocity.msg"
+    "msg/SetMotor.msg"
     "msg/MotorChanges.msg"
 )
 
