@@ -96,8 +96,8 @@ class TeleopNode(Node):
             raise ValueError(f'full_forward_magnitude parameter must be less than 1 (got {full_forward_magnitude_value})')
 
         self.__drive_control_strategy = ArcadeDrive(
-            linear_axis=linear_axis_value,
-            turn_axis=turn_axis_value,
+            linear_axis=getattr(GamepadAxis, linear_axis_value),
+            turn_axis=getattr(GamepadAxis, turn_axis_value),
             full_forward_magnitude=full_forward_magnitude_value,
             shape=self.get_parameter(self.shape_param_descriptor.name)
                       .get_parameter_value()
