@@ -17,9 +17,6 @@ find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
 
-find_package(rosidl_typesupport_introspection_cpp REQUIRED)
-find_package(rosidl_runtime_cpp REQUIRED)
-
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -42,9 +39,6 @@ ament_target_dependencies(net_node
   image_transport 
   OpenCV 
   teleop_msgs
-  rosidl_runtime_cpp
-  rosidl_typesupport_introspection_cpp
-  rosidl_runtime_cpp
 )
 
 install(TARGETS
