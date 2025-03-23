@@ -134,13 +134,15 @@ class TeleopNode(Node):
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         #Hopefully this will update the bucket actuator velocity when d-pad up and d-pad down are pressed
         bucket_actuator_velocity = 127
-        while human_input_state.gamepad_state.du_pressed and not human_input_state.gamepad_state.dd_pressed:
+        if human_input_state.gamepad_state.du_pressed and not human_input_state.gamepad_state.dd_pressed:
             bucket_actuator_velocity = 191
-        while human_input_state.gamepad_state.dd_pressed and not human_input_state.gamepad_state.du_pressed:
+            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
+        elif human_input_state.gamepad_state.dd_pressed and not human_input_state.gamepad_state.du_pressed:
             bucket_actuator_velocity = 63
-        if not human_input_state.gamepad_state.dd_pressed and not human_input_state.gamepad_state.du_pressed:
+            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
+        else:
             bucket_actuator_velocity = 127
-        wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
+            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity))
         ###OUTDATED CODE
         #right_trigger=human_input_state.gamepad_state.rt_pressed
         #if right_trigger > 0.1:
