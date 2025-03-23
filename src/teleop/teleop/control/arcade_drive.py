@@ -114,7 +114,9 @@ class ArcadeDrive(DriveControlStrategy):
             linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
             turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
         linear_component = self.__full_forward_magnitude * linear_rate
+        print(linear_component)
         angular_component = (1 - self.__full_forward_magnitude) * turn_rate
+        print(angular_component)
         wheel_speeds = WheelSpeeds(left=linear_component - angular_component, right=linear_component + angular_component)
         if self.__wheel_speed_transformation is None:
             return wheel_speeds

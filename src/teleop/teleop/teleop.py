@@ -129,11 +129,14 @@ class TeleopNode(Node):
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
 
-        self.get_logger().info(f'Calculated: {wheel_speeds}')
+        # self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         #Hopefully this will only send actuator message when Right Trigger is pressed
         right_trigger=human_input_state.gamepad_state.rt_pressed
+
+        bucket_speed = int(127 + (human_input_state.gamepad_state.right_stick.y*127))
+        wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = bucket_speed))
         if right_trigger > 0.1:
             right_trigger_velocity = round(right_trigger*255)
             wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = right_trigger_velocity))
