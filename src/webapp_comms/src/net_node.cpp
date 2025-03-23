@@ -7,6 +7,7 @@
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
+#include "teleop_msgs/msg/human_input_state.hpp"
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -70,7 +71,7 @@ public:
   NetNode()
       : Node("NetNode"), count_(0)
   {
-    publisher_ = this->create_publisher<teleop_msgs::msg::GamepadState>("human_input_state", 10);
+    publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
     // motor_cmd_publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("motor_cmds", 10);
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -98,6 +99,7 @@ private:
     // auto motor_cmd_message = std_msgs::msg::Float32MultiArray();
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
+    auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
       // auto type_support = rosidl_typesupport_cpp::get_message_type_support_handle<teleop_msgs::msg::GamepadState>();
@@ -172,12 +174,19 @@ private:
         gamepad_msg->right_stick.x, gamepad_msg->right_stick.y
       );
 
-      publisher_->publish(*gamepad_msg);
+      human_input_msg->gamepad_state = *gamepad_msg;
+      human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+      human_input_msg->a_stop = false;
+      human_input_msg->e_stop = false;
+
+      RCLCPP_INFO(this->get_logger(), "Publishing HumanInputState: drive_mode = %d", human_input_msg->drive_mode);
+
+      publisher_->publish(*human_input_msg);
     }
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<teleop_msgs::msg::GamepadState>::SharedPtr publisher_;
+  rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
   // rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr motor_cmd_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
   size_t count_;
