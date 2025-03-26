@@ -30,34 +30,30 @@ using teleop_msgs::msg::StickPosition;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
-  {"x_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::x_pressed},
-  {"y_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::y_pressed},
-  {"a_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::a_pressed},
-  {"b_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::b_pressed},
-  {"lt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lt_pressed},
-  {"rt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rt_pressed},
-  {"lb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lb_pressed},
-  {"rb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rb_pressed},
-  {"dd_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::dd_pressed},
-  {"du_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::du_pressed},
-  {"l3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::l3_pressed},
-  {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
-  {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
-  {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}
-};
+    {"x_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::x_pressed},
+    {"y_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::y_pressed},
+    {"a_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::a_pressed},
+    {"b_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::b_pressed},
+    {"lt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lt_pressed},
+    {"rt_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rt_pressed},
+    {"lb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::lb_pressed},
+    {"rb_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::rb_pressed},
+    {"dd_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::dd_pressed},
+    {"du_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::du_pressed},
+    {"l3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::l3_pressed},
+    {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
+    {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
+    {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
     {"left_stick", &teleop_msgs::msg::GamepadState::left_stick},
-    {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}
-};
+    {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}};
 
 const char CONTROL_STATION_IP[] = "127.0.0.1";
 ThreadInfo info;
 int counter = 0;
 
-// std::string command = "python3 ../serial_comms/send.py";
-// std::unique_ptr<FILE, decltype(&pclose)> python_pipe(popen(command.c_str(), "w"), pclose);
 const int MOTOR_CURRENT_BYTES = 4;
 int Socket(ThreadInfo *info)
 {
@@ -73,7 +69,6 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    // motor_cmd_publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("motor_cmds", 10);
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
         "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
@@ -96,17 +91,12 @@ private:
   {
     counter++;
     std::string message;
-    // auto motor_cmd_message = std_msgs::msg::Float32MultiArray();
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
-      // auto type_support = rosidl_typesupport_cpp::get_message_type_support_handle<teleop_msgs::msg::GamepadState>();
-      // auto members = static_cast<const rosidl_typesupport_introspection_cpp::MessageMembers *>(type_support->data);
-
       message = std::string(info.client_message);
-      // RCLCPP_INFO(this->get_logger(), info.client_message);
 
       const char delimiter[] = ",";
       char *token;
@@ -114,65 +104,65 @@ private:
       token = strtok(info.client_message, delimiter);
       size_t field_i = 0;
       size_t subField = 0;
-      // if (members == nullptr) {
-      //   RCLCPP_ERROR(this->get_logger(), "Failed to get message members");
-      //   return;
-      // }
-    
-      while (token != NULL) {
-          double value = std::stod(token);
-          if(field_i < NUM_GAMEPAD_BTNS){
-            auto field = fields[field_i];
-            (gamepad_msg.get())->*(field.second) = static_cast<bool>(value);
+
+      while (token != NULL)
+      {
+        double value = std::stod(token);
+        if (field_i < NUM_GAMEPAD_BTNS)
+        {
+          auto field = fields[field_i];
+          (gamepad_msg.get())->*(field.second) = static_cast<bool>(value);
+        }
+        else
+        {
+          auto field = stickFields[field_i - NUM_GAMEPAD_BTNS];
+          if (subField == 0)
+          {
+            subField++;
+            ((*gamepad_msg).*(field.second)).x = value;
+            field_i--;
           }
-          else {
-            auto field = stickFields[field_i-NUM_GAMEPAD_BTNS];
-            if(subField == 0){
-              subField++;
-              ((*gamepad_msg).*(field.second)).x = value;
-              field_i--;
-            }
-            else if(subField == 1){
-              subField = 0;
-              ((*gamepad_msg).*(field.second)).y = value;
-            }
+          else if (subField == 1)
+          {
+            subField = 0;
+            ((*gamepad_msg).*(field.second)).y = value;
           }
-          token = strtok(NULL, delimiter);
-          field_i++;
+        }
+        token = strtok(NULL, delimiter);
+        field_i++;
       }
 
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
 
       RCLCPP_INFO(
-        this->get_logger(),
-        "GamepadState:\n"
-        "  Buttons: x=%s, y=%s, a=%s, b=%s\n"
-        "  Triggers: lt=%s, rt=%s, lb=%s, rb=%s\n"
-        "  D-pad: up=%s, down=%s, left=%s, right=%s\n"
-        "  Sticks: l3=%s, r3=%s\n"
-        "  Menu: back=%s, start=%s\n"
-        "  Left stick: (%.2f, %.2f)\n"
-        "  Right stick: (%.2f, %.2f)",
-        gamepad_msg->x_pressed ? "true" : "false",
-        gamepad_msg->y_pressed ? "true" : "false",
-        gamepad_msg->a_pressed ? "true" : "false",
-        gamepad_msg->b_pressed ? "true" : "false",
-        gamepad_msg->lt_pressed ? "true" : "false",
-        gamepad_msg->rt_pressed ? "true" : "false",
-        gamepad_msg->lb_pressed ? "true" : "false",
-        gamepad_msg->rb_pressed ? "true" : "false",
-        gamepad_msg->du_pressed ? "true" : "false",
-        gamepad_msg->dd_pressed ? "true" : "false",
-        gamepad_msg->dl_pressed ? "true" : "false",
-        gamepad_msg->dr_pressed ? "true" : "false",
-        gamepad_msg->l3_pressed ? "true" : "false",
-        gamepad_msg->r3_pressed ? "true" : "false",
-        gamepad_msg->back_pressed ? "true" : "false",
-        gamepad_msg->start_pressed ? "true" : "false",
-        gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
-        gamepad_msg->right_stick.x, gamepad_msg->right_stick.y
-      );
+          this->get_logger(),
+          "GamepadState:\n"
+          "  Buttons: x=%s, y=%s, a=%s, b=%s\n"
+          "  Triggers: lt=%s, rt=%s, lb=%s, rb=%s\n"
+          "  D-pad: up=%s, down=%s, left=%s, right=%s\n"
+          "  Sticks: l3=%s, r3=%s\n"
+          "  Menu: back=%s, start=%s\n"
+          "  Left stick: (%.2f, %.2f)\n"
+          "  Right stick: (%.2f, %.2f)",
+          gamepad_msg->x_pressed ? "true" : "false",
+          gamepad_msg->y_pressed ? "true" : "false",
+          gamepad_msg->a_pressed ? "true" : "false",
+          gamepad_msg->b_pressed ? "true" : "false",
+          gamepad_msg->lt_pressed ? "true" : "false",
+          gamepad_msg->rt_pressed ? "true" : "false",
+          gamepad_msg->lb_pressed ? "true" : "false",
+          gamepad_msg->rb_pressed ? "true" : "false",
+          gamepad_msg->du_pressed ? "true" : "false",
+          gamepad_msg->dd_pressed ? "true" : "false",
+          gamepad_msg->dl_pressed ? "true" : "false",
+          gamepad_msg->dr_pressed ? "true" : "false",
+          gamepad_msg->l3_pressed ? "true" : "false",
+          gamepad_msg->r3_pressed ? "true" : "false",
+          gamepad_msg->back_pressed ? "true" : "false",
+          gamepad_msg->start_pressed ? "true" : "false",
+          gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
+          gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
 
       human_input_msg->gamepad_state = *gamepad_msg;
       human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
@@ -187,7 +177,6 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  // rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr motor_cmd_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
   size_t count_;
 };
@@ -196,10 +185,6 @@ int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
   info.flag = false;
-  // if (!python_pipe) {
-  //        std::cerr << "Error: Failed to open Python script!" << std::endl;
-  //        return 1;
-  // }
   memset(info.client_message, '\0', sizeof(info.client_message));
   std::thread socket(create_server, &info);
   rclcpp::spin(std::make_shared<NetNode>());
