@@ -1,6 +1,5 @@
 import math
-from typing import override
-
+#from typing import override
 from teleop_msgs.msg import GamepadState
 
 from .base import DriveControlStrategy, WheelSpeeds, GamepadAxis
@@ -106,7 +105,7 @@ class ArcadeDrive(DriveControlStrategy):
         """A signal transformation which will be applied to the final wheel speeds."""
         return self.__wheel_speed_transformation
 
-    @override
+    #@override
     def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
         linear_rate = self.__deadband(self.__linear_axis.of(gamepad_state))
         turn_rate = self.__deadband(self.__turn_axis.of(gamepad_state))

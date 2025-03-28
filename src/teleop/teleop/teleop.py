@@ -4,11 +4,11 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import HumanInputState, MotorChanges
+from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries
+from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed
 
 
 class TeleopNode(Node):
@@ -75,20 +75,30 @@ class TeleopNode(Node):
         self.declare_parameter(self.deadband_param_descriptor.name,
                                value=0.0,
                                descriptor=self.deadband_param_descriptor)
+        linear_axis_value = (self.get_parameter(self.linear_axis_param_descriptor.name)
+                                            .get_parameter_value()
+                                            .string_value
+                                            .upper())
+        if not linear_axis_value:
+            raise ValueError('linear_axis parameter is missing')
+        turn_axis_value = (self.get_parameter(self.turn_axis_param_descriptor.name)
+                                          .get_parameter_value()
+                                          .string_value
+                                          .upper())
+        if not turn_axis_value:
+            raise ValueError('turn_axis parameter is missing')
+        full_forward_magnitude_value = (self.get_parameter(self.full_forward_magnitude_param_descriptor.name)
+                                                         .get_parameter_value()
+                                                         .double_value)
+        if full_forward_magnitude_value <= 0:
+            raise ValueError(f'full_forward_magnitude parameter is non-positive or missing (got {full_forward_magnitude_value})')
+        elif full_forward_magnitude_value >= 1:
+            raise ValueError(f'full_forward_magnitude parameter must be less than 1 (got {full_forward_magnitude_value})')
+
         self.__drive_control_strategy = ArcadeDrive(
-            linear_axis=getattr(GamepadAxis,
-                                self.get_parameter(self.linear_axis_param_descriptor.name)
-                                    .get_parameter_value()
-                                    .string_value
-                                    .upper()),
-            turn_axis=getattr(GamepadAxis,
-                              self.get_parameter(self.turn_axis_param_descriptor.name)
-                                  .get_parameter_value()
-                                  .string_value
-                                  .upper()),
-            full_forward_magnitude=self.get_parameter(self.full_forward_magnitude_param_descriptor.name)
-                                       .get_parameter_value()
-                                       .double_value,
+            linear_axis=getattr(GamepadAxis, linear_axis_value),
+            turn_axis=getattr(GamepadAxis, turn_axis_value),
+            full_forward_magnitude=full_forward_magnitude_value,
             shape=self.get_parameter(self.shape_param_descriptor.name)
                       .get_parameter_value()
                       .double_value,
@@ -129,9 +139,11 @@ class TeleopNode(Node):
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
 
+
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
+        wheel_speed_msg.changes.append(bucket_actuator_speed(human_input_state))
         self._wheel_speed_publisher.publish(wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
