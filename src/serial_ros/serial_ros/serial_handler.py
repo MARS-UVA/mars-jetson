@@ -37,8 +37,8 @@ class SerialHandler:
 		match header:
 			case 1:
 				#motor feedback
-				feedback = [1,0,0,0,0,0,0]
-				for i in range(1,7):
+				feedback = [1,0,0,0,0,0] #fl, fr, bl, br, drum
+				for i in range(1,6):
 					while(self.SER.in_waiting < 6): hisurya = 1
 					feedback[i] = struct.unpack("f", self.ser.read(4))[0] #floats
 				return feedback

@@ -3,6 +3,7 @@ from rclpy.node import Node
 from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
+from nucleo_msgs.msg import MotorFeedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
@@ -21,7 +22,7 @@ class SerialNode(Node):
             qos_profile=1 #1 queued message
         ) 
         self.feedback_publisher = self.create_publisher(
-            msg_type=MotorChanges,
+            msg_type=MotorFeedback,
             topic='motor-feedback',
             qos_profile=1
         )
@@ -39,12 +40,14 @@ class SerialNode(Node):
         #print(ok)
         self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
     
-    def readFromNucleo(self):
+    def readFromNucleo(self): 
         data = self.serial_handler.read()
         if data[0]==1:
-            return self.feedbackToMessage(data)
-    def feedbackToMessage(self,data):
-        return 0
+            return MotorFeedback(front_left = data[1],
+                             front_right = data[2],
+                             back_left = data[3],
+                             back_right = data[4],
+                             drum = data[5])
             
 
 def main(args=None):
