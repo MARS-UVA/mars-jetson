@@ -17,3 +17,8 @@ log
 
 # macOS filesystem files
 .DS_Store
+
+# Python: Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
