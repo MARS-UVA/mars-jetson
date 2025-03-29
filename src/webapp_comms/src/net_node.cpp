@@ -11,11 +11,13 @@
 #include "main.hpp"
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include "./client.hpp"
 #include "./server.hpp"
+#include <regex>
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -39,6 +41,7 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::GamepadState>("gamepad_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
+    motor_cmd_publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("motor_cmds", 10);
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
         "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
@@ -60,6 +63,7 @@ private:
   void timer_callback()
   {
     std::string message;
+    auto motor_cmd_message = std_msgs::msg::Float32MultiArray();
     auto msg = teleop_msgs::msg::GamepadState();
     if (info.flag == true)
     {
@@ -82,12 +86,29 @@ private:
       info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", "something");
+
+      std::regex pattern("\"([^\"]+)\"\\s*:\\s*([0-9]*\\.?[0-9]+)");
+
+      std::sregex_iterator iter(message.begin(), message.end(), pattern);
+      std::sregex_iterator end;
+
+      while (iter != end) {
+        std::smatch match = *iter;
+        std::string key = match[1].str();
+        double value = std::stod(match[2].str());
+	RCLCPP_INFO(this->get_logger(), std::to_string(value).c_str());
+        //std::cout << "Key: " << key << ", Value: " << value << std::endl;
+	motor_cmd_message.data.push_back(static_cast<float>(value));
+        ++iter;
+      }
+      motor_cmd_publisher_->publish(motor_cmd_message);
       publisher_->publish(msg);
     }
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::GamepadState>::SharedPtr publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr motor_cmd_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
   size_t count_;
 };
