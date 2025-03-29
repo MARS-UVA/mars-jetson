@@ -4,6 +4,7 @@ build
 install
 devel
 log
+**/realsense-source/
 
 # Built Python packages
 *.egg-info
