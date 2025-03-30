@@ -8,7 +8,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed
+from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors
 
 
 class TeleopNode(Node):
@@ -118,6 +118,7 @@ class TeleopNode(Node):
             qos_profile=10,
         )
         self.__add_parameter_event_handlers()
+        self.timer = self.create_timer(2, stop_motors())
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
         self.get_logger().info(f'turn axis: {self.__drive_control_strategy.turn_axis}')
@@ -137,15 +138,18 @@ class TeleopNode(Node):
         self.__drive_control_strategy = copy.copy(value)
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
+        self.timer.reset()
+        
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
 
-
+        
         self.get_logger().info(f'Calculated: {wheel_speeds}')
 
         bucket_speed = int(127 + (human_input_state.gamepad_state.right_stick.y*127))
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = bucket_speed))
         wheel_speed_msg.changes.append(bucket_actuator_speed(human_input_state))
+
         self._wheel_speed_publisher.publish(wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
