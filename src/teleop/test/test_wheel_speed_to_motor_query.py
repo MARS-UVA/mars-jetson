@@ -9,6 +9,14 @@ def check_speeds(observed: MotorChanges, expected: MotorChanges) -> None:
     for change in expected.changes:
         indices_in_expected[change.index]=change.velocity
     assert indices_in_expected==indices_in_observed
+def check_speeds_different(observed: MotorChanges, expected: MotorChanges) -> None:
+    indices_in_observed={}
+    indices_in_expected={}    
+    for change in observed.changes:
+        indices_in_observed[change.index]=change.velocity
+    for change in expected.changes:
+        indices_in_expected[change.index]=change.velocity
+    assert not indices_in_expected==indices_in_observed
 def test_no_wheel_speed() -> None:
     speed=WheelSpeeds(0.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
@@ -75,6 +83,6 @@ def test_stop_motors() -> None:
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = 127)])
-    assert not check_speeds(observed_speed,expected_speed)
+    assert check_speeds_different(observed_speed,expected_speed)
     observed_speed = stop_motors()
     check_speeds(observed_speed, expected_speed)
