@@ -58,12 +58,12 @@ int create_server(ThreadInfo *info)
         printf("Error while creating socket\n");
         return -1;
     }
-    printf("Socket created successfully\n");
+    // printf("Socket created successfully\n");
 
     // Set port and IP:
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
-    server_addr.sin_addr.s_addr = inet_addr("172.25.153.79");
+    server_addr.sin_addr.s_addr = inet_addr("192.168.0.105");
 
     // Bind to the set port and IP:
     int reuse_option = 1;
@@ -78,7 +78,7 @@ int create_server(ThreadInfo *info)
         std::cout << "Bind error number: " << errno << std::endl;
         throw std::runtime_error("Error binding server socket");
     }
-    printf("Done with binding\n");
+    // printf("Done with binding\n");
 
     printf("Listening for incoming messages...\n\n");
 
@@ -87,19 +87,19 @@ int create_server(ThreadInfo *info)
     std::vector<uint16_t> pkts_to_retry;
 
     socklen_t client_len = sizeof(client_addr);
-    printf("1");
+    // printf("1");
     char buffer[1410];
     while(true){
     	memset(buffer, '\0', 1410);
-    	printf("2");
+    	// printf("2");
     	std::vector<unsigned char> received_data;
-    	printf("3");
+    	// printf("3");
     	ssize_t num_bytes = recvfrom(socket_desc,
                                      buffer, sizeof(buffer), 0,
                                      (struct sockaddr *)&client_addr,
                                      &client_len);
 
-    	printf("Recvieved message");
+    	// printf("Recvieved message");
 
     	if (num_bytes < 0)
     	{
@@ -118,7 +118,7 @@ int create_server(ThreadInfo *info)
 
     	info->flag = true;
 
-    	std::cout << buffer << std::endl;
+    	// std::cout << buffer << std::endl;
     }
     // Close the socket:
     close(socket_desc);

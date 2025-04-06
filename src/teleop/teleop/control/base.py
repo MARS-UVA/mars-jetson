@@ -3,10 +3,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 import math
-from typing import Any, Self
+#from typing import Any, Self
 from ..signal_processing import Clamp
 from teleop_msgs.msg import GamepadState, StickPosition
-
+Any = Self = None
 
 class WheelSpeeds:
     """A class which represents speeds of the robot's left set and right set of wheels."""
@@ -22,6 +22,12 @@ class WheelSpeeds:
         """
         self.__left = self.__clamp(float(left))
         self.__right = self.__clamp(float(right))
+    
+    def left(self) -> float:
+        return self.__left
+    
+    def right(self) -> float:
+        return self.__right
 
     @property
     def left(self) -> float:
@@ -75,7 +81,7 @@ class WheelSpeeds:
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(left={self.__left!r}, right={self.__right!r})'
-
+    
 
 class _GamepadAxisId(Enum):
     """ID for an axis without any inversion data."""

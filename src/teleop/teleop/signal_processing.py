@@ -1,5 +1,5 @@
-from typing import Protocol, Self
-
+from typing import Protocol#, Self
+Self = None
 
 class SignalTransform(Protocol):
     """Protocol for a callable which transforms a signal."""
