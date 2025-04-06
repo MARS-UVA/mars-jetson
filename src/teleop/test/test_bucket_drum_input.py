@@ -34,7 +34,7 @@ def test_both_dpad_causes_actuator_zero() -> None:
     assert bucket_actuator_set.velocity == 127
 
 def test_cruise_control_rt_causes_drum_speed_increase() -> None:
-    state = HumanInputState
+    state = HumanInputState()
     state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
     state.gamepad_state.lt_pressed = 1
     state.gamepad_state.rt_pressed = 0
@@ -42,7 +42,7 @@ def test_cruise_control_rt_causes_drum_speed_increase() -> None:
     assert bucket_drum_set > 127
 
 def test_cruise_control_lt_causes_drum_speed_decrease() -> None:
-    state = HumanInputState
+    state = HumanInputState()
     state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
     state.gamepad_state.rt_pressed = 1
     state.gamepad_state.lt_pressed = 0
@@ -50,7 +50,7 @@ def test_cruise_control_lt_causes_drum_speed_decrease() -> None:
     assert bucket_drum_set < 127
 
 def test_cruise_control_lt_and_rt_causes_nothing() -> None:
-    state = HumanInputState
+    state = HumanInputState()
     state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
     state.gamepad_state.lt_pressed = 1
     state.gamepad_state.rt_pressed = 1
