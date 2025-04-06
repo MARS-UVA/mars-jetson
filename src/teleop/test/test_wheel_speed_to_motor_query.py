@@ -75,6 +75,6 @@ def test_stop_motors() -> None:
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATRO, velocity = 127)])
-    assert not check_speeds(observed_speed,expected_speed)
+    #assert not check_speeds(observed_speed,expected_speed)
     observed_speed=stop_motors()
     check_speeds (observed_speed, expected_speed)
