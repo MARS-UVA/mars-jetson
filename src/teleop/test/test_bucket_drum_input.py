@@ -44,8 +44,8 @@ def test_cruise_control_rt_causes_drum_speed_increase() -> None:
 def test_cruise_control_lt_causes_drum_speed_decrease() -> None:
     state = HumanInputState
     state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
-    state.gamepad_state.lt_pressed = 0
     state.gamepad_state.rt_pressed = 1
+    state.gamepad_state.lt_pressed = 0
     bucket_drum_set = bucket_drum_speed_cruise_control(state, 127)
     assert bucket_drum_set < 127
 
