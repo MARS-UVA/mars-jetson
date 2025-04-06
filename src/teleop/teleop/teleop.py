@@ -118,7 +118,7 @@ class TeleopNode(Node):
             qos_profile=10,
         )
         self.__add_parameter_event_handlers()
-        self.timer = self.create_timer(2, stop_motors())
+        self.timer = self.create_timer(2, self.__stopped_motors)
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
         self.get_logger().info(f'turn axis: {self.__drive_control_strategy.turn_axis}')
@@ -151,6 +151,10 @@ class TeleopNode(Node):
         wheel_speed_msg.changes.append(bucket_actuator_speed(human_input_state))
 
         self._wheel_speed_publisher.publish(wheel_speed_msg)
+
+    def __stopped_motors(self) -> None:
+        no_wheel_speed_msg = stop_motors()
+        self._wheel_speed_publisher.publish(no_wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
         try:
