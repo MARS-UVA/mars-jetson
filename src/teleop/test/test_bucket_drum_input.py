@@ -56,3 +56,19 @@ def test_cruise_control_lt_and_rt_causes_nothing() -> None:
     state.gamepad_state.rt_pressed = 1
     bucket_drum_set = bucket_drum_speed_cruise_control(state, 127)
     assert bucket_drum_set == 127
+
+def test_cruise_control_overflow() -> None:
+    state = HumanInputState()
+    state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
+    state.gamepad_state.lt_pressed = 0
+    state.gamepad_state.rt_pressed = 1
+    bucket_drum_set = bucket_drum_speed_cruise_control(state, 255)
+    assert bucket_drum_set == 255
+
+def test_cruise_control_underflow() -> None:
+    state = HumanInputState()
+    state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
+    state.gamepad_state.lt_pressed = 1
+    state.gamepad_state.rt_pressed = 0
+    bucket_drum_set = bucket_drum_speed_cruise_control(state, 0)
+    assert bucket_drum_set == 0
