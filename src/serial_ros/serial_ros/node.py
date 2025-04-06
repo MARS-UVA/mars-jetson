@@ -1,13 +1,13 @@
 import rclpy
 from rclpy.node import Node
 from serial_ros.serial_handler import SerialHandler
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 from teleop_msgs.msg import MotorChanges
 from nucleo_msgs.msg import MotorFeedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
-RECV_DELAY_SEC = 0.1
+RECV_DELAY_SEC = 0.5
 MOTOR_STILL = 127
 
 class SerialNode(Node):
@@ -18,7 +18,7 @@ class SerialNode(Node):
         self.subscription = self.create_subscription(
             msg_type=MotorChanges,
             topic='teleop',
-            callback=self.listener_callback,
+            callback=self.updateCurrents,
             qos_profile=1 #1 queued message
         ) 
         self.feedback_publisher = self.create_publisher(
@@ -26,12 +26,17 @@ class SerialNode(Node):
             topic='motor-feedback',
             qos_profile=1
         )
+        self.potentiometer_publisher = self.create_publisher(
+            msg_type=Float32,
+            topic='potentiometer',
+            qos_profile=1
+        )
         self.subscription  # prevent unused variable warning
         self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
         self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.serial_handler = SerialHandler()
 
-    def listener_callback(self, msg):
+    def updateCurrents(self, msg):
         # self.get_logger().info('I heard: "%s"' % msg.data)
         for change in msg.changes:
             self.data[change.index] = change.velocity
@@ -41,13 +46,18 @@ class SerialNode(Node):
         self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
     
     def readFromNucleo(self): 
-        data = self.serial_handler.read()
+        data = self.serial_handler.readMsg()
         if data[0]==1:
-            return MotorFeedback(front_left = data[1],
+            mf = MotorFeedback(front_left = data[1],
                              front_right = data[2],
                              back_left = data[3],
                              back_right = data[4],
                              drum = data[5])
+            self.feedback_publisher.publish(mf)
+
+        elif data[0]==2:
+            depth = Float32(data[1])
+            self.potentiometer_publisher.publish(depth)
             
 
 def main(args=None):

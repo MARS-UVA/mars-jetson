@@ -26,18 +26,18 @@ class SerialHandler:
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
 	def send(self,header,data): #messageType can be anything
 		# print("sending")
-		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
+		# mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		self.SER.write(bytes(data)) # write the data to serial port
 	
-	def read(self):
+	def readMsg(self):
 		while(self.SER.in_waiting < 1): hiausten = 1
 		header = self.SER.read(1)[0]
 		match header:
 			case 1:
 				#motor feedback
-				feedback = [1,0,0,0,0,0] #fl, fr, bl, br, drum
+				feedback = [1,0,0,0,0,0] #header, fl, fr, bl, br, drum
 				for i in range(1,6):
 					while(self.SER.in_waiting < 4): hisurya = 1
 					feedback[i] = struct.unpack("f", self.SER.read(4))[0] #floats
@@ -46,7 +46,7 @@ class SerialHandler:
 				#potentiometer
 				while(self.SER.in_waiting < 4): pass
 				depth = struct.unpack("f", self.SER.read(4))
-				return depth
+				return [2,depth]
 			case _:
 				print("unrecognized header")
 
