@@ -40,11 +40,13 @@ class SerialHandler:
 				feedback = [1,0,0,0,0,0] #fl, fr, bl, br, drum
 				for i in range(1,6):
 					while(self.SER.in_waiting < 4): hisurya = 1
-					feedback[i] = struct.unpack("f", self.ser.read(4))[0] #floats
+					feedback[i] = struct.unpack("f", self.SER.read(4))[0] #floats
 				return feedback
 			case 2:
-				#potentiometer idk
-				pass
+				#potentiometer
+				while(self.SER.in_waiting < 4): pass
+				depth = struct.unpack("f", self.SER.read(4))
+				return depth
 			case _:
 				print("unrecognized header")
 
