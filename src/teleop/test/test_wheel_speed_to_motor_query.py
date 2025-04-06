@@ -75,7 +75,7 @@ def test_negative_wheel_speed_two() -> None:
 def test_stop_motors() -> None:
     speed = WheelSpeeds(1.0,1.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
-    observed_speed.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = 255))
+    observed_speed.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = 254))
     observed_speed.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = 191))
     expected_speed = MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=127),
