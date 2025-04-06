@@ -16,7 +16,7 @@ def check_speeds_different(observed: MotorChanges, expected: MotorChanges) -> No
         indices_in_observed[change.index]=change.velocity
     for change in expected.changes:
         indices_in_expected[change.index]=change.velocity
-    assert not indices_in_expected==indices_in_observed
+    assert not (indices_in_expected==indices_in_observed)
 def test_no_wheel_speed() -> None:
     speed=WheelSpeeds(0.0,0.0)
     observed_speed = wheel_speed_to_motor_queries(speed)
