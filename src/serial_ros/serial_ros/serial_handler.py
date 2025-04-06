@@ -32,23 +32,9 @@ class SerialHandler:
 		self.SER.write(bytes(data)) # write the data to serial port
 	
 	def readMsg(self):
-		while(self.SER.in_waiting < 1): hiausten = 1
-		header = self.SER.read(1)[0]
-		match header:
-			case 1:
-				#motor feedback
-				feedback = [1,0,0,0,0,0] #header, fl, fr, bl, br, drum
-				for i in range(1,6):
-					while(self.SER.in_waiting < 4): hisurya = 1
-					feedback[i] = struct.unpack("f", self.SER.read(4))[0] #floats
-				return feedback
-			case 2:
-				#potentiometer
-				while(self.SER.in_waiting < 4): pass
-				depth = struct.unpack("f", self.SER.read(4))
-				return [2,depth]
-			case _:
-				print("unrecognized header")
+		while(self.SER.in_waiting<24): pass
+		feedback = struct.unpack("f",self.SER.read(24)) # tuple of: fl, fr, bl, br, drum, actuator
+		return feedback
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from rclpy.node import Node
 from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String, Float32
 from teleop_msgs.msg import MotorChanges
-from nucleo_msgs.msg import MotorFeedback
+from nucleo_msgs.msg import Feedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
@@ -22,13 +22,8 @@ class SerialNode(Node):
             qos_profile=1 #1 queued message
         ) 
         self.feedback_publisher = self.create_publisher(
-            msg_type=MotorFeedback,
-            topic='motor-feedback',
-            qos_profile=1
-        )
-        self.potentiometer_publisher = self.create_publisher(
-            msg_type=Float32,
-            topic='potentiometer',
+            msg_type=Feedback,
+            topic='feedback',
             qos_profile=1
         )
         self.subscription  # prevent unused variable warning
@@ -47,17 +42,13 @@ class SerialNode(Node):
     
     def readFromNucleo(self): 
         data = self.serial_handler.readMsg()
-        if data[0]==1:
-            mf = MotorFeedback(front_left = data[1],
-                             front_right = data[2],
-                             back_left = data[3],
-                             back_right = data[4],
-                             drum = data[5])
-            self.feedback_publisher.publish(mf)
-
-        elif data[0]==2:
-            depth = Float32(data[1])
-            self.potentiometer_publisher.publish(depth)
+        mf = Feedback(front_left = data[0],
+                            front_right = data[1],
+                            back_left = data[2],
+                            back_right = data[3],
+                            drum = data[4],
+                            actuator = data[5])
+        self.feedback_publisher.publish(mf)
             
 
 def main(args=None):
