@@ -8,6 +8,7 @@
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
+#include <nucleo_msgs/msg/motor_feedback.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -29,6 +30,7 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
+using nucleo_msgs::msg::MotorFeedback;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -73,6 +75,8 @@ public:
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
     subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
         "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
+    motor_feedback_subscription_ = this->create_subscription<nucleo_msgs::msg::MotorFeedback>(
+        "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
 
 private:
@@ -87,6 +91,28 @@ private:
 
     client_send(CONTROL_STATION_IP, img, IMAGE_PORT);
     RCLCPP_INFO(this->get_logger(), "Sent");
+  }
+
+  void topic_callback(const nucleo_msgs::msg::MotorFeedback::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
+    float front_left = msg->front_left;
+    float front_right = msg->front_right;
+    float back_left = msg->back_left;
+    float back_right = msg->back_right;
+    float bucket_drum = msg->drum;
+    float potentiometer_percentage = msg->potentiometer;
+
+    size_t buffer_size = 24;
+    unsigned char* buffer = new char[buffer_size];
+    *buffer = front_left;
+    *buffer + 4 = front_right;
+    *buffer + 8 = back_left;
+    *buffer + 12 = back_right;
+    *buffer + 16 = bucket_drum;
+    *buffer + 20 = potentiometer_percentage;
+
+    client_send(CONTROL_STATION_IP, buffer, buffer_size, MOTOR_FEEDBACK_PORT);
   }
 
   void timer_callback()
@@ -180,6 +206,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+  rclcpp::Subscription<nucleo_msgs::msg::MotorFeedback>::SharedPtr motor_feedback_subscription_;
   size_t count_;
 };
 

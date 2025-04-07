@@ -9,4 +9,5 @@
 
 
 #define IMAGE_PORT 2000
+#define MOTOR_FEEDBACK_PORT 2001
 #define CHUNK_SIZE 1400
