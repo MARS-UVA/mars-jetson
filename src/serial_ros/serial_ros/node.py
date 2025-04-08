@@ -47,7 +47,9 @@ class SerialNode(Node):
                             back_left = data[2],
                             back_right = data[3],
                             drum = data[4],
-                            actuator = data[5])
+                            l_actuator = data[5],
+                            r_actuator = data[6],
+                            actuator_height = data[7])
         self.feedback_publisher.publish(mf)
             
 
