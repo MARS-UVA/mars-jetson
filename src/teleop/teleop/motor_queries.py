@@ -24,7 +24,9 @@ def stop_motors() -> MotorChanges:
                                  SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity=127)])
 def bucket_drum_speed_cruise_control(human_input: HumanInputState,bucket_speed: float) -> float:
     new_speed=bucket_speed
-    if human_input.gamepad_state.rb_pressed and not human_input.gamepad_state.lb_pressed:
+    if human_input.gamepad_state.y_pressed:
+        new_speed=127
+    elif human_input.gamepad_state.rb_pressed and not human_input.gamepad_state.lb_pressed:
         new_speed += 5
         if new_speed > 255:
             new_speed = 255
@@ -32,6 +34,4 @@ def bucket_drum_speed_cruise_control(human_input: HumanInputState,bucket_speed: 
         new_speed -= 5
         if new_speed < 0:
             new_speed = 0
-    elif human_input.gamepad_state.y_pressed:
-        new_speed=127
     return new_speed
