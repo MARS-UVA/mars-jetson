@@ -158,7 +158,8 @@ class TeleopNode(Node):
                 self.cruise_control = False
                 self._wheel_speed_publisher.publish(stop_motors())
             else:
-                self._wheel_speed_publisher.publish(MotorChanges())
+                empty_message = MotorChanges()
+                self._wheel_speed_publisher.publish(empty_message)
 
     def __stopped_motors(self) -> None:
         no_wheel_speed_msg = stop_motors()
