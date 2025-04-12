@@ -5,4 +5,4 @@ gamepad_state:
   right_stick:
     x: 0.5
     y: 0.6
-  #start_pressed: True
+  start_pressed: True
