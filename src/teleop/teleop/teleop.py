@@ -141,11 +141,12 @@ class TeleopNode(Node):
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         self.timer.reset()
+        gamepad_state : GamepadState = human_input_state.gamepad_state
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
 
         self.bucket_drum_speed = int(127 + (human_input_state.gamepad_state.right_stick.y*127))
         self.bucket_drum_speed=bucket_drum_speed_cruise_control(human_input_state, self.bucket_drum_speed)
-        gamepad_state : GamepadState = human_input_state.gamepad_state
+
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed:
             wheel_speed_msg.adds.append(AddMotor(velIncrement = -5))
