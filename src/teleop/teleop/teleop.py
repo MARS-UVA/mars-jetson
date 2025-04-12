@@ -4,7 +4,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState
+from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState, AddMotor
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
