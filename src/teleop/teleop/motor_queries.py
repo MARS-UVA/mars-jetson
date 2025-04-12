@@ -35,3 +35,6 @@ def bucket_drum_speed_cruise_control(human_input: HumanInputState,bucket_speed: 
         if new_speed < 0:
             new_speed = 0
     return new_speed
+
+def send_empty_message() -> MotorChanges:
+    return MotorChanges
