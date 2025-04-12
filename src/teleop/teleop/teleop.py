@@ -141,7 +141,7 @@ class TeleopNode(Node):
 
 
         self.get_logger().info(f'Calculated: {wheel_speeds}')
-
+        
         bucket_speed = int(127 + (human_input_state.gamepad_state.right_stick.y*127))
         wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
         wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = bucket_speed))
