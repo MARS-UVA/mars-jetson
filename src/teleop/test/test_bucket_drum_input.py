@@ -73,7 +73,7 @@ def test_cruise_control_underflow() -> None:
     bucket_drum_set = bucket_drum_speed_cruise_control(state, 0)
     assert bucket_drum_set == 0
 
-def test_cruis_control_reset() -> None:
+def test_cruise_control_reset() -> None:
     state = HumanInputState()
     state.drive_mode = HumanInputState.DRIVEMODE_TELEOP
     state.gamepad_state.lb_pressed = True
@@ -81,4 +81,5 @@ def test_cruis_control_reset() -> None:
     bucket_drum_set = bucket_drum_speed_cruise_control(state, 127)
     assert bucket_drum_set != 127
     state.gamepad_state.y_pressed = True
+    bucket_drum_set = bucket_drum_speed_cruise_control(state, bucket_drum_set)
     assert bucket_drum_set == 127
