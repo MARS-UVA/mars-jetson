@@ -8,6 +8,7 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
                                  SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
                                  SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)])
+
 def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
     bucket_actuator_velocity = 127
     if human_input.gamepad_state.du_pressed and not human_input.gamepad_state.dd_pressed:
@@ -35,6 +36,3 @@ def bucket_drum_speed_cruise_control(human_input: HumanInputState,bucket_speed: 
         if new_speed < 0:
             new_speed = 0
     return new_speed
-
-def send_empty_message() -> MotorChanges:
-    return MotorChanges
