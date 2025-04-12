@@ -8,7 +8,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors, bucket_drum_speed_cruise_control, send_empty_message
+from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors, bucket_drum_speed_cruise_control
 
 
 class TeleopNode(Node):
@@ -158,7 +158,7 @@ class TeleopNode(Node):
                 self.cruise_control = False
                 self._wheel_speed_publisher.publish(stop_motors())
             else:
-                self._wheel_speed_publisher.publish(send_empty_message())
+                self._wheel_speed_publisher.publish(MotorChanges())
 
     def __stopped_motors(self) -> None:
         no_wheel_speed_msg = stop_motors()
