@@ -1,5 +1,6 @@
 import serial
 from time import sleep
+import struct
 
 # To run this script on Jetson independently, you can do
 # eg. python3 100 100 100 100 100 100
@@ -25,10 +26,17 @@ class SerialHandler:
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
 	def send(self,header,data): #messageType can be anything
 		# print("sending")
-		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
+		# mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		self.SER.write(bytes(data)) # write the data to serial port
+	
+	def readMsg(self):
+		while(self.SER.in_waiting<1): pass
+		header = self.SER.read(4)
+		while(self.SER.in_waiting<32): pass
+		feedback = struct.unpack("f",self.SER.read(32)) # tuple of: fl, fr, bl, br, drum, la, ra, actuator height
+		return feedback
 
 
 if __name__ == "__main__":

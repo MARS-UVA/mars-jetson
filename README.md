@@ -21,7 +21,6 @@ This repository is a ROS2 repository and has a hierarchical structure. The root 
 3) To build specific features (each of which are on separate branches as of 1/15/2025), please refer to the README.md for each branch on how to run shell scripts and CMakeLists for building.
 4) To build ROS2 nodes, run *colcon build* from *src/*
      * To run specific project such as *src/webapp_comms*, navigate to the desired project directory and run *colcon build*
-
 ** Make sure to source ROS2 Humble (/opt/ros2/humble/setup.sh) in order to ensure that the *ros2* command and make files during build will work.
 
 ## Communications
