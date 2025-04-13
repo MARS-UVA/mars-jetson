@@ -17,8 +17,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
-#include <nlohmann/json.hpp>
-
 #include "./client.hpp"
 #include "./server.hpp"
 #include <regex>
