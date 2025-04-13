@@ -23,12 +23,22 @@ class SerialNode(Node):
         self.serial_handler = SerialHandler()
 
     def listener_callback(self, msg):
-        # self.get_logger().info('I heard: "%s"' % msg.data)
+        motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
+        i = 0
         for change in msg.changes:
+            self.get_logger().info(f"{motors[i]}: {change.velocity}")
+            # self.get_logger().info("Hey")
+            # self.get_logger().info(type(change.velocity))
             self.data[change.index] = change.velocity
+            i+=1
+
+
+        # for field in self.data:
+        #     self.get_logger().info(str(field))
         
     def sendCurrents(self):
         #print(ok)
+        # self.get_logger().info("Sending currents")
         self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
         
 

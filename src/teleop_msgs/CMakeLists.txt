@@ -26,9 +26,12 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/GamepadState.msg"
+    "msg/HumanInputState.msg"
     "msg/StickPosition.msg"
-    "msg/SetMotorVelocity.msg"
+    "msg/SetMotor.msg"
     "msg/MotorChanges.msg"
 )
+
+ament_export_dependencies(rosidl_default_runtime)
 
 ament_package()

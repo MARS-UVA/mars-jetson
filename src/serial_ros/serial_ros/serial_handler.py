@@ -24,8 +24,9 @@ class SerialHandler:
 
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
 	def send(self,header,data): #messageType can be anything
+		# print("sending")
 		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
-		assert 0 <= header <= mnum
+		# assert 0 <= header <= mnum
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		self.SER.write(bytes(data)) # write the data to serial port
 
