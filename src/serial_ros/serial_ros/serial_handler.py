@@ -35,7 +35,7 @@ class SerialHandler:
 		while(self.SER.in_waiting<1): pass
 		header = self.SER.read(4)
 		while(self.SER.in_waiting<32): pass
-		feedback = struct.unpack("f",self.SER.read(32)) # tuple of: fl, fr, bl, br, drum, la, ra, actuator height
+		feedback = list(struct.iter_unpack("f",self.SER.read(32))) # tuple of: fl, fr, bl, br, drum, la, ra, actuator height
 		return feedback
 
 
