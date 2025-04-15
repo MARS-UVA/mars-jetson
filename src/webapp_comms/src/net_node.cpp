@@ -107,7 +107,15 @@ private:
 
       while (token != NULL)
       {
-        double value = std::stod(token);
+	//printf("Token: %s\n". token);
+	double value = 0.0;
+	RCLCPP_INFO(this->get_logger(),"Token:%s" ,token);
+	try{
+        	value = std::stod(token);
+	} catch(...){
+		RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
+		return;
+	}
         if (field_i < NUM_GAMEPAD_BTNS)
         {
           auto field = fields[field_i];
