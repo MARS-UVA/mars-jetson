@@ -27,6 +27,7 @@ add_executable(net_node
   src/server.cpp
   src/client.cpp
   src/frame_sender.cpp
+  src/rgb_reader.cpp
 )
 
 target_link_libraries(net_node ${OpenCV_LIBS})
