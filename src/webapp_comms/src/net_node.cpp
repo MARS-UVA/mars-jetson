@@ -111,9 +111,12 @@ private:
 
       while (token != NULL)
       {
+        double value = 0.0;
+        RCLCPP_INFO(this->get_logger(),"Token:%s" ,token);
         try{
-          double value = std::stod(token);
-        } catch(const std::invalid_argument& e){
+                value = std::stod(token);
+        } catch(...){
+          RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
           return;
         }
         if (field_i < NUM_GAMEPAD_BTNS)
