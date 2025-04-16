@@ -73,7 +73,8 @@ void ObstacleClusteringTree::add(Vertex &vertex)
 }
 ObstacleNode *ObstacleClusteringTree::findNearestObstacle(Vertex &subject)
 {
-    return this->findNearestObstacle(ObstacleNode(subject), this->root, 0);
+    ObstacleNode ob(subject);
+    return this->findNearestObstacle(ob, this->root, 0);
 }
 
 ObstacleNode *ObstacleClusteringTree::findNearestObstacle(ObstacleNode &subject, ObstacleNode *node, int depth)

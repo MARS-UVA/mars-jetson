@@ -43,105 +43,105 @@ struct Twist
     Twist(float lin = 0.0f, float ang = 0.0f) : linear(lin), angular(ang) {}
 };
 
-class VisualizationSocket
-{
-private:
-    socket_t sockfd;
-    struct sockaddr_in serv_addr;
-    bool connected;
+// class VisualizationSocket
+// {
+// private:
+//     socket_t sockfd;
+//     struct sockaddr_in serv_addr;
+//     bool connected;
 
-public:
-    VisualizationSocket(const std::string &ip = "127.0.0.1", int port = 12345) : connected(false)
-    {
-        WSADATA wsaData;
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-        {
-            std::cerr << "WSAStartup failed" << std::endl;
-            return;
-        }
-        // Create socket
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0)
-        {
-            std::cerr << "ERROR opening socket" << std::endl;
-            return;
-        }
+// public:
+//     VisualizationSocket(const std::string &ip = "127.0.0.1", int port = 12345) : connected(false)
+//     {
+//         WSADATA wsaData;
+//         if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+//         {
+//             std::cerr << "WSAStartup failed" << std::endl;
+//             return;
+//         }
+//         // Create socket
+//         sockfd = socket(AF_INET, SOCK_STREAM, 0);
+//         if (sockfd < 0)
+//         {
+//             std::cerr << "ERROR opening socket" << std::endl;
+//             return;
+//         }
 
-        // Set up server address
-        memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(port);
+//         // Set up server address
+//         memset(&serv_addr, 0, sizeof(serv_addr));
+//         serv_addr.sin_family = AF_INET;
+//         serv_addr.sin_port = htons(port);
 
-        if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0)
-        {
-            std::cerr << "Invalid address or address not supported" << std::endl;
-            close(sockfd);
-            return;
-        }
+//         if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0)
+//         {
+//             std::cerr << "Invalid address or address not supported" << std::endl;
+//             close(sockfd);
+//             return;
+//         }
 
-        if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        {
-            std::cerr << "Connection Failed. Python visualization server might not be running." << std::endl;
-            close(sockfd);
-            return;
-        }
+//         if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+//         {
+//             std::cerr << "Connection Failed. Python visualization server might not be running." << std::endl;
+//             close(sockfd);
+//             return;
+//         }
 
-        connected = true;
-        std::cout << "Connected to visualization server" << std::endl;
-    }
+//         connected = true;
+//         std::cout << "Connected to visualization server" << std::endl;
+//     }
 
-    ~VisualizationSocket()
-    {
-        if (connected)
-        {
-            sendMessage("TERMINATE");
-            close(sockfd);
-        }
-    }
+//     ~VisualizationSocket()
+//     {
+//         if (connected)
+//         {
+//             sendMessage("TERMINATE");
+//             close(sockfd);
+//         }
+//     }
 
-    void sendMessage(const std::string &message)
-    {
-        if (!connected)
-            return;
+//     void sendMessage(const std::string &message)
+//     {
+//         if (!connected)
+//             return;
 
-        send(sockfd, message.c_str(), message.length(), 0);
-    }
+//         send(sockfd, message.c_str(), message.length(), 0);
+//     }
 
-    void sendExploredPoint(float currentX, float currentY, float parentX, float parentY)
-    {
-        if (!connected)
-            return;
+//     void sendExploredPoint(float currentX, float currentY, float parentX, float parentY)
+//     {
+//         if (!connected)
+//             return;
 
-        std::stringstream ss;
-        ss << "EXPLORE," << currentX << "," << currentY << "," << parentX << "," << parentY;
-        sendMessage(ss.str());
-    }
+//         std::stringstream ss;
+//         ss << "EXPLORE," << currentX << "," << currentY << "," << parentX << "," << parentY;
+//         sendMessage(ss.str());
+//     }
 
-    void sendTwist(float linVelocity, float angVelocity, int order)
-    {
-        if (!connected)
-            return;
+//     void sendTwist(float linVelocity, float angVelocity, int order)
+//     {
+//         if (!connected)
+//             return;
 
-        std::stringstream ss;
-        ss << "TWIST," << linVelocity << "," << angVelocity << "," << order;
-        sendMessage(ss.str());
-    }
+//         std::stringstream ss;
+//         ss << "TWIST," << linVelocity << "," << angVelocity << "," << order;
+//         sendMessage(ss.str());
+//     }
 
-    void sendPathPoint(float x, float y)
-    {
-        if (!connected)
-            return;
+//     void sendPathPoint(float x, float y)
+//     {
+//         if (!connected)
+//             return;
 
-        std::stringstream ss;
-        ss << "PATH," << x << "," << y;
-        sendMessage(ss.str());
-    }
+//         std::stringstream ss;
+//         ss << "PATH," << x << "," << y;
+//         sendMessage(ss.str());
+//     }
 
-    bool isConnected() const
-    {
-        return connected;
-    }
-};
+//     bool isConnected() const
+//     {
+//         return connected;
+//     }
+// };
 
 float AStarPathPlanner::hValue(float x, float y)
 {
@@ -159,7 +159,7 @@ struct CompareCoordinate
 std::vector<Vertex> AStarPathPlanner::retracePath(PathPoint *current)
 {
     std::vector<Twist> twists;
-    VisualizationSocket vizSocket;
+    //VisualizationSocket vizSocket;
     std::vector<Vertex> path;
     PathPoint *prev = nullptr;
     float prev_heading = 0.0f;
@@ -190,21 +190,21 @@ std::vector<Vertex> AStarPathPlanner::retracePath(PathPoint *current)
 
             // Add Twist to the vector
             twists.push_back(Twist(linear_velocity, angular_velocity));
-            if (vizSocket.isConnected())
-            {
-                vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
-                usleep(25000); // 25ms delay
-            }
+            // if (vizSocket.isConnected())
+            // {
+            //     vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
+            //     usleep(25000); // 25ms delay
+            // }
 
             // Update previous heading for next iteration
             prev_heading = target_heading;
         }
-        if (vizSocket.isConnected())
-        {
-            vizSocket.sendPathPoint(current->coordinate->x, current->coordinate->y);
-            // vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
-            usleep(50000); // 50ms delay
-        }
+        // if (vizSocket.isConnected())
+        // {
+        //     vizSocket.sendPathPoint(current->coordinate->x, current->coordinate->y);
+        //     // vizSocket.sendTwist(linear_velocity, angular_velocity, twists.size());
+        //     usleep(50000); // 50ms delay
+        // }
         prev = current;
         current = current->parent;
     }
@@ -229,7 +229,7 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
     constexpr float INVALID_POINT_PENALTY = 5.0f;       // Penalty for invalid points
     constexpr float OBSTACLE_PROXIMITY_PENALTY = 10.0f; // Penalty for being near obstacles
 
-    VisualizationSocket vizSocket;
+    // VisualizationSocket vizSocket;
 
     costArray.clear();
     costArray.resize(actualCoordinates.size() * actualCoordinates[0].size(), nullptr);
@@ -330,7 +330,8 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                     moveCost += INVALID_POINT_PENALTY;
                 }
 
-                auto obstacle = obstacleTree.findNearestObstacle(Vertex(nextCoord->x, nextCoord->y, 0));
+                Vertex v(nextCoord->x, nextCoord->y, 0);
+                auto obstacle = obstacleTree.findNearestObstacle(v);
                 if (obstacle)
                 {
                     float obstacle_dist = static_cast<float>(sqrt(
@@ -369,12 +370,12 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                     {
                         openSet.push({neighborIndex, newCost});
                     }
-                    if (vizSocket.isConnected())
-                    {
-                        vizSocket.sendExploredPoint(
-                            nextCoord->x, nextCoord->y,
-                            current->coordinate->x, current->coordinate->y);
-                    }
+                    // if (vizSocket.isConnected())
+                    // {
+                    //     vizSocket.sendExploredPoint(
+                    //         nextCoord->x, nextCoord->y,
+                    //         current->coordinate->x, current->coordinate->y);
+                    // }
                 }
                 else if (newCost < neighbor->costs.first)
                 {
@@ -391,12 +392,12 @@ std::vector<Vertex> AStarPathPlanner::planPath(std::vector<std::vector<Coordinat
                     {
                         openSet.push({neighborIndex, newCost});
                     }
-                    if (vizSocket.isConnected() && oldParent != current)
-                    {
-                        vizSocket.sendExploredPoint(
-                            nextCoord->x, nextCoord->y,
-                            current->coordinate->x, current->coordinate->y);
-                    }
+                    // if (vizSocket.isConnected() && oldParent != current)
+                    // {
+                    //     vizSocket.sendExploredPoint(
+                    //         nextCoord->x, nextCoord->y,
+                    //         current->coordinate->x, current->coordinate->y);
+                    // }
                 }
             }
         }

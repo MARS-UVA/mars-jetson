@@ -31,7 +31,8 @@ int main()
     save_to_ply(gradientVertices, "gradients.ply");
     save_to_ply(obstacleVertices, "obstacles.ply");
 
-    auto obstacle = obstacleTree.findNearestObstacle(Vertex(-0.07, 0.5, -0.2455));
+    Vertex v(-0.07, 0.5, -0.2455);
+    auto obstacle = obstacleTree.findNearestObstacle(v);
     bool isNearObstacle = false;
     if (obstacle != nullptr)
     {
@@ -41,7 +42,8 @@ int main()
 
     std::cout << "Is near obstacle: " << isNearObstacle << std::endl;
 
-    auto obstacle1 = obstacleTree.findNearestObstacle(Vertex(0.164, 0.614, 0));
+    v = Vertex(0.164, 0.614, 0);
+    auto obstacle1 = obstacleTree.findNearestObstacle(v);
     isNearObstacle = false;
     if (obstacle1 != nullptr)
     {
@@ -52,7 +54,8 @@ int main()
 
     std::cout << "Is near obstacle: " << isNearObstacle << std::endl;
 
-    auto obstacle2 = obstacleTree.findNearestObstacle(Vertex(-0.494, 0.5, 0));
+    v = Vertex(-0.494, 0.5, 0);
+    auto obstacle2 = obstacleTree.findNearestObstacle(v);
     isNearObstacle = false;
     if (obstacle2 != nullptr)
     {
