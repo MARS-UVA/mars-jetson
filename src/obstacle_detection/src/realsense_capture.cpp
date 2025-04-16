@@ -1,13 +1,47 @@
 #include <iostream>
 #include "realsense_capture.h"
+#include "rgb_writer.h"
 #include <filesystem>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <cstring>
+#include <opencv2/opencv.hpp>
 namespace fs = std::filesystem;
+
+
+static uint8_t* monoBuffer = nullptr;
+static size_t bufferSize = 0;
+ImageWriter imgWriter;
+
+// void sendPic(int width, int height) {
+//     cv::Mat image(height, width, CV_8UC1, (void*)monoBuffer);
+//     std::vector<uchar> compressed_buf;
+//     std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3}; // 0 = fast, 9 = small
+
+//     cv::imencode(".png", image, compressed_buf, compression_params);
+//     std::cout << "Compressed size: " << compressed_buf.size() << " bytes" << std::endl;
+
+//     // int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+//     ftruncate(shm_fd, sizeof(SharedImage));
+//     void* shm_ptr = mmap(0, sizeof(SharedImage), PROT_WRITE | PROT_READ, MAP_SHARED, shm_fd, 0);
+//     auto* shared_img = static_cast<SharedImage*>(shm_ptr);
+//     shared_img->data_size = compressed_buf.size();
+//     std::memcpy(shared_img->data, compressed_buf.data(), compressed_buf.size());
+//     shared_img->frame_id.fetch_add(1, std::memory_order_release);
+// }
+
+void save_pic(int width, int height) {
+    fs::path filename = fs::path("../../test/assets/pic.png");
+    cv::Mat image(height, width, CV_8UC1, (void*)monoBuffer);
+    cv::imwrite(filename.c_str(), image);
+}
 
 void save_to_ply(const std::vector<Vertex> &vertices, const std::string &filename)
 {
     try
     {
-        fs::path filepath = fs::path("../../../test/assets") / filename;
+        fs::path filepath = fs::path("../../test/assets") / filename;
         std::ofstream out(filepath);
         // just creating the ply file according to it format: https://fileinfo.com/extension/ply
         out << "ply\n";
@@ -99,22 +133,61 @@ std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename)
     return matrices;
 }
 
-std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize)
+void processColorFrame(rs2::frame &color) {
+    rs2::video_frame videoFrame = color.as<rs2::video_frame>();
+    int width = videoFrame.get_width();
+    std::cout << "RGB width: " << width << std::endl;
+    int height = videoFrame.get_height();
+    std::cout << "RGB height: " << height << std::endl;
+    int bytes_per_pixel = videoFrame.get_bytes_per_pixel();
+    std::cout << "Bytes per pixel: " << bytes_per_pixel << std::endl;
+    size_t requiredSize = width * height;
+    std::cout << "Buffer size: " << requiredSize << std::endl;
+    
+    if (!monoBuffer || bufferSize < requiredSize) {
+        if (monoBuffer) {
+            delete[] monoBuffer;
+        }
+        monoBuffer = new uint8_t[requiredSize];
+        bufferSize = requiredSize;
+    }
+    
+    const uint8_t* colorData = static_cast<const uint8_t*>(videoFrame.get_data());
+    
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            int pixelIndex = i * width + j;
+            int colorIndex = pixelIndex * bytes_per_pixel;
+            
+            uint8_t r = colorData[colorIndex];
+            uint8_t g = colorData[colorIndex + 1];
+            uint8_t b = colorData[colorIndex + 2];
+            
+            // 0.299 * r + 0.587 * g + 0.114 * b - grayscale formula
+            monoBuffer[pixelIndex] = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
+        }
+    }
+    // sendPic(width, height);
+    imgWriter.processImage(width, height, monoBuffer);
+    // save_pic(width, height);
+}
+
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize, rs2::pipeline& pipe)
 {
-    rs2::pipeline pipe;
-    rs2::config cfg;
+    // rs2::pipeline pipe;
+    // rs2::config cfg;
 
     std::vector<std::vector<float>> heights;
     std::vector<std::vector<Coordinate>> actualCoordinates;
 
     try
     {
-        pipe.start();
+        // pipe.start();
 
-        for (int i = 0; i < 30; i++)
-        {
-            pipe.wait_for_frames();
-        }
+        // for (int i = 0; i < 30; i++)
+        // {
+        //     pipe.wait_for_frames();
+        // }
 
         rs2::decimation_filter decimation;
         int decimation_magnitude = decimationKernelSize;
@@ -122,6 +195,7 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         rs2::frameset frames = pipe.wait_for_frames();
         rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
         rs2::frame color = frames.get_color_frame();
+        processColorFrame(color);
 
         auto stream = depth.get_profile().as<rs2::video_stream_profile>();
         auto intrinsics = stream.get_intrinsics();
@@ -167,7 +241,7 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
             }
         }
 
-        pipe.stop();
+        // pipe.stop();
     }
     catch (const rs2::error &e)
     {
