@@ -10,15 +10,15 @@
 #include "teleop_msgs/msg/human_input_state.hpp"
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include "main.hpp"
-#include "rgb_reader.h"
+#include "../../server/main.hpp"
+#include "../../server/rgb_reader.h"
 #include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
-#include "./client.hpp"
-#include "./server.hpp"
+#include "../../server/client.hpp"
+#include "../../server/server.hpp"
 #include <regex>
 
 #define NUM_GAMEPAD_BTNS 14
@@ -101,7 +101,7 @@ private:
     if (info.flag == true)
     {
       message = std::string(info.client_message);
-      
+
       const char delimiter[] = ",";
       char *token;
 
@@ -112,10 +112,13 @@ private:
       while (token != NULL)
       {
         double value = 0.0;
-        RCLCPP_INFO(this->get_logger(),"Token:%s" ,token);
-        try{
-                value = std::stod(token);
-        } catch(...){
+        RCLCPP_INFO(this->get_logger(), "Token:%s", token);
+        try
+        {
+          value = std::stod(token);
+        }
+        catch (...)
+        {
           RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
           return;
         }
@@ -187,7 +190,8 @@ private:
 
     /* Send Webcam Feeds over */
     cv::Mat fromCam = imgReader.processImage();
-    if(!fromCam.empty()){
+    if (!fromCam.empty())
+    {
       client_send(CONTROL_STATION_IP, fromCam, IMAGE_PORT);
       RCLCPP_INFO(this->get_logger(), "Sent webcam feed");
     }
