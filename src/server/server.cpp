@@ -15,9 +15,10 @@
 
 int socket_desc;
 
-void signal_handler(int signum){
-	close(socket_desc);
-	exit(signum);
+void signal_handler(int signum)
+{
+    close(socket_desc);
+    exit(signum);
 }
 
 int create_server(ThreadInfo *info)
@@ -26,7 +27,7 @@ int create_server(ThreadInfo *info)
     memset(&server_addr, '\0', sizeof(server_addr));
     char server_message[2000], client_message[2000];
     socklen_t client_struct_length = sizeof(client_addr);
-    
+
     /*
     const char* cmd = "hostname -I | awk '{print $1}\0";
     std::vector<char> inet_buffer(128);
@@ -45,7 +46,7 @@ int create_server(ThreadInfo *info)
     }
 
     std::cout << localIp << std::endl;
-	*/
+    */
     // Clean buffers:
     // memset(server_message, '\0', sizeof(server_message));
     // memset(client_message, '\0', sizeof(client_message));
@@ -89,36 +90,38 @@ int create_server(ThreadInfo *info)
     socklen_t client_len = sizeof(client_addr);
     // printf("1");
     char buffer[1410];
-    while(true){
-    	memset(buffer, '\0', 1410);
-    	// printf("2");
-    	std::vector<unsigned char> received_data;
-    	// printf("3");
-    	ssize_t num_bytes = recvfrom(socket_desc,
+    while (true)
+    {
+        memset(buffer, '\0', 1410);
+        // printf("2");
+        std::vector<unsigned char> received_data;
+        // printf("3");
+        ssize_t num_bytes = recvfrom(socket_desc,
                                      buffer, sizeof(buffer), 0,
                                      (struct sockaddr *)&client_addr,
                                      &client_len);
 
-    	// printf("Recvieved message");
+        // printf("Recvieved message");
 
-    	if (num_bytes < 0)
-    	{
-        	std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
-    	}
-    	uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
-    	if(crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragment_size != num_bytes - HEADER_SIZE){
-        	// Handle this later
-    	}
-    	char *payloadStart = buffer + HEADER_SIZE;
-    	received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
+        if (num_bytes < 0)
+        {
+            std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
+        }
+        uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
+        if (crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragment_size != num_bytes - HEADER_SIZE)
+        {
+            // Handle this later
+        }
+        char *payloadStart = buffer + HEADER_SIZE;
+        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
 
-    	received_data.push_back('\0');
-    	memset(info->client_message, '\0', 100000);
-    	memcpy(info->client_message, received_data.data(), received_data.size());
+        received_data.push_back('\0');
+        memset(info->client_message, '\0', 100000);
+        memcpy(info->client_message, received_data.data(), received_data.size());
 
-    	info->flag = true;
+        info->flag = true;
 
-    	// std::cout << buffer << std::endl;
+        // std::cout << buffer << std::endl;
     }
     // Close the socket:
     close(socket_desc);
