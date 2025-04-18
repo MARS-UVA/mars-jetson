@@ -102,16 +102,20 @@ private:
     float back_left = msg->back_left;
     float back_right = msg->back_right;
     float bucket_drum = msg->drum;
-    float potentiometer_percentage = msg->potentiometer;
+    float l_actuator = msg->l_acutator;
+    float r_actuator = msg->r_actuator;
+    float actuator_height = msg->actuator_height;\
 
-    size_t buffer_size = 24;
+    size_t buffer_size = 32;
     unsigned char* buffer = new char[buffer_size];
     *buffer = front_left;
     *buffer + 4 = front_right;
     *buffer + 8 = back_left;
     *buffer + 12 = back_right;
     *buffer + 16 = bucket_drum;
-    *buffer + 20 = potentiometer_percentage;
+    *buffer + 20 = l_actuator;
+    *buffer + 24 = r_actuator;
+    *buffer + 28 = actuator_height;
 
     client_send(CONTROL_STATION_IP, buffer, buffer_size, MOTOR_FEEDBACK_PORT);
   }
