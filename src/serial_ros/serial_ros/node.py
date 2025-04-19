@@ -13,7 +13,7 @@ MOTOR_STILL = 127
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
+        self.motorData = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
         super().__init__('read_from_teleop')
         self.subscription = self.create_subscription(
             msg_type=MotorChanges,
@@ -38,17 +38,17 @@ class SerialNode(Node):
             self.get_logger().info(f"{motors[i]}: {change.velocity}")
             # self.get_logger().info("Hey")
             # self.get_logger().info(type(change.velocity))
-            self.data[change.index] = change.velocity
+            self.motorData[change.index] = change.velocity
             i+=1
 
 
-        # for field in self.data:
+        # for field in self.motorData:
         #     self.get_logger().info(str(field))
         
     def sendCurrents(self):
         #print(ok)
         # self.get_logger().info("Sending currents")
-        self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
+        self.serial_handler.send(MOTOR_CURRENT_MSG, self.motorData)
     
     def readFromNucleo(self): 
         data = self.serial_handler.readMsg()
@@ -69,10 +69,6 @@ def main(args=None):
     node = SerialNode()
 
     rclpy.spin(node)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
     node.destroy_node()
     rclpy.shutdown()
 
