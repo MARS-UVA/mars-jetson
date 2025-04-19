@@ -42,7 +42,7 @@ add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
-add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp rgb_writer.cpp ../../server/client.cpp ../../server/frame_sender.cpp)
+add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ../../server/client.cpp ../../server/frame_sender.cpp)
 add_executable(${PROJECT_NAME} startup.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp rgb_writer.cpp)
 add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)
 add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)

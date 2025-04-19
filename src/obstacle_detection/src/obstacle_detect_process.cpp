@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         delete *vertices;
         vertices.reset();
     }
-    shm_unlink(SHM_NAME);
+    // shm_unlink(SHM_NAME);
     pipe.stop();
     return 0;
 }

@@ -1,6 +1,5 @@
 #include <iostream>
 #include "realsense_capture.h"
-#include "rgb_writer.h"
 #include <filesystem>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -13,7 +12,7 @@ namespace fs = std::filesystem;
 
 static uint8_t *monoBuffer = nullptr;
 static size_t bufferSize = 0;
-ImageWriter imgWriter;
+// ImageWriter imgWriter;
 
 // void sendPic(int width, int height) {
 //     cv::Mat image(height, width, CV_8UC1, (void*)monoBuffer);
