@@ -3,10 +3,9 @@ from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from pupil_apriltags import Detector
 
 from ..core.camera import CameraParameters
-from ..core.detection import AprilTagDetection
+from ..core.detection import AprilTagDetection, AprilTagDetector
 
 __all__ = ['AprilTagPoseEstimationStrategy']
 
@@ -16,7 +15,7 @@ class AprilTagPoseEstimationStrategy(abc.ABC):
     @abc.abstractmethod
     def estimate_tag_pose(self,
                           image: npt.NDArray[np.uint8],
-                          detector: Detector,
+                          detector: AprilTagDetector,
                           camera_params: CameraParameters,
                           tag_size: float) -> List[AprilTagDetection]:
         """

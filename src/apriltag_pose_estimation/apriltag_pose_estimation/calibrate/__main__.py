@@ -12,7 +12,7 @@ CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog='calibrate.py',
+    parser = argparse.ArgumentParser(prog='calibrate',
                                      description='Calibrate a camera in OpenCV from a video file')
     parser.add_argument('video', type=Path,
                         help='the video file from which calibration will be done')

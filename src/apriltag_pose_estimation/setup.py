@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from skbuild import setup
 
 
 package_name = 'apriltag_pose_estimation'
@@ -17,7 +18,6 @@ setup(
         'setuptools',
         'numpy',
         'opencv-python',
-        'pupil_apriltags',
         'scipy'
     ],
     extras_require={
@@ -40,6 +40,7 @@ setup(
             'fpdf2'
         ]
     },
+    python_requires='>=3.10',
     zip_safe=False,
     author='MARS @ UVA',
     maintainer='rosdev',
