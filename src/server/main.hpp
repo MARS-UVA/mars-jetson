@@ -7,7 +7,7 @@
 #include <vector>
 #include "../../platform_compat.h"
 
-#define CONTROL_STATION_IP "127.0.0.1"
+#define CONTROL_STATION_IP "192.168.0.200"
 #define IMAGE_PORT 2000
 #define CURRENT_FEEDBACK_PORT 2001
 #define ROBOT_POSE_PORT 2003
