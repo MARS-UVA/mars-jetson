@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <opencv2/opencv.hpp>
-#include "../../../server/main.hpp"
-#include "../../../server/client.hpp"
+#include "../../server/main.hpp"
+#include "../../server/client.hpp"
 namespace fs = std::filesystem;
 
 static uint8_t *monoBuffer = nullptr;
