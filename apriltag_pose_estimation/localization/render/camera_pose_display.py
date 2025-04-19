@@ -1,5 +1,10 @@
+import os
+from collections.abc import Sequence
 from importlib.resources import files
+from pathlib import Path
 from typing import Optional
+
+from ...apriltag.render.image import AprilTagImageGenerator
 
 try:
     from PyQt5 import Qt
@@ -10,7 +15,6 @@ except ImportError as e:
     raise
 
 from . import resource
-from ... import tag_images
 from ...core import Transform
 from ...core.field import AprilTagField
 
@@ -33,14 +37,21 @@ class CameraPoseDisplay:
     A class whose objects display the camera's current position in 3D space relative to the AprilTags on the field in
     a Qt window.
     """
-    def __init__(self, field: AprilTagField, **kwargs):
+    def __init__(self,
+                 field: AprilTagField,
+                 search_paths: Sequence[str | os.PathLike] = (
+                     Path(__file__).parent / 'lib',
+                     Path(__file__).parent / 'lib64'
+                 ),
+                 **kwargs):
         """
         :param field: The field of AprilTags.
         :param kwargs: Keyword arguments to pass to the underlying plotter (see :class:`BackgroundPlotter`).
         """
         self.__plotter = BackgroundPlotter(**kwargs)
+        apriltag_image_generator = AprilTagImageGenerator(field.tag_family, search_paths=search_paths)
         for tag_id, tag_pose in field.items():
-            texture = (pv.read_texture(str(files(tag_images).joinpath(f'{tag_id}.png')))
+            texture = (pv.numpy_to_texture(apriltag_image_generator.generate_image(tag_id))
                        .flip_x()
                        .flip_y())
             plane_scale_factor = PLANE_SCALE_FACTORS.get(field.tag_family,

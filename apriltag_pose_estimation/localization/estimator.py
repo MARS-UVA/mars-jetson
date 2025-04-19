@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Unpack
 
 import numpy as np
 import numpy.typing as npt
-from pupil_apriltags import Detector
 
 from .estimation import PoseEstimationStrategy
 from ..core.camera import CameraParameters
-from ..core.detection import AprilTagDetection
+from ..core.detection import AprilTagDetection, AprilTagDetector, AprilTagDetectorParams
 from ..core.euclidean import Transform
 from ..core.field import AprilTagField
 
@@ -33,7 +32,7 @@ class PoseEstimator:
                  strategy: PoseEstimationStrategy,
                  field: AprilTagField,
                  camera_params: CameraParameters,
-                 **detector_kwargs):
+                 **detector_kwargs: Unpack[AprilTagDetectorParams]):
         """
         :param strategy: The strategy for this estimator to use.
         :param field: An :class:`AprilTagField` describing the positions of all the AprilTags on the field in the
@@ -44,7 +43,7 @@ class PoseEstimator:
         self.__strategy = strategy
         self.__field = field
         self.__camera_params = camera_params
-        self.__detector = Detector(families=self.__field.tag_family, **detector_kwargs)
+        self.__detector = AprilTagDetector(families=self.__field.tag_family, **detector_kwargs)
 
     @property
     def strategy(self) -> PoseEstimationStrategy:
@@ -70,15 +69,9 @@ class PoseEstimator:
         :return: The estimated pose of the world origin in the camera frame, or ``None`` if an estimate could not be
                  made.
         """
-        detections = [AprilTagDetection(tag_id=detection.tag_id,
-                                        tag_family=detection.tag_family.decode('utf-8'),
-                                        center=detection.center,
-                                        corners=detection.corners[(1, 0, 3, 2), :],
-                                        decision_margin=detection.decision_margin,
-                                        hamming=detection.hamming)
-                      for detection in self.__detector.detect(img=image, estimate_tag_pose=False)  # type: ignore
-                      if (detection.tag_id in self.__field
-                          and detection.tag_family.decode('utf-8') == self.__field.tag_family)]
+        detections = [detection
+                      for detection in self.__detector.detect(img=image, estimate_tag_pose=False)
+                      if detection.tag_id in self.__field and detection.tag_family == self.__field.tag_family]
 
         return self.Result(estimated_pose=self.__strategy.estimate_pose(detections,
                                                                         field=self.__field,

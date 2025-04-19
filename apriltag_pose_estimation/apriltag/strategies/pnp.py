@@ -1,12 +1,12 @@
+from dataclasses import replace
 from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from pupil_apriltags import Detector, Detection
 
 from ..estimation import AprilTagPoseEstimationStrategy
 from ...core.camera import CameraParameters
-from ...core.detection import AprilTagDetection
+from ...core.detection import AprilTagDetection, AprilTagDetector
 from ...core.euclidean import Transform
 from ...core.pnp import PnPMethod, solve_pnp
 
@@ -31,18 +31,13 @@ class PerspectiveNPointStrategy(AprilTagPoseEstimationStrategy):
 
     def estimate_tag_pose(self,
                           image: npt.NDArray[np.uint8],
-                          detector: Detector,
+                          detector: AprilTagDetector,
                           camera_params: CameraParameters,
                           tag_size: float) -> List[AprilTagDetection]:
-        detection: Detection
         # noinspection PyTypeChecker
-        return [AprilTagDetection(tag_id=detection.tag_id,
-                                  tag_family=detection.tag_family,
-                                  center=detection.center,
-                                  corners=detection.corners,
-                                  decision_margin=detection.decision_margin,
-                                  hamming=detection.hamming,
-                                  tag_poses=self.__get_poses_from_corners(detection, camera_params, tag_size))
+        return [replace(detection, tag_poses=self.__get_poses_from_corners(detection,
+                                                                           camera_params=camera_params,
+                                                                           tag_size=tag_size))
                 for detection in detector.detect(image)]
 
     @property
@@ -50,7 +45,7 @@ class PerspectiveNPointStrategy(AprilTagPoseEstimationStrategy):
         return f'pnp-{self.__method.name.lower()}'
 
     def __get_poses_from_corners(self,
-                                 detection: Detection,
+                                 detection: AprilTagDetection,
                                  camera_params: CameraParameters,
                                  tag_size: float) -> List[Transform]:
         object_points = np.array([

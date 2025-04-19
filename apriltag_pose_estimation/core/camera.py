@@ -7,7 +7,8 @@ from numpy import typing as npt
 __all__ = ['CameraParameters',
            'DEPSTECH_CAM_PARAMETERS',
            'LOGITECH_CAM_PARAMETERS',
-           'IPHONE_13_MINI_MAIN_CAM_PARAMETERS']
+           'IPHONE_13_MINI_MAIN_CAM_PARAMETERS',
+           'ARDUCAM_OV9281_PARAMETERS']
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -94,3 +95,14 @@ IPHONE_13_MINI_MAIN_CAM_PARAMETERS = CameraParameters(fx=975.0944324169702,
                                                       p2=0.003869488985826069,
                                                       k3=1.326544376051906)
 """Camera parameters for the iPhone 13 mini's main back camera."""
+
+ARDUCAM_OV9281_PARAMETERS = CameraParameters(fx=917.8689314756377,
+                                             fy=915.8489820426906,
+                                             cx=622.0291414400201,
+                                             cy=403.406506417902,
+                                             k1=0.035177356816538566,
+                                             k2=0.06561968267066408,
+                                             p1=0.0003549920677931665,
+                                             p2=-0.004943481865784456,
+                                             k3=-0.16330153714848702)
+"""Camera parameters for the ArduCam OV9281 camera module."""

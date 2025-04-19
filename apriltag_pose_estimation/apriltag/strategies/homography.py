@@ -2,13 +2,9 @@ from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from pupil_apriltags import Detector, Detection
-from scipy.spatial.transform import Rotation
-
 from ..estimation import AprilTagPoseEstimationStrategy
 from ...core.camera import CameraParameters
-from ...core.detection import AprilTagDetection
-from ...core.euclidean import Transform
+from ...core.detection import AprilTagDetection, AprilTagDetector
 
 
 __all__ = ['HomographyOrthogonalIterationStrategy']
@@ -35,29 +31,13 @@ class HomographyOrthogonalIterationStrategy(AprilTagPoseEstimationStrategy):
     """
     def estimate_tag_pose(self,
                           image: npt.NDArray[np.uint8],
-                          detector: Detector,
+                          detector: AprilTagDetector,
                           camera_params: CameraParameters,
-                          tag_size: float) -> List[Transform]:
-        detection: Detection
-        # noinspection PyTypeChecker,PyUnresolvedReferences
-        return [AprilTagDetection(tag_id=detection.tag_id,
-                                  tag_family=detection.tag_family.decode('utf-8'),
-                                  center=detection.center,
-                                  corners=detection.corners,
-                                  decision_margin=detection.decision_margin,
-                                  hamming=detection.hamming,
-                                  tag_poses=[Transform.make(rotation=Rotation.from_matrix(detection.pose_R),
-                                                            translation=detection.pose_t,
-                                                            input_space='tag_optical',
-                                                            output_space='camera_optical',
-                                                            error=detection.pose_err)])
-                for detection in detector.detect(img=image,
-                                                 estimate_tag_pose=True,
-                                                 camera_params=(camera_params.fx,
-                                                                camera_params.fy,
-                                                                camera_params.cx,
-                                                                camera_params.cy),
-                                                 tag_size=tag_size)]
+                          tag_size: float) -> List[AprilTagDetection]:
+        return detector.detect(image,
+                               estimate_tag_pose=True,
+                               camera_params=camera_params,
+                               tag_size=tag_size)
 
     @property
     def name(self):

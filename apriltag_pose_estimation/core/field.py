@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.spatial.transform import Rotation
 
+from .bindings import AprilTagFamilyId
 from .euclidean import Transform
 
 
@@ -20,7 +21,10 @@ class AprilTagField(Mapping[int, Transform]):
     the world frame.
     """
 
-    def __init__(self, tag_size: float, tag_positions: dict[int, Transform], tag_family: str = 'tagStandard41h12'):
+    def __init__(self,
+                 tag_size: float,
+                 tag_positions: dict[int, Transform],
+                 tag_family: AprilTagFamilyId = 'tagStandard41h12'):
         """
         :param tag_size: The size of the AprilTags on the field in meters.
         :param tag_positions: A dictionary from the IDs of tags on the field to their poses in the world frame.
@@ -53,7 +57,7 @@ class AprilTagField(Mapping[int, Transform]):
         return self.__tag_size
 
     @property
-    def tag_family(self) -> str:
+    def tag_family(self) -> AprilTagFamilyId:
         """The AprilTag family of which the tags on the field are a part."""
         return self.__tag_family
 

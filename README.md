@@ -45,7 +45,7 @@ Load the field:
 ```python
 from apriltag_pose_estimation.core import load_field
 
-with open('field.json', mode='r') as f:
+with open('testfield.json', mode='r') as f:
     field = load_field(f)
 ```
 

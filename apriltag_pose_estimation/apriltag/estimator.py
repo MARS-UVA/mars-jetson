@@ -1,12 +1,11 @@
-from typing import List
+from typing import List, Unpack
 
 import numpy as np
 import numpy.typing as npt
-from pupil_apriltags import Detector
 
 from .estimation import AprilTagPoseEstimationStrategy
 from ..core.camera import CameraParameters
-from ..core.detection import AprilTagDetection
+from ..core.detection import AprilTagDetection, AprilTagDetector, AprilTagDetectorParams
 
 __all__ = ['AprilTagPoseEstimator']
 
@@ -17,15 +16,15 @@ class AprilTagPoseEstimator:
                  strategy: AprilTagPoseEstimationStrategy,
                  tag_size: float,
                  camera_params: CameraParameters,
-                 **detector_kwargs):
+                 **detector_kwargs: Unpack[AprilTagDetectorParams]):
         """
         Initializes a new AprilTagPoseEstimator.
         :param strategy: The strategy to use to estimate the positions of AprilTags.
         :param tag_size: The size of the AprilTags which will be detected, in meters.
         :param camera_params: Parameters of the camera used to take the image.
-        :param detector_kwargs: Keyword arguments to pass to the detector (see :class:`Detector`).
+        :param detector_kwargs: Keyword arguments to pass to the detector (see :class:`AprilTagDetector`).
         """
-        self.__detector = Detector(**detector_kwargs)
+        self.__detector = AprilTagDetector(**detector_kwargs)
         self.__strategy = strategy
         self.__tag_size = tag_size
         self.__camera_params = camera_params

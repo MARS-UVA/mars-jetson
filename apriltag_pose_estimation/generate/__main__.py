@@ -41,6 +41,10 @@ def main() -> None:
     parser.add_argument('--size', dest='tag_size', required=True, type=float,
                         help='Distance between the tags\' corner points in millimeters. For the family being used, the '
                              'corner points are the corners of the white interior square.')
+    parser.add_argument('--page-format', dest='page_format', type=str, default='letter',
+                        choices=['a3', 'a4', 'a5', 'letter', 'legal', 'ledger'],
+                        help='Distance between the tags\' corner points in millimeters. For the family being used, the '
+                             'corner points are the corners of the white interior square.')
     parser.add_argument('-o', '--outfile', dest='outfile', required=False, type=Path, default='tags.pdf',
                         help='Path to the output file. Should have extension .pdf (default: tags.pdf).')
 
@@ -48,7 +52,9 @@ def main() -> None:
 
     generate_apriltag_pdf(tag_ids=args.tag_ids,
                           tag_size=args.tag_size,
-                          outfile=args.outfile)
+                          page_format=(279.4, 431.8) if args.page_format == 'ledger' else args.page_format,
+                          outfile=args.outfile,
+                          search_paths='.')
 
 
 if __name__ == '__main__':
