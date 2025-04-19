@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
@@ -74,26 +73,11 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
     motor_feedback_subscription_ = this->create_subscription<nucleo_msgs::msg::MotorFeedback>(
         "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
 
 private:
-  void topic_callback(const sensor_msgs::msg::Image::SharedPtr msg)
-  {
-    RCLCPP_INFO(this->get_logger(), "1");
-    RCLCPP_INFO(this->get_logger(), "Recieved a webcam frame");
-    cv_bridge::CvImagePtr cv_ptr;
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cv::Mat img = cv_ptr->image;
-    RCLCPP_INFO(this->get_logger(), "2");
-
-    client_send(CONTROL_STATION_IP, img, IMAGE_PORT);
-    RCLCPP_INFO(this->get_logger(), "Sent");
-  }
-
   void topic_callback(const nucleo_msgs::msg::MotorFeedback::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
