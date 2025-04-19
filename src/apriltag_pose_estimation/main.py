@@ -3,11 +3,12 @@ from importlib.resources import files
 import cv2
 from PyQt5 import Qt
 
+from apriltag_pose_estimation import resource
 from apriltag_pose_estimation.apriltag.render import OverlayWriter
 from apriltag_pose_estimation.core import IPHONE_13_MINI_MAIN_CAM_PARAMETERS, load_field, AprilTagField, Transform, \
     ARDUCAM_OV9281_PARAMETERS
 from apriltag_pose_estimation.localization import PoseEstimator
-from apriltag_pose_estimation.localization.render import CameraPoseDisplay, resource
+from apriltag_pose_estimation.localization.render import CameraPoseDisplay
 from apriltag_pose_estimation.localization.strategies import MultiTagPnPEstimationStrategy, \
     LowestAmbiguityEstimationStrategy
 
