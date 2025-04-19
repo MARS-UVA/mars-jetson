@@ -54,7 +54,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 
 ImageReader imgReader;
 
-const char CONTROL_STATION_IP[] = "127.0.0.1";
+const char CONTROL_STATION_IP[] = "192.168.0.200";
 ThreadInfo info;
 int counter = 0;
 
