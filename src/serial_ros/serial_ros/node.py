@@ -31,7 +31,7 @@ class SerialNode(Node):
         self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.serial_handler = SerialHandler()
 
-    def listener_callback(self, msg):
+    def updateCurrents(self, msg):
         motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
         i = 0
         for change in msg.changes:
@@ -52,14 +52,14 @@ class SerialNode(Node):
     
     def readFromNucleo(self): 
         data = self.serial_handler.readMsg()
-        mf = Feedback(front_left = data[0],
-                            front_right = data[1],
-                            back_left = data[2],
-                            back_right = data[3],
-                            drum = data[4],
-                            l_actuator = data[5],
-                            r_actuator = data[6],
-                            actuator_height = data[7])
+        mf = Feedback(front_left = Float32(data[0]),
+                            front_right = Float32(data[1]),
+                            back_left = Float32(data[2]),
+                            back_right = Float32(data[3]),
+                            drum = Float32(data[4]),
+                            l_actuator = Float32(data[5]),
+                            r_actuator = Float32(data[6]),
+                            actuator_height = Float32(data[7]))
         self.feedback_publisher.publish(mf)
             
 

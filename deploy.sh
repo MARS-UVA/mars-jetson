@@ -8,8 +8,8 @@ source install/setup.bash
 
 # Launch everything
 # run realsense executable in parallel
-~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
-OBSTACLE_DETECT_PID=$!
-ros2 launch startup launch.py
+# ~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
+# OBSTACLE_DETECT_PID=$!
+# ros2 launch startup launch.py
 
-kill $OBSTACLE_DETECT_PID
+# kill $OBSTACLE_DETECT_PID
