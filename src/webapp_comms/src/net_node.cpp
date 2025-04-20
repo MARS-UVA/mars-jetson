@@ -28,7 +28,7 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using nucleo_msgs::msg::MotorFeedback;
+using nucleo_msgs::msg::Feedback;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -72,34 +72,34 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<nucleo_msgs::msg::MotorFeedback>(
+    subscription_ = this->create_subscription<nucleo_msgs::msg::Feedback>(
         "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
 
 private:
-  void topic_callback(const nucleo_msgs::msg::MotorFeedback::SharedPtr msg) {
+  void topic_callback(const nucleo_msgs::msg::Feedback::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
     float front_left = msg->front_left;
     float front_right = msg->front_right;
     float back_left = msg->back_left;
     float back_right = msg->back_right;
     float bucket_drum = msg->drum;
-    float l_actuator = msg->l_acutator;
+    float l_actuator = msg->l_actuator;
     float r_actuator = msg->r_actuator;
     float actuator_height = msg->actuator_height;\
 
     size_t buffer_size = 32;
-    unsigned char* buffer = new char[buffer_size];
-    *buffer = front_left;
-    *buffer + 4 = front_right;
-    *buffer + 8 = back_left;
-    *buffer + 12 = back_right;
-    *buffer + 16 = bucket_drum;
-    *buffer + 20 = l_actuator;
-    *buffer + 24 = r_actuator;
-    *buffer + 28 = actuator_height;
+    unsigned char* buffer = new unsigned char[buffer_size];
+    std::memcpy(&buffer[0], &front_left, 4);
+    std::memcpy(&buffer[4], &front_right, 4);
+    std::memcpy(&buffer[8], &back_left, 4);
+    std::memcpy(&buffer[12], &back_right, 4);
+    std::memcpy(&buffer[16], &bucket_drum, 4);
+    std::memcpy(&buffer[20], &l_actuator, 4);
+    std::memcpy(&buffer[24], &r_actuator, 4);
+    std::memcpy(&buffer[28], &actuator_height, 4);
 
-    client_send(CONTROL_STATION_IP, buffer, buffer_size, MOTOR_FEEDBACK_PORT);
+    client_send(CONTROL_STATION_IP, buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
@@ -200,7 +200,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Subscription<nucleo_msgs::msg::MotorFeedback>::SharedPtr subscription_;
+  rclcpp::Subscription<nucleo_msgs::msg::Feedback>::SharedPtr subscription_;
   size_t count_;
 };
 
