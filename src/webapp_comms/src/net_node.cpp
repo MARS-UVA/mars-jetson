@@ -11,7 +11,6 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
-#include "rgb_reader.h"
 #include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
@@ -51,7 +50,6 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
     {"left_stick", &teleop_msgs::msg::GamepadState::left_stick},
     {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}};
 
-ImageReader imgReader;
 
 const char CONTROL_STATION_IP[] = "127.0.0.1";
 ThreadInfo info;
@@ -183,13 +181,6 @@ private:
       RCLCPP_INFO(this->get_logger(), "Publishing HumanInputState: drive_mode = %d", human_input_msg->drive_mode);
 
       publisher_->publish(*human_input_msg);
-    }
-
-    /* Send Webcam Feeds over */
-    cv::Mat fromCam = imgReader.processImage();
-    if(!fromCam.empty()){
-      client_send(CONTROL_STATION_IP, fromCam, IMAGE_PORT);
-      RCLCPP_INFO(this->get_logger(), "Sent webcam feed");
     }
   }
 
