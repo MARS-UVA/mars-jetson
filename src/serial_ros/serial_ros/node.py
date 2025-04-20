@@ -53,7 +53,7 @@ class SerialNode(Node):
     def readFromNucleo(self): 
         data = self.serial_handler.readMsg()
         msgs = [Float32() for _ in range(8)]
-        for i in range(8): msgs[i].data = float(data[i])
+        for i in range(8): msgs[i].data = float(data[i][0])
         mf = Feedback(front_left = msgs[0],
                             front_right = msgs[1],
                             back_left = msgs[2],
