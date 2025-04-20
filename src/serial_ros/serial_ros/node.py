@@ -52,16 +52,16 @@ class SerialNode(Node):
     
     def readFromNucleo(self): 
         data = self.serial_handler.readMsg()
-        msgs = [Float32() for _ in range(8)]
-        for i in range(8): msgs[i].data = float(data[i][0])
-        mf = Feedback(front_left = msgs[0],
-                            front_right = msgs[1],
-                            back_left = msgs[2],
-                            back_right = msgs[3],
-                            drum = msgs[4],
-                            l_actuator = msgs[5],
-                            r_actuator = msgs[6],
-                            actuator_height = msgs[7])
+        # msgs = [Float32() for _ in range(8)]
+        # for i in range(8): msgs[i].data = float(data[i][0])
+        mf = Feedback(front_left = data[0][0],
+                            front_right = data[1][0],
+                            back_left = data[2][0],
+                            back_right = data[3][0],
+                            drum = data[4][0],
+                            l_actuator = data[5][0],
+                            r_actuator = data[6][0],
+                            actuator_height = data[7][0])
         self.feedback_publisher.publish(mf)
             
 
