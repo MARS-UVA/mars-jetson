@@ -142,38 +142,34 @@ class TeleopNode(Node):
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         self.timer.reset()
         gamepad_state : GamepadState = human_input_state.gamepad_state
-        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state)
+        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
         
-        wheel_speed_msg = wheel_speed_to_motor_queries(wheel_speeds)
-        if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed:
-            wheel_speed_msg.adds.append(AddMotor(velIncrement = -5))
-        elif gamepad_state.rb_pressed and not self.prev_gamepad_state.rb_pressed:
-            wheel_speed_msg.adds.append(AddMotor(velIncrement = 5))
+        if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
+        elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
         
-        if gamepad_state.y_pressed: #stop motors
-            wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127))
+        if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum faster
+            motor_msg.adds.append(AddMotor(velIncrement = -5))
+        elif gamepad_state.rb_pressed and not self.prev_gamepad_state.rb_pressed: #spin bucket drum slower
+            motor_msg.adds.append(AddMotor(velIncrement = 5))
+        
+        if gamepad_state.y_pressed: #stop bucket drum
+            motor_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127))
         
         
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
-        bucket_speed = int(127 + (gamepad_state.right_stick.y*127))
+        # bucket_speed = int(127 + (gamepad_state.right_stick.y*127)) # old bucket drum controls
         
         # wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = bucket_speed))
-        wheel_speed_msg.changes.append(bucket_actuator_speed(human_input_state))
-        if not self.cruise_control:
-            if not human_input_state.gamepad_state.start_pressed:
-                self._wheel_speed_publisher.publish(wheel_speed_msg)
-                self.prev_gamepad_state = gamepad_state
-            else:
-                self.cruise_control=True
-        else:
-            if human_input_state.gamepad_state.back_pressed:
-                self.cruise_control = False
-                self._wheel_speed_publisher.publish(stop_motors())
-            else:
-                empty_message = MotorChanges()
-                self._wheel_speed_publisher.publish(empty_message)
-
+        motor_msg.changes.append(bucket_actuator_speed(human_input_state))
+        if human_input_state.gamepad_state.start_pressed:
+            self.cruise_control=True #turn on cruise control
+        elif human_input_state.gamepad_state.back_pressed: #turn off cruise control
+            self.cruise_control = False
+            # self._wheel_speed_publisher.publish(stop_motors()) #this happens on the next tick anyway
+        self._wheel_speed_publisher.publish(motor_msg)
+        self.prev_gamepad_state = gamepad_state
+    
     def __stopped_motors(self) -> None:
         no_wheel_speed_msg = stop_motors()
         self._wheel_speed_publisher.publish(no_wheel_speed_msg)
