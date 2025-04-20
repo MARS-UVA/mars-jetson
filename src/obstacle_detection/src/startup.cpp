@@ -31,13 +31,26 @@ int main(int argc, char *argv[])
     }
     std::optional<std::vector<Vertex> *> vertices;
     vertices = new std::vector<Vertex>();
+
+    rs2::pipeline pipe;
+    rs2::config cfg;
+
+    cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
+    cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
+
+    pipe.start(cfg);
+
+    for (int i = 0; i < 30; i++) {
+        pipe.wait_for_frames();
+    }
+
     if (capture_format == 1)
     {
-        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
     }
     else if (capture_format == 2)
     {
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
@@ -47,7 +60,7 @@ int main(int argc, char *argv[])
     }
     else if (capture_format == 3)
     {
-        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
@@ -64,7 +77,7 @@ int main(int argc, char *argv[])
     }
     else if (capture_format == 4)
     {
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
         time_t now = time(0);
         tm *localtm = localtime(&now);
         char buffer[80];
@@ -83,7 +96,7 @@ int main(int argc, char *argv[])
     }
     else if (capture_format == 5 || capture_format == 6)
     {
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
         std::vector<Vertex> obstacleVertices;
         ObstacleClusteringTree obstacleTree(2);
         std::vector<std::vector<float>> gradients = ParallelGradientCalculator::calculateGradientsParallel(retMatrices->heights, retMatrices->actualCoordinates, 3, obstacleVertices, obstacleTree);
@@ -130,7 +143,7 @@ int main(int argc, char *argv[])
     else if (capture_format == 7)
     {
         auto start = std::chrono::high_resolution_clock::now();
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE);
+        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
         std::vector<Vertex> obstacleVertices;
         std::string filename;
         filename = "vertices_python.ply";
@@ -185,4 +198,5 @@ int main(int argc, char *argv[])
         delete vertices.value();
         vertices.reset();
     }
+    pipe.stop();
 }
