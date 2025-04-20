@@ -8,7 +8,7 @@
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
-#include <nucleo_msgs/msg/motor_feedback.hpp>
+#include <nucleo_msgs/msg/feedback.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
