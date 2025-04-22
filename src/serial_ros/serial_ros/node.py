@@ -38,7 +38,7 @@ class SerialNode(Node):
             newVel = max(0, newVel)
             newVel = min(255, newVel)
             self.data[add.index] = newVel
-        print(f"motors: {self.data}")# logging message
+        # print(f"motors: {self.data}")# logging message
 	# for field in self.data:
         #     self.get_logger().info(str(field))
         
