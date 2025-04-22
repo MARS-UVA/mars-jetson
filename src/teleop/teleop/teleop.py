@@ -148,11 +148,11 @@ class TeleopNode(Node):
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
         
         if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum backwards
-            self.get_logger().info("bucket drum -5")
-            motor_msg.adds.append(AddMotor(vel_increment = -5))
+            self.get_logger().info("bucket drum -15")
+            motor_msg.adds.append(AddMotor(vel_increment = -15))
         elif gamepad_state.rb_pressed and not self.prev_gamepad_state.rb_pressed: #spin bucket drum forward
-            motor_msg.adds.append(AddMotor(vel_increment = 5))
-            self.get_logger().info("bucket drum +5")
+            motor_msg.adds.append(AddMotor(vel_increment = 15))
+            self.get_logger().info("bucket drum +15")
         
         if gamepad_state.y_pressed: #stop bucket drum
             motor_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127))
