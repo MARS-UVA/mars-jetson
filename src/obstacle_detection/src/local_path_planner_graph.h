@@ -26,7 +26,7 @@ private:
     Vertex goal;
 
 public:
-    AStarPathPlanner(ObstacleClusteringTree &tree, Vertex &goal)
+    AStarPathPlanner(ObstacleClusteringTree &tree, Vertex&& goal)
         : obstacleTree(tree), goal(goal) {}
     ~AStarPathPlanner()
     {

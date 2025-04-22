@@ -50,6 +50,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
     {"left_stick", &teleop_msgs::msg::GamepadState::left_stick},
     {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}};
 
+
 const char CONTROL_STATION_IP[] = "127.0.0.1";
 ThreadInfo info;
 int counter = 0;
@@ -89,6 +90,7 @@ private:
 
   void timer_callback()
   {
+    /* Receive Control messages */
     counter++;
     std::string message;
     auto stickPosition_msg = std::make_shared<StickPosition>();
@@ -97,7 +99,7 @@ private:
     if (info.flag == true)
     {
       message = std::string(info.client_message);
-
+      
       const char delimiter[] = ",";
       char *token;
 
@@ -107,7 +109,14 @@ private:
 
       while (token != NULL)
       {
-        double value = std::stod(token);
+        double value = 0.0;
+        RCLCPP_INFO(this->get_logger(),"Token:%s" ,token);
+        try{
+                value = std::stod(token);
+        } catch(...){
+          RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
+          return;
+        }
         if (field_i < NUM_GAMEPAD_BTNS)
         {
           auto field = fields[field_i];
