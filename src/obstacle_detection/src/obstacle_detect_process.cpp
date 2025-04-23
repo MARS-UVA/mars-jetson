@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <csignal>
+#include <atomic>
 
 #define DECIMATION_KERNEL_SIZE 4
 

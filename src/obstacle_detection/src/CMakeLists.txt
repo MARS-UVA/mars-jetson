@@ -27,6 +27,8 @@ endif()
 
 set(REALSENSE_SOURCE_DIR "realsense-source/librealsense-2.56.3")
 set(REALSENSE_INCLUDE_DIR "${REALSENSE_SOURCE_DIR}/include")
+set(CLIENT_CPP "../../server/client.cpp")
+set(FRAME_SENDER "../../server/frame_sender.cpp")
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -42,10 +44,10 @@ add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
-add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ../../server/client.cpp ../../server/frame_sender.cpp)
-add_executable(${PROJECT_NAME} startup.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp rgb_writer.cpp)
-add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)
-add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)
+add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(${PROJECT_NAME} startup.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp ${CLIENT_CPP} ${FRAME_SENDER})
 # add_executable(pcTreeSimpleTests EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
 # add_executable(pcTreeQuadrantTest models/pc_adacency_tree.cpp ../test/pc_tree_quadrant_test.cpp realsense_capture.cpp)
 # add_executable(pcTreeGradientTest models/pc_adacency_tree.cpp models/pc_adacency_tree_gradientify.cpp ../test/pc_tree_gradient_test.cpp realsense_capture.cpp)
