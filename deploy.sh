@@ -13,7 +13,7 @@ if [ $# -ge 1 ]
 fi
 
 # Build the packages
-colcon build --symlink-install --packages-select webapp_comms teleop teleop_msgs startup
+colcon build --symlink-install --packages-select webapp_comms teleop teleop_msgs startup serial_ros
 # Source the setup file
 source install/setup.bash
 
