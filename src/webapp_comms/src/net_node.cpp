@@ -86,7 +86,7 @@ private:
     float bucket_drum = msg->drum;
     float l_actuator = msg->l_actuator;
     float r_actuator = msg->r_actuator;
-    float actuator_height = msg->actuator_height;\
+    float actuator_height = msg->actuator_height;
 
     size_t buffer_size = 32;
     unsigned char* buffer = new unsigned char[buffer_size];
@@ -100,6 +100,8 @@ private:
     std::memcpy(&buffer[28], &actuator_height, 4);
 
     client_send(CONTROL_STATION_IP, buffer, buffer_size, CURRENT_FEEDBACK_PORT);
+
+    delete[] buffer;
   }
 
   void timer_callback()
@@ -155,8 +157,8 @@ private:
         field_i++;
       }
 
-      info.flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
+      info.flag = false;
 
       RCLCPP_INFO(
           this->get_logger(),
