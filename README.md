@@ -7,7 +7,7 @@ This repository is still in development and documentation is only available for 
 - April Tag Pose Estimation implementation: please visit **apriltag** branch
 
 ## How to Run
-Run `./deploy.sh`
+```./deploy.sh [CONTROL_STATION_IP]```
 
 ## Structure
 This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:
@@ -39,6 +39,3 @@ Only testing usage is supported as of now.
 To test, navigate to *webapp_comms/test/shell* and run *test.ps1* or *test.sh* depending on whether you are using a Windows or Linux platform. These shell scripts will build and install Catch2, build sourc code using the CMakeLists.txt in the *webapp_comms/test/* directory, and run tests. This CMakeLists.txt will build any target source code you wish to test in *webapp_comms/src/* and test suite code in *webapp_comms/test/*.
 
 If you write new source code in *webapp_comms/src/* that you wish to test, add the source code file as an executable in *webapp_comms/test/CMakeLists.txt*. If you create a new source code file for new Catch2 test functions, do the same... add that source code file as an executable in *webapp_comms/test/CMakeLists.txt*.
-
-## Troubleshooting
-If the Jetson's or control station's IP address changes, update `src/webapp_comms/src/server.cpp`
