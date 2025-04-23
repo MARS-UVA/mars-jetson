@@ -13,6 +13,7 @@
 #include "../../server/main.hpp"
 // #include "../../server/rgb_reader.h"
 #include <cmath>
+#include <cstdlib>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
@@ -53,7 +54,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 
 // ImageReader imgReader;
 
-// const char CONTROL_STATION_IP[] = "127.0.0.1";
+const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
 
