@@ -52,7 +52,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
     {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}};
 
 
-const char CONTROL_STATION_IP[] = std::getenv("CONTROL_STATION_IP");
+const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
 
