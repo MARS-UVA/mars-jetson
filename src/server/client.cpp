@@ -3,7 +3,7 @@
 #include "main.hpp"
 #include <cstdlib>
 
-const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
+const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
 ConnectionHeaders create_connection_headers(int port)
 {
     /* Create new client socket to send frame: */
@@ -19,7 +19,7 @@ ConnectionHeaders create_connection_headers(int port)
     socklen_t control_station_struct_len = sizeof(control_station_addr);
     control_station_addr.sin_family = AF_INET;
     control_station_addr.sin_port = htons(port);
-    control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP);
+    control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP_FOR_CLIENT);
 
     ConnectionHeaders connection_headers = {client_socket_fd, control_station_addr};
     return connection_headers;
