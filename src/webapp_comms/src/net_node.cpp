@@ -102,7 +102,7 @@ private:
     std::memcpy(&buffer[24], &r_actuator, 4);
     std::memcpy(&buffer[28], &actuator_height, 4);
 
-    client_send(CONTROL_STATION_IP, buffer, buffer_size, CURRENT_FEEDBACK_PORT);
+    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
