@@ -1,7 +1,9 @@
 #include "client.hpp"
 #include "frame_sender.hpp"
 #include "main.hpp"
+#include <cstdlib>
 
+const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
 ConnectionHeaders create_connection_headers(int port)
 {
     /* Create new client socket to send frame: */

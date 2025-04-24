@@ -3,7 +3,7 @@
 # Motor index
 uint8 index 4
 # Biased integer representing the motor's desired velocity (127 = 0%, 255 = 100%)
-uint8 velIncrement 0
+int8 vel_increment 0
 
 
 uint8 FRONT_LEFT_DRIVE_MOTOR=0
