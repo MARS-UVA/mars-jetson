@@ -5,7 +5,7 @@
 cd ~/mars-jetson
 
 
-if [ $# -ge 1 ]
+if [ $# -ge 1 ];
     then
         export CONTROL_STATION_IP=$1
     else 
