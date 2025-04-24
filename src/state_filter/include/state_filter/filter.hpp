@@ -5,6 +5,7 @@
 #include <exception>
 #include <functional>
 #include <Eigen/Dense>
+#include <rclcpp/logger.hpp>
 
 #include "util.hpp"
 
@@ -38,14 +39,16 @@ constexpr int APRILTAG_X = 0;
 constexpr int APRILTAG_Y = 1;
 /// Index for the theta variable in the AprilTag observation vector.
 constexpr int APRILTAG_THETA = 2;
-/// Number of dimensions to gyro observation vectors (theta', x'', y'')
-constexpr int GYRO_VARS = 3;
+/// Number of dimensions to gyro observation vectors (theta, theta', x'', y'')
+constexpr int GYRO_VARS = 4;
 /// Index for the theta variable in the gyro observation vector.
-constexpr int GYRO_DTHETA = 0;
+constexpr int GYRO_THETA = 0;
+/// Index for the theta' variable in the gyro observation vector.
+constexpr int GYRO_DTHETA = 1;
 /// Index for the x'' variable in the gyro observation vector.
-constexpr int GYRO_DDX = 1;
+constexpr int GYRO_DDX = 2;
 /// Index for the y'' variable in the gyro observation vector.
-constexpr int GYRO_DDY = 2;
+constexpr int GYRO_DDY = 3;
 /// Number of sigma points (2 \* STATE\_VARS + 1).
 constexpr int K = 19;
 
@@ -102,6 +105,8 @@ class RobotModelFilter {
     double _lambda;
     double _eta;
 
+    rclcpp::Logger _logger;
+
 public:
 
     RobotModelFilter(State initial_state,
@@ -111,8 +116,9 @@ public:
                      GyroObservationModel gyro_observation_model,
                      double alpha,
                      double beta,
-                     double kappa)
-    : _state_estimate(initial_state), _process_model(process_model), _apriltag_observation_model(apriltag_observation_model), _gyro_observation_model(gyro_observation_model), _alpha(alpha), _beta(beta), _kappa(kappa) {
+                     double kappa,
+                     rclcpp::Logger logger)
+    : _state_estimate(initial_state), _process_model(process_model), _apriltag_observation_model(apriltag_observation_model), _gyro_observation_model(gyro_observation_model), _alpha(alpha), _beta(beta), _kappa(kappa), _logger(logger) {
         _lambda = alpha * alpha * (STATE_VARS + kappa) - STATE_VARS;
         _eta = std::sqrt(_lambda + STATE_VARS);
 
@@ -149,6 +155,9 @@ public:
     void update_from_gyro(const GyroObservation& observation, const GyroObservationCovariance& covariance_sqrt);
 
 };
+
+template <typename T>
+void normalize_angle(T& theta);
 
 /// Normalizes the angle parameter in the provided vector or matrix of column vectors to be in the range (-pi/2, pi/2].
 /// - Parameter states: Vectors which have angles which may need to be normalized.

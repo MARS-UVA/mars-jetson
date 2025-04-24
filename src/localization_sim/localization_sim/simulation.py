@@ -47,8 +47,8 @@ class Event(Generic[MessageType]):
     def _time(self) -> Time:
         """An object representing the time at which the message is sent."""
         nanoseconds, seconds = math.modf(self.timestamp)
-        return Time(sec=round(seconds), nanosec=round(nanoseconds * (10 ** 10)))
+        return Time(sec=int(seconds), nanosec=round(nanoseconds * (10 ** 9)))
 
     def get_clock(self) -> Clock:
         """Get a clock message that corresponds to the event's time."""
-        return Clock(time=self._time)
+        return Clock(clock=self._time)

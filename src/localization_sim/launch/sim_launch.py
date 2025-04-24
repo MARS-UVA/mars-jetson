@@ -22,18 +22,6 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             arguments=['--frame-id', 'world',
-                       '--child-frame-id', 'map',
-                       '--x', '0',
-                       '--y', '0',
-                       '--z', '0',
-                       '--qx', '0',
-                       '--qy', '0',
-                       '--qz', '0',
-                       '--qw', '1']),
-        launch_ros.actions.Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=['--frame-id', 'map',
                        '--child-frame-id', 'odom',
                        '--x', '0',
                        '--y', '0',
@@ -55,23 +43,23 @@ def generate_launch_description():
                        '--qz', '-0.5',
                        '--qw', '0.5']),
         launch_ros.actions.Node(
-            package='robot_localization',
-            executable='ekf_node',
+            package='state_filter',
+            executable='robot_ukf_node',
             parameters=[config],
             arguments=['--ros-args', '--log-level', logger]
         ),
         launch_ros.actions.Node(
-            package='webcam',
-            executable='webcam_publisher_Nav2.py',
+            package='apriltag_nodes',
+            executable='estimation_node',
             parameters=[config],
             arguments=['--ros-args', '--log-level', logger]
         ),
-        launch_ros.actions.Node(
-            package='localization_sim',
-            executable='pose_listener',
-            parameters=[config],
-            arguments=['--ros-args', '--log-level', logger]
-        ),
+        # launch_ros.actions.Node(
+        #     package='localization_sim',
+        #     executable='pose_listener',
+        #     parameters=[config],
+        #     arguments=['--ros-args', '--log-level', logger]
+        # ),
         launch_ros.actions.Node(
             package='localization_sim',
             executable='simulated_data',
@@ -79,4 +67,3 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', logger]
         ),
   ])
-0

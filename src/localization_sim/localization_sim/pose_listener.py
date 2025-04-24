@@ -16,7 +16,11 @@ class RobotPoseListener(Node):
         self.__timer = self.create_timer(1 / 24, callback=self.__on_tick)
 
     def __on_tick(self) -> None:
-        transform = self.__tf_buffer.lookup_transform('base_link', 'odom', time=Time())
+        try:
+            transform = self.__tf_buffer.lookup_transform('base_link', 'odom', time=Time())
+        except Exception as e:
+            self.get_logger().error(str(e))
+            return
 
         self.get_logger().info(f'{transform=}')
 
