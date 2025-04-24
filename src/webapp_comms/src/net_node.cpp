@@ -86,7 +86,7 @@ private:
     cv::Mat img = cv_ptr->image;
     RCLCPP_INFO(this->get_logger(), "2");
 
-    client_send(CONTROL_STATION_IP, img, IMAGE_PORT);
+    client_send(img, IMAGE_PORT);
     RCLCPP_INFO(this->get_logger(), "Sent");
   }
 
