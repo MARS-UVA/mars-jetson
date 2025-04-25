@@ -30,8 +30,20 @@ set(REALSENSE_INCLUDE_DIR "${REALSENSE_SOURCE_DIR}/include")
 set(CLIENT_CPP "../../server/client.cpp")
 set(FRAME_SENDER "../../server/frame_sender.cpp")
 
+set(REALSENSE_INCLUDE_DIR /usr/include)
+
+find_library(REALSENSE_LIBRARY
+	NAMES realsense2
+	PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/lib/x86_64-linux-gnu
+	REQUIRED
+)
+
+#find_package(realsense2 REQUIRED)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+message(STATUS "Realsense include dirs: ${realsense2_INCLUDE_DIRS}")
+message(STATUS "Realsense libraries: ${realsense2_LIBRARY}")
 
 # Configure RealSense build options
 set(BUILD_WITH_STATIC_CRT OFF CACHE BOOL "Build with static C runtime" FORCE)
@@ -40,7 +52,7 @@ set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
 set(CMAKE_MODULE_PATH "${REALSENSE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 
 # Add RealSense library subdirectory
-add_subdirectory(${REALSENSE_SOURCE_DIR})
+#add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
@@ -54,13 +66,13 @@ add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract
 
 foreach(target ${PROJECT_NAME} obstacle_detect_node gradientMapTest obstacleDetectionTest)
     target_include_directories(${target} PRIVATE
-        ${REALSENSE_INCLUDE_DIR}
+	${REALSENSE_INCLUDE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endforeach()
 
 foreach(target ${PROJECT_NAME} obstacle_detect_node gradientMapTest obstacleDetectionTest)
     target_link_libraries(${target} PRIVATE
-        realsense2 ${OpenCV_LIBS}
+	    ${REALSENSE_LIBRARY} ${OpenCV_LIBS}
     )
 endforeach()

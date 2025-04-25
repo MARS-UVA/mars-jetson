@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <csignal>
 #include <atomic>
+#include <cstdlib>
+#include <iostream>
 
 #define DECIMATION_KERNEL_SIZE 4
 
@@ -26,6 +28,13 @@ void signal_handler(int signal)
 
 int main(int argc, char *argv[])
 {
+	const char* control_station_ip;
+	if(argc == 2){
+		control_station_ip = argv[1];
+		setenv("CONTROL_STATION_IP", control_station_ip, 1);
+	}
+
+
     std::signal(SIGINT, signal_handler);
     std::optional<std::vector<Vertex> *> vertices;
     rs2::pipeline pipe;

@@ -157,7 +157,7 @@ void processColorFrame(rs2::frame &color)
     }
 
     const uint8_t *colorData = static_cast<const uint8_t *>(videoFrame.get_data());
-
+    std::cout << "color data..." << std::endl;
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
@@ -173,14 +173,16 @@ void processColorFrame(rs2::frame &color)
             monoBuffer[pixelIndex] = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
         }
     }
+    std::cout << "finished copying color data" << std::endl;
     // sendPic(width, height);
     // imgWriter.processImage(width, height, monoBuffer);
     cv::Mat image(height, width, CV_8UC1, (void *)monoBuffer);
-    std::vector<uchar> compressed_buf;
-    std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
-    cv::imencode(".jpeg", image, compressed_buf, compression_params);
-    cv::Mat compressedImg = cv::imdecode(compressed_buf, cv::IMREAD_GRAYSCALE);
-    client_send(compressedImg, IMAGE_PORT);
+    std::cout << "Got image" << std::endl;
+    //std::vector<uchar> compressed_buf;
+    //std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
+    //cv::imencode(".jpeg", image, compressed_buf, compression_params);
+    //cv::Mat compressedImg = cv::imdecode(compressed_buf, cv::IMREAD_GRAYSCALE);
+    client_send(image, IMAGE_PORT);
 }
 
 std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize, rs2::pipeline &pipe)

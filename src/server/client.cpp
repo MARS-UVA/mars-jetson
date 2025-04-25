@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
+//const char* CONTROL_STATION_IP = "192.168.0.200";
 ConnectionHeaders create_connection_headers(int port)
 {
     /* Create new client socket to send frame: */
@@ -19,6 +20,7 @@ ConnectionHeaders create_connection_headers(int port)
     socklen_t control_station_struct_len = sizeof(control_station_addr);
     control_station_addr.sin_family = AF_INET;
     control_station_addr.sin_port = htons(port);
+    std::cout << "Control station ip: " << CONTROL_STATION_IP_FOR_CLIENT << std::endl;
     control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP_FOR_CLIENT);
 
     ConnectionHeaders connection_headers = {client_socket_fd, control_station_addr};
@@ -86,7 +88,10 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
 
 void client_send(cv::Mat &image, int server_port)
 {
+	std::cout << "starting client send..." << std::endl;
     ConnectionHeaders connection_headers = create_connection_headers(server_port);
+    std::cout << "got connection headers" << std::endl;
     send_frame(connection_headers, image);
+    std::cout << "finished send" << std::endl;
     close(connection_headers.client_socket_fd);
 }
