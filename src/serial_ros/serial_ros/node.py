@@ -3,9 +3,11 @@ from rclpy.node import Node
 from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
+from nucleo_msgs.msg import Feedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
+RECV_DELAY_SEC = 0.5
 MOTOR_STILL = 127
 
 class SerialNode(Node):
@@ -14,12 +16,18 @@ class SerialNode(Node):
         self.data = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
         super().__init__('read_from_teleop')
         self.subscription = self.create_subscription(
-            MotorChanges,
-            'teleop',
-            self.listener_callback,
-            1) #1 queued message
+            msg_type=MotorChanges,
+            topic='teleop',
+            callback=self.listener_callback,
+            qos_profile=1) #1 queued message
+        self.feedback_publisher = self.create_publisher(
+            msg_type=Feedback,
+            topic='feedback',
+            qos_profile=1
+        )
         self.subscription  # prevent unused variable warning
-        self.timed_publisher = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
+        self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
+        self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.serial_handler = SerialHandler()
 
     def listener_callback(self, msg):
@@ -47,6 +55,18 @@ class SerialNode(Node):
         # self.get_logger().info("Sending currents")
         self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
         
+    def readFromNucleo(self):
+        data = self.serial_handler.readMsg()
+
+        mf = Feedback(front_left = data[0],
+                            front_right = data[1],
+                            back_left = data[2],
+                            back_right = data[3],
+                            drum = data[4],
+                            l_actuator = data[5],
+                            r_actuator = data[6],
+                            actuator_height = data[7])
+        self.feedback_publisher.publish(mf)
 
 def main(args=None):
     rclpy.init(args=args)
