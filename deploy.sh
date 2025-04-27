@@ -14,14 +14,14 @@ fi
 
 # Build the packages
 # colcon build --packages-select teleop_msgs nucleo_msgs
-colcon build --symlink-install --packages-select webapp_comms teleop startup serial_ros 
+colcon build --symlink-install --packages-select startup nucleo_msgs teleop_msgs webapp_comms teleop serial_ros
 # Source the setup file
 source install/setup.bash
 
 # Launch everything
 # run realsense executable in parallel
 #ros2 launch startup launch.py
-~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
+~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node > obstacle_detect_logs.txt &
 OBSTACLE_DETECT_PID=$!
 ros2 launch startup launch.py
 

@@ -82,7 +82,7 @@ public:
 private:
   void topic_callback(const nucleo_msgs::msg::Feedback::SharedPtr msg)
   {
-    RCLCPP_WARN(this->get_logger(), "Recieved motor feedback packet");
+    RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
     float front_left = msg->front_left;
     float front_right = msg->front_right;
     float back_left = msg->back_left;

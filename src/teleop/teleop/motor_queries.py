@@ -11,12 +11,16 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
                         adds = [])
 
 def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
-    bucket_actuator_velocity = 127
+    actuator_value = 127
+    ACTUATOR_BIG_SPEED = 127
+    ACTUATOR_SMALL_SPEED_MAX = 64
     if human_input.gamepad_state.du_pressed and not human_input.gamepad_state.dd_pressed:
-        bucket_actuator_velocity = 191
+        actuator_value = 127 + ACTUATOR_BIG_SPEED
     elif human_input.gamepad_state.dd_pressed and not human_input.gamepad_state.du_pressed:
-        bucket_actuator_velocity = 63
-    return SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = bucket_actuator_velocity)
+        actuator_value = 127 - ACTUATOR_BIG_SPEED
+    else:
+        actuator_value = 127 + int(human_input.gamepad_state.right_stick.y * ACTUATOR_SMALL_SPEED_MAX)
+    return SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = actuator_value)
 def stop_motors() -> MotorChanges:
     return MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
                                  SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=127),

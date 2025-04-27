@@ -138,13 +138,13 @@ void processColorFrame(rs2::frame &color)
 {
     rs2::video_frame videoFrame = color.as<rs2::video_frame>();
     int width = videoFrame.get_width();
-    std::cout << "RGB width: " << width << std::endl;
+    // std::cout << "RGB width: " << width << std::endl;
     int height = videoFrame.get_height();
-    std::cout << "RGB height: " << height << std::endl;
+    // std::cout << "RGB height: " << height << std::endl;
     int bytes_per_pixel = videoFrame.get_bytes_per_pixel();
-    std::cout << "Bytes per pixel: " << bytes_per_pixel << std::endl;
+    // std::cout << "Bytes per pixel: " << bytes_per_pixel << std::endl;
     size_t requiredSize = width * height;
-    std::cout << "Buffer size: " << requiredSize << std::endl;
+    // std::cout << "Buffer size: " << requiredSize << std::endl;
 
     if (!monoBuffer || bufferSize < requiredSize)
     {
@@ -157,7 +157,7 @@ void processColorFrame(rs2::frame &color)
     }
 
     const uint8_t *colorData = static_cast<const uint8_t *>(videoFrame.get_data());
-    std::cout << "color data..." << std::endl;
+    // std::cout << "color data..." << std::endl;
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
@@ -173,11 +173,11 @@ void processColorFrame(rs2::frame &color)
             monoBuffer[pixelIndex] = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
         }
     }
-    std::cout << "finished copying color data" << std::endl;
+    // std::cout << "finished copying color data" << std::endl;
     // sendPic(width, height);
     // imgWriter.processImage(width, height, monoBuffer);
     cv::Mat image(height, width, CV_8UC1, (void *)monoBuffer);
-    std::cout << "Got image" << std::endl;
+    // std::cout << "Got image" << std::endl;
     //std::vector<uchar> compressed_buf;
     //std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
     //cv::imencode(".jpeg", image, compressed_buf, compression_params);
@@ -189,7 +189,7 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
 {
     // rs2::pipeline pipe;
     // rs2::config cfg;
-
+    // usleep(1000000);
     std::vector<std::vector<float>> heights;
     std::vector<std::vector<Coordinate>> actualCoordinates;
 

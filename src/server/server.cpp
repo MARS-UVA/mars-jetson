@@ -95,13 +95,13 @@ int create_server(ThreadInfo *info)
         memset(buffer, '\0', 1410);
         // printf("2");
         std::vector<unsigned char> received_data;
-        printf("3\n");
+        //printf("3\n");
         ssize_t num_bytes = recvfrom(socket_desc,
                                      buffer, sizeof(buffer), 0,
                                      (struct sockaddr *)&client_addr,
                                      &client_len);
 
-        printf("Recvieved message\n");
+        //printf("Recvieved message\n");
 
         if (num_bytes < 0)
         {
@@ -112,15 +112,15 @@ int create_server(ThreadInfo *info)
         {
             // Handle this later
         }
-	printf("after crc\n");
+	    //printf("after crc\n");
         char *payloadStart = buffer + HEADER_SIZE;
-	printf("1\n");
+	    //printf("1\n");
         received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
-        printf("insert data\n");
+        //printf("insert data\n");
         received_data.push_back('\0');
         memset(info->client_message, '\0', 100000);
         memcpy(info->client_message, received_data.data(), received_data.size());
-        printf("after seting data");
+        //printf("after seting data");
         info->flag = true;
 
         // std::cout << buffer << std::endl;

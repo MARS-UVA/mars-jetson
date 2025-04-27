@@ -1,7 +1,9 @@
 #include "frame_sender.hpp"
-
+#include <iostream>
+using namespace std;
 void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
 {
+    // throw runtime_error("started calling function");
     //std::cout << "inside frame sender" << std::endl;
     uint16_t total_chunks;
     uint32_t start, end;
@@ -44,7 +46,12 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
             return;
         }
         memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
-        usleep(100);
+        usleep(10000);
+        //printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+        //cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" << endl;
+        // throw std::runtime_error("test error");
+
+        
     }
     free(sendBuffer);
 }
