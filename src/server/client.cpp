@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
+//const char* CONTROL_STATION_IP_FOR_CLIENT = "192.168.0.100";
 //const char* CONTROL_STATION_IP = "192.168.0.200";
 ConnectionHeaders create_connection_headers(int port)
 {

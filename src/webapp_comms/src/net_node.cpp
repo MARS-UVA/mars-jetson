@@ -90,7 +90,7 @@ private:
     float bucket_drum = msg->drum;
     float l_actuator = msg->l_actuator;
     float r_actuator = msg->r_actuator;
-    float actuator_height = msg->actuator_height;\
+    float actuator_height = msg->actuator_height;
 
     size_t buffer_size = 32;
     unsigned char* buffer = new unsigned char[buffer_size];
