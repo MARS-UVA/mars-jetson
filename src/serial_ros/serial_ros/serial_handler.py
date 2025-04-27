@@ -24,12 +24,14 @@ class SerialHandler:
 		self.SER = serial.Serial(port,baud,timeout = None)
 
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
-	def send(self,header,data): #messageType can be anything
+	def send(self,header,data, logger = None): #messageType can be anything
 		# print("sending")
 		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
+		# logger.warn(f"Wrate {data}")
 		self.SER.write(bytes(data)) # write the data to serial port
+		logger.warn(f"Wrote {data} to Nucleo")
 
 	def readMsg(self):
 		while(self.SER.in_waiting<1): pass

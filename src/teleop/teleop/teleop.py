@@ -3,6 +3,7 @@ import sys
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, Duration, QoSHistoryPolicy, QoSReliabilityPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState, AddMotor
 
@@ -116,7 +117,7 @@ class TeleopNode(Node):
         self._wheel_speed_publisher = self.create_publisher(
             msg_type=MotorChanges,
             topic='teleop',
-            qos_profile=10,
+            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.BEST_EFFORT, deadline = Duration(nanoseconds = 1_000_000)),
         )
         self.__add_parameter_event_handlers()
         self.timer = self.create_timer(2, self.__stopped_motors)
@@ -140,6 +141,7 @@ class TeleopNode(Node):
         self.__drive_control_strategy = copy.copy(value)
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
+        # self.get_logger().warn(f"Got message, dpad down: {human_input_state.gamepad_state.dd_pressed}")
         self.timer.reset()
         gamepad_state : GamepadState = human_input_state.gamepad_state
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
@@ -170,6 +172,7 @@ class TeleopNode(Node):
             self.cruise_control = False
             # self._wheel_speed_publisher.publish(stop_motors()) #this happens on the next tick anyway
         self._wheel_speed_publisher.publish(motor_msg)
+        # self.get_logger().warn(f"Published to serial node")
         self.prev_gamepad_state = gamepad_state
     
     def __stopped_motors(self) -> None:

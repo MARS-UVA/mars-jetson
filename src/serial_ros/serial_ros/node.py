@@ -1,13 +1,14 @@
 import rclpy
-from rclpy.node import Node
+from rclpy.node import Node, QoSProfile
+from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
 from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
 from nucleo_msgs.msg import Feedback
 
 MOTOR_CURRENT_MSG = 0
-SEND_DELAY_SEC = 0.1
-RECV_DELAY_SEC = 0.5
+SEND_DELAY_SEC = 0.02
+RECV_DELAY_SEC = 0.03
 MOTOR_STILL = 127
 
 class SerialNode(Node):
@@ -19,7 +20,7 @@ class SerialNode(Node):
             msg_type=MotorChanges,
             topic='teleop',
             callback=self.listener_callback,
-            qos_profile=1) #1 queued message
+            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.BEST_EFFORT, deadline = Duration(nanoseconds = 1_000_000))) #1 queued message
         self.feedback_publisher = self.create_publisher(
             msg_type=Feedback,
             topic='feedback',
@@ -31,14 +32,17 @@ class SerialNode(Node):
         self.serial_handler = SerialHandler()
 
     def listener_callback(self, msg):
-        motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
-        i = 0
+        # self.get_logger().warn("Received motor query")
+        # motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
+        # i = 0
         for change in msg.changes:
-            self.get_logger().info(f"{motors[i]}: {change.velocity}")
+            # self.get_logger().info(f"{motors[change.index]}: {change.velocity}")
             # self.get_logger().info("Hey")
             # self.get_logger().info(type(change.velocity))
             self.data[change.index] = change.velocity
-            i+=1
+            # if change.index==5:
+                # self.get_logger().warn(f"Got actuator message {change.velocity}")
+            # i+=1
 
         for add in msg.adds:
             newVel = self.data[add.index] + add.vel_increment
@@ -50,10 +54,11 @@ class SerialNode(Node):
 	# for field in self.data:
         #     self.get_logger().info(str(field))
         
+        
     def sendCurrents(self):
         #print(ok)
-        # self.get_logger().info("Sending currents")
-        self.serial_handler.send(MOTOR_CURRENT_MSG, self.data)
+        self.get_logger().warn(f"Sending currents: {self.data}")
+        self.serial_handler.send(MOTOR_CURRENT_MSG, self.data, self.get_logger())
         
     def readFromNucleo(self):
         data = self.serial_handler.readMsg()

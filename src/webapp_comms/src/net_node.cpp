@@ -105,7 +105,7 @@ private:
     std::memcpy(&buffer[28], &r_actuator, 4);
     std::memcpy(&buffer[32], &actuator_height, 4);
 
-    RCLCPP_WARN(this->get_logger(), "Sending now...");
+    // RCLCPP_WARN(this->get_logger(), "Sending now...");
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
