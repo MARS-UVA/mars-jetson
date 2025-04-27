@@ -62,10 +62,11 @@ class SerialNode(Node):
                             front_right = data[1],
                             back_left = data[2],
                             back_right = data[3],
-                            drum = data[4],
-                            l_actuator = data[5],
-                            r_actuator = data[6],
-                            actuator_height = data[7])
+                            l_drum = data[4],
+                            r_drum = data[5],
+                            l_actuator = data[6],
+                            r_actuator = data[7],
+                            actuator_height = data[8])
         self.feedback_publisher.publish(mf)
 
 def main(args=None):

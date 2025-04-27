@@ -87,21 +87,23 @@ private:
     float front_right = msg->front_right;
     float back_left = msg->back_left;
     float back_right = msg->back_right;
-    float bucket_drum = msg->drum;
+    float l_bucket_drum = msg->l_drum;
+    float r_bucket_drum = msg->r_drum;
     float l_actuator = msg->l_actuator;
     float r_actuator = msg->r_actuator;
     float actuator_height = msg->actuator_height;
 
-    size_t buffer_size = 32;
+    size_t buffer_size = 36;
     unsigned char* buffer = new unsigned char[buffer_size];
     std::memcpy(&buffer[0], &front_left, 4);
     std::memcpy(&buffer[4], &front_right, 4);
     std::memcpy(&buffer[8], &back_left, 4);
     std::memcpy(&buffer[12], &back_right, 4);
-    std::memcpy(&buffer[16], &bucket_drum, 4);
-    std::memcpy(&buffer[20], &l_actuator, 4);
-    std::memcpy(&buffer[24], &r_actuator, 4);
-    std::memcpy(&buffer[28], &actuator_height, 4);
+    std::memcpy(&buffer[16], &l_bucket_drum, 4);
+    std::memcpy(&buffer[20], &r_bucket_drum, 4);
+    std::memcpy(&buffer[24], &l_actuator, 4);
+    std::memcpy(&buffer[28], &r_actuator, 4);
+    std::memcpy(&buffer[32], &actuator_height, 4);
 
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
