@@ -60,6 +60,7 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
     char sendBuffer[CHUNK_SIZE + HEADER_SIZE];
     memset(sendBuffer, '\0', sizeof(sendBuffer));
 
+    std::cout << "Sending feedback bytes..." << std::endl;
     while (sent_bytes < data_size)
     {
         size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
