@@ -8,7 +8,7 @@ from nucleo_msgs.msg import Feedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.02
-RECV_DELAY_SEC = 0.03
+RECV_DELAY_SEC = 0.02
 MOTOR_STILL = 127
 
 class SerialNode(Node):
@@ -20,7 +20,7 @@ class SerialNode(Node):
             msg_type=MotorChanges,
             topic='teleop',
             callback=self.listener_callback,
-            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.BEST_EFFORT, deadline = Duration(nanoseconds = 1_000_000))) #1 queued message
+            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)) #1 queued message
         self.feedback_publisher = self.create_publisher(
             msg_type=Feedback,
             topic='feedback',
@@ -62,17 +62,17 @@ class SerialNode(Node):
         
     def readFromNucleo(self):
         data = self.serial_handler.readMsg()
-
-        mf = Feedback(front_left = data[0],
-                            front_right = data[1],
-                            back_left = data[2],
-                            back_right = data[3],
-                            l_drum = data[4],
-                            r_drum = data[5],
-                            l_actuator = data[6],
-                            r_actuator = data[7],
-                            actuator_height = data[8])
-        self.feedback_publisher.publish(mf)
+        if data:
+            mf = Feedback(front_left = data[0],
+                                front_right = data[1],
+                                back_left = data[2],
+                                back_right = data[3],
+                                l_drum = data[4],
+                                r_drum = data[5],
+                                l_actuator = data[6],
+                                r_actuator = data[7],
+                                actuator_height = data[8])
+            self.feedback_publisher.publish(mf)
 
 def main(args=None):
     rclpy.init(args=args)

@@ -65,6 +65,8 @@ class TeleopNode(Node):
     def __init__(self, **kwargs):
         super().__init__('teleop', **kwargs)
         self.prev_gamepad_state : GamepadState = None
+        self.MAX_EMPTY_UPDATES = 30
+        self.emptyUpdatesSent = 0
         self.declare_parameter(self.linear_axis_param_descriptor.name,
                                descriptor=self.linear_axis_param_descriptor)
         self.declare_parameter(self.turn_axis_param_descriptor.name,
@@ -117,7 +119,7 @@ class TeleopNode(Node):
         self._wheel_speed_publisher = self.create_publisher(
             msg_type=MotorChanges,
             topic='teleop',
-            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.BEST_EFFORT, deadline = Duration(nanoseconds = 1_000_000)),
+            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
         self.__add_parameter_event_handlers()
         self.timer = self.create_timer(2, self.__stopped_motors)
@@ -171,7 +173,11 @@ class TeleopNode(Node):
         elif human_input_state.gamepad_state.back_pressed: #turn off cruise control
             self.cruise_control = False
             # self._wheel_speed_publisher.publish(stop_motors()) #this happens on the next tick anyway
-        self._wheel_speed_publisher.publish(motor_msg)
+        if not motor_msg.changes and not motor_msg.adds:
+            self.emptyUpdatesSent += 1
+            self.emptyUpdatesSent %= self.MAX_EMPTY_UPDATES
+        if motor_msg.changes or motor_msg.adds or self.emptyUpdatesSent == 0:
+            self._wheel_speed_publisher.publish(motor_msg)
         # self.get_logger().warn(f"Published to serial node")
         self.prev_gamepad_state = gamepad_state
     

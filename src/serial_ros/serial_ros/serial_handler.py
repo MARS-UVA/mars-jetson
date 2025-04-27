@@ -34,9 +34,9 @@ class SerialHandler:
 		logger.warn(f"Wrote {data} to Nucleo")
 
 	def readMsg(self):
-		while(self.SER.in_waiting<1): pass
+		if(self.SER.in_waiting<40): return []
+		elif(self.SER.in_waiting>80): self.SER.read((self.SER.in_waiting//40)*40)
 		header = self.SER.read(4)
-		while(self.SER.in_waiting<36): pass
 		feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, la, ra, actuator height
 		feedback = [i[0] for i in feedback]
 		return feedback
