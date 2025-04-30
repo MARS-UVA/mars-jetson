@@ -28,13 +28,13 @@ if [ $# -eq 0 ]; then
         -DBUILD_WITH_STATIC_CRT=OFF
     
     echo "Building RealSense library..."
-    cmake --build . --config Debug --target realsense2
+    cmake --build . --config Debug --target realsense2 -j$(nproc)
     
     echo "Building capture application..."
-    cmake --build . --config Debug --target obstacle_detect_node
-    cmake --build . --config Debug --target realsense_capture
-    cmake --build . --config Debug --target gradientMapTest
-    cmake --build . --config Debug --target obstacleDetectionTest
+    cmake --build . --config Debug --target obstacle_detect_node -j$(nproc)
+    cmake --build . --config Debug --target realsense_capture -j$(nproc)
+    cmake --build . --config Debug --target gradientMapTest -j$(nproc)
+    cmake --build . --config Debug --target obstacleDetectionTest -j$(nproc)
     # cmake --build . --config Debug --target obstacleClusteringClosestObstacleTest
     # cmake --build . --config Debug --target localPathPlanningTest
     # cmake --build . --config Debug --target pcTreeSimpleTests

@@ -2,6 +2,7 @@
 
 void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
 {
+    //std::cout << "inside frame sender" << std::endl;
     uint16_t total_chunks;
     uint32_t start, end;
 
@@ -15,14 +16,15 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
         return;
     }
     int buffer_size = buffer.size();
-    total_chunks = (buffer_size / CHUNK_SIZE) + (buffer_size % CHUNK_SIZE > 0 ? 1 : 0);
+    //std::cout << "Buffer size: " << buffer_size << std::endl;
+    total_chunks = (buffer_size / CHUNK_SIZE) + ((buffer_size % CHUNK_SIZE) > 0 ? 1 : 0);
 
     // Send data in chunks
     char *sendBuffer = (char *)malloc(CHUNK_SIZE + HEADER_SIZE);
     memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
     for (uint16_t i = 0; i < total_chunks; i++)
     {
-        std::cout << i+1 << " out of " << total_chunks << std::endl;
+        //std::cout << i+1 << " out of " << total_chunks << std::endl;
         start = i * CHUNK_SIZE;
         end = (start + CHUNK_SIZE >= buffer_size) ? buffer_size : start + CHUNK_SIZE;
 
@@ -42,7 +44,7 @@ void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
             return;
         }
         memset(sendBuffer, '\0', CHUNK_SIZE + HEADER_SIZE);
-        usleep(10000);
+        usleep(100);
     }
     free(sendBuffer);
 }

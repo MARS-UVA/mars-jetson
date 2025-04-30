@@ -11,14 +11,16 @@
 #include <nucleo_msgs/msg/feedback.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include "main.hpp"
+#include "../../server/main.hpp"
+// #include "../../server/rgb_reader.h"
 #include <cmath>
+#include <cstdlib>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
-#include "./client.hpp"
-#include "./server.hpp"
+#include "../../server/client.hpp"
+#include "../../server/server.hpp"
 #include <regex>
 
 #define NUM_GAMEPAD_BTNS 14
@@ -52,8 +54,9 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
     {"left_stick", &teleop_msgs::msg::GamepadState::left_stick},
     {"right_stick", &teleop_msgs::msg::GamepadState::right_stick}};
 
+// ImageReader imgReader;
 
-const char CONTROL_STATION_IP[] = "192.168.0.200";
+const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
 
@@ -77,29 +80,32 @@ public:
   }
 
 private:
-  void topic_callback(const nucleo_msgs::msg::Feedback::SharedPtr msg) {
-    RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
+  void topic_callback(const nucleo_msgs::msg::Feedback::SharedPtr msg)
+  {
+    RCLCPP_WARN(this->get_logger(), "Recieved motor feedback packet");
     float front_left = msg->front_left;
     float front_right = msg->front_right;
     float back_left = msg->back_left;
     float back_right = msg->back_right;
-    float bucket_drum = msg->drum;
+    float l_bucket_drum = msg->l_drum;
+    float r_bucket_drum = msg->r_drum;
     float l_actuator = msg->l_actuator;
     float r_actuator = msg->r_actuator;
-    float actuator_height = msg->actuator_height;\
+    float actuator_height = msg->actuator_height;
 
-    size_t buffer_size = 32;
+    size_t buffer_size = 36;
     unsigned char* buffer = new unsigned char[buffer_size];
     std::memcpy(&buffer[0], &front_left, 4);
     std::memcpy(&buffer[4], &front_right, 4);
     std::memcpy(&buffer[8], &back_left, 4);
     std::memcpy(&buffer[12], &back_right, 4);
-    std::memcpy(&buffer[16], &bucket_drum, 4);
-    std::memcpy(&buffer[20], &l_actuator, 4);
-    std::memcpy(&buffer[24], &r_actuator, 4);
-    std::memcpy(&buffer[28], &actuator_height, 4);
+    std::memcpy(&buffer[16], &l_bucket_drum, 4);
+    std::memcpy(&buffer[20], &r_bucket_drum, 4);
+    std::memcpy(&buffer[24], &l_actuator, 4);
+    std::memcpy(&buffer[28], &r_actuator, 4);
+    std::memcpy(&buffer[32], &actuator_height, 4);
 
-    client_send(CONTROL_STATION_IP, buffer, buffer_size, CURRENT_FEEDBACK_PORT);
+    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
@@ -113,7 +119,7 @@ private:
     if (info.flag == true)
     {
       message = std::string(info.client_message);
-      
+
       const char delimiter[] = ",";
       char *token;
 
@@ -124,10 +130,13 @@ private:
       while (token != NULL)
       {
         double value = 0.0;
-        RCLCPP_INFO(this->get_logger(),"Token:%s" ,token);
-        try{
-                value = std::stod(token);
-        } catch(...){
+        RCLCPP_INFO(this->get_logger(), "Token:%s", token);
+        try
+        {
+          value = std::stod(token);
+        }
+        catch (...)
+        {
           RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
           return;
         }
@@ -196,6 +205,14 @@ private:
 
       publisher_->publish(*human_input_msg);
     }
+
+    /* Send Webcam Feeds over */
+    // cv::Mat fromCam = imgReader.processImage();
+    // if (!fromCam.empty())
+    // {
+    //   client_send(CONTROL_STATION_IP, fromCam, IMAGE_PORT);
+    //   RCLCPP_INFO(this->get_logger(), "Sent webcam feed");
+    // }
   }
 
   rclcpp::TimerBase::SharedPtr timer_;

@@ -25,9 +25,9 @@ include_directories(include)
 
 add_executable(net_node
   src/net_node.cpp
-  src/server.cpp
-  src/client.cpp
-  src/frame_sender.cpp
+  ../server/server.cpp
+  ../server/client.cpp
+  ../server/frame_sender.cpp
 )
 
 target_link_libraries(net_node ${OpenCV_LIBS})

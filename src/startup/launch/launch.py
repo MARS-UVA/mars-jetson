@@ -12,19 +12,22 @@ def generate_launch_description():
                 'linear_axis': 'left_y',
                 'turn_axis': 'left_x_inverted',
                 'full_forward_magnitude': 0.6
-            }]
+            }],
+            arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
             package='webapp_comms',
             executable='net_node',
             name='webapp_comms',
-            output='screen'
+            output='screen',
+            arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
             package='serial_ros',
             executable='op_reader',
             name='serial_ros',
-            output='screen'
+            output='screen',
+            arguments=['--ros-args', '--log-level', 'WARN']
         )
     ])
 

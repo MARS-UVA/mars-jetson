@@ -1,18 +1,18 @@
 #include <iostream>
 #include "realsense_capture.h"
-#include "rgb_writer.h"
 #include <filesystem>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <cstring>
 #include <opencv2/opencv.hpp>
+#include "../../server/main.hpp"
+#include "../../server/client.hpp"
 namespace fs = std::filesystem;
 
-
-static uint8_t* monoBuffer = nullptr;
+static uint8_t *monoBuffer = nullptr;
 static size_t bufferSize = 0;
-ImageWriter imgWriter;
+// ImageWriter imgWriter;
 
 // void sendPic(int width, int height) {
 //     cv::Mat image(height, width, CV_8UC1, (void*)monoBuffer);
@@ -31,9 +31,10 @@ ImageWriter imgWriter;
 //     shared_img->frame_id.fetch_add(1, std::memory_order_release);
 // }
 
-void save_pic(int width, int height) {
+void save_pic(int width, int height)
+{
     fs::path filename = fs::path("../../test/assets/pic.png");
-    cv::Mat image(height, width, CV_8UC1, (void*)monoBuffer);
+    cv::Mat image(height, width, CV_8UC1, (void *)monoBuffer);
     cv::imwrite(filename.c_str(), image);
 }
 
@@ -133,7 +134,8 @@ std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename)
     return matrices;
 }
 
-void processColorFrame(rs2::frame &color) {
+void processColorFrame(rs2::frame &color)
+{
     rs2::video_frame videoFrame = color.as<rs2::video_frame>();
     int width = videoFrame.get_width();
     std::cout << "RGB width: " << width << std::endl;
@@ -143,36 +145,47 @@ void processColorFrame(rs2::frame &color) {
     std::cout << "Bytes per pixel: " << bytes_per_pixel << std::endl;
     size_t requiredSize = width * height;
     std::cout << "Buffer size: " << requiredSize << std::endl;
-    
-    if (!monoBuffer || bufferSize < requiredSize) {
-        if (monoBuffer) {
+
+    if (!monoBuffer || bufferSize < requiredSize)
+    {
+        if (monoBuffer)
+        {
             delete[] monoBuffer;
         }
         monoBuffer = new uint8_t[requiredSize];
         bufferSize = requiredSize;
     }
-    
-    const uint8_t* colorData = static_cast<const uint8_t*>(videoFrame.get_data());
-    
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+
+    const uint8_t *colorData = static_cast<const uint8_t *>(videoFrame.get_data());
+    std::cout << "color data..." << std::endl;
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
             int pixelIndex = i * width + j;
             int colorIndex = pixelIndex * bytes_per_pixel;
-            
+
             uint8_t r = colorData[colorIndex];
             uint8_t g = colorData[colorIndex + 1];
             uint8_t b = colorData[colorIndex + 2];
-            
+
             // 0.299 * r + 0.587 * g + 0.114 * b - grayscale formula
             monoBuffer[pixelIndex] = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
         }
     }
+    std::cout << "finished copying color data" << std::endl;
     // sendPic(width, height);
-    imgWriter.processImage(width, height, monoBuffer);
-    // save_pic(width, height);
+    // imgWriter.processImage(width, height, monoBuffer);
+    cv::Mat image(height, width, CV_8UC1, (void *)monoBuffer);
+    std::cout << "Got image" << std::endl;
+    //std::vector<uchar> compressed_buf;
+    //std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
+    //cv::imencode(".jpeg", image, compressed_buf, compression_params);
+    //cv::Mat compressedImg = cv::imdecode(compressed_buf, cv::IMREAD_GRAYSCALE);
+    client_send(image, IMAGE_PORT);
 }
 
-std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize, rs2::pipeline& pipe)
+std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize, rs2::pipeline &pipe)
 {
     // rs2::pipeline pipe;
     // rs2::config cfg;

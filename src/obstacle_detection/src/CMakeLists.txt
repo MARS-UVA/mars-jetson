@@ -27,9 +27,23 @@ endif()
 
 set(REALSENSE_SOURCE_DIR "realsense-source/librealsense-2.56.3")
 set(REALSENSE_INCLUDE_DIR "${REALSENSE_SOURCE_DIR}/include")
+set(CLIENT_CPP "../../server/client.cpp")
+set(FRAME_SENDER "../../server/frame_sender.cpp")
 
+set(REALSENSE_INCLUDE_DIR /usr/include)
+
+find_library(REALSENSE_LIBRARY
+	NAMES realsense2
+	PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/lib/x86_64-linux-gnu
+	REQUIRED
+)
+
+#find_package(realsense2 REQUIRED)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+message(STATUS "Realsense include dirs: ${realsense2_INCLUDE_DIRS}")
+message(STATUS "Realsense libraries: ${realsense2_LIBRARY}")
 
 # Configure RealSense build options
 set(BUILD_WITH_STATIC_CRT OFF CACHE BOOL "Build with static C runtime" FORCE)
@@ -38,27 +52,27 @@ set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
 set(CMAKE_MODULE_PATH "${REALSENSE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 
 # Add RealSense library subdirectory
-add_subdirectory(${REALSENSE_SOURCE_DIR})
+#add_subdirectory(${REALSENSE_SOURCE_DIR})
 
 
 # Create executable
-add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp rgb_writer.cpp)
-add_executable(${PROJECT_NAME} startup.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp rgb_writer.cpp)
-add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)
-add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp rgb_writer.cpp)
+add_executable(obstacle_detect_node obstacle_detect_process.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(${PROJECT_NAME} startup.cpp realsense_capture.cpp models/obstacle_clustering_tree.cpp gradient_map.cpp local_path_planner_graph.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(gradientMapTest ../test/gradient_map_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp ${CLIENT_CPP} ${FRAME_SENDER})
+add_executable(obstacleDetectionTest ../test/obstacle_detection_test.cpp extract_capture.cpp realsense_capture.cpp gradient_map.cpp models/obstacle_clustering_tree.cpp ${CLIENT_CPP} ${FRAME_SENDER})
 # add_executable(pcTreeSimpleTests EXCLUDE_FROM_ALL models/pc_adacency_tree.cpp ../test/pc_tree_simple_tests.cpp)
 # add_executable(pcTreeQuadrantTest models/pc_adacency_tree.cpp ../test/pc_tree_quadrant_test.cpp realsense_capture.cpp)
 # add_executable(pcTreeGradientTest models/pc_adacency_tree.cpp models/pc_adacency_tree_gradientify.cpp ../test/pc_tree_gradient_test.cpp realsense_capture.cpp)
 
 foreach(target ${PROJECT_NAME} obstacle_detect_node gradientMapTest obstacleDetectionTest)
     target_include_directories(${target} PRIVATE
-        ${REALSENSE_INCLUDE_DIR}
+	${REALSENSE_INCLUDE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endforeach()
 
 foreach(target ${PROJECT_NAME} obstacle_detect_node gradientMapTest obstacleDetectionTest)
     target_link_libraries(${target} PRIVATE
-        realsense2 ${OpenCV_LIBS}
+	    ${REALSENSE_LIBRARY} ${OpenCV_LIBS}
     )
 endforeach()
