@@ -4,7 +4,6 @@ from serial_ros.serial_handler import SerialHandler
 from std_msgs.msg import String, Float32
 from teleop_msgs.msg import MotorChanges
 from nucleo_msgs.msg import Feedback
-from nucleo_msgs.msg import Feedback
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.1
@@ -28,8 +27,6 @@ class SerialNode(Node):
             qos_profile=1
         )
         self.subscription  # prevent unused variable warning
-        self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
-        self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
         self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.serial_handler = SerialHandler()
