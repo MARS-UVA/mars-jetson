@@ -33,7 +33,8 @@ class SerialHandler:
 		self.SER.write(bytes(data)) # write the data to serial port
 		logger.warn(f"Wrote {data} to Nucleo")
 
-	def readMsg(self):
+	def readMsg(self, logger=None):
+		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
 		if(self.SER.in_waiting<40): return []
 		elif(self.SER.in_waiting>80): self.SER.read((self.SER.in_waiting//40)*40)
 		header = self.SER.read(4)

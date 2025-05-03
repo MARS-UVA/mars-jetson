@@ -11,7 +11,8 @@ def generate_launch_description():
             parameters=[{
                 'linear_axis': 'left_y',
                 'turn_axis': 'left_x_inverted',
-                'full_forward_magnitude': 0.6
+                'full_forward_magnitude': 0.6,
+                'deadband': 0.05
             }],
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
