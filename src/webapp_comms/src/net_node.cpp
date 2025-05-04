@@ -56,7 +56,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 
 // ImageReader imgReader;
 
-const char* CONTROL_STATION_IP = std::getenv("CONTROL_STATION_IP");
+//const char* CONTROL_STATION_IP_CLIENT = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
 

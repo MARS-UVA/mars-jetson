@@ -90,6 +90,7 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
 
 void client_send(cv::Mat &image, int server_port)
 {
+    std::cout << "Sending webcam feed rn" << std::endl;
 	//std::cout << "starting client send..." << std::endl;
     ConnectionHeaders connection_headers = create_connection_headers(server_port);
     //std::cout << "got connection headers" << std::endl;
