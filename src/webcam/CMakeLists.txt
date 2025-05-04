@@ -19,6 +19,23 @@ find_package(OpenCV REQUIRED)
 # find_package(<dependency> REQUIRED)
 include_directories(include)
 
+add_executable(net_node
+  src/webcam.cpp
+  ../server/server.cpp
+  ../server/client.cpp
+  ../server/frame_sender.cpp
+)
+
+target_link_libraries(net_node ${OpenCV_LIBS})
+target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
+ament_target_dependencies(net_node 
+  rclcpp 
+  std_msgs 
+  sensor_msgs 
+  cv_bridge 
+  OpenCV 
+)
+
 install(TARGETS
   DESTINATION lib/${PROJECT_NAME})
 
@@ -34,10 +51,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS
-  scripts/webcam_publisher.py
-  scripts/display.py
-  DESTINATION lib/${PROJECT_NAME})
+# ament_python_install_package(${PROJECT_NAME})
+# install(PROGRAMS
+#   scripts/webcam_publisher.py
+#   scripts/display.py
+#   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
