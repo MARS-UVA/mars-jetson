@@ -4,7 +4,7 @@ import struct
 
 # To run this script on Jetson independently, you can do
 # eg. python3 100 100 100 100 100 100
-
+START = 255 # start byte preceding every message
 class SerialHandler:
 	def __init__(self):
 		try:
@@ -28,6 +28,7 @@ class SerialHandler:
 		# print("sending")
 		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum
+		self.SER.write(bytes([START]))
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		# logger.warn(f"Wrate {data}")
 		self.SER.write(bytes(data)) # write the data to serial port
