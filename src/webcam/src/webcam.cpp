@@ -93,8 +93,13 @@ std::string findWebcam()
 
         if (!isRealSenseCamera(devVideoCard))
         {
+            std::cout << "Found a non-RealSense camera" << std::endl;
             close(fd);
             return devicePath;
+        }
+        else
+        {
+            std::cout << "Found a RealSense camera" << std::endl;
         }
 
         close(fd);
