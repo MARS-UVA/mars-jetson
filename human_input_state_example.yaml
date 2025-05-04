@@ -1,9 +1,14 @@
 gamepad_state:
   left_stick:
     x: 0.0
-    y: 1.0
+    y: -1.0
   right_stick:
-    x: 0.5
+    x: 0.3
     y: 0.7
-  start_pressed: true
-  back_pressed: false
+  start_pressed: false
+  back_pressed: true
+  lb_pressed: false
+  rb_pressed: true
+  y_pressed: false
+  dd_pressed: true
+drive_mode: 0

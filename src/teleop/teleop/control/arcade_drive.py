@@ -106,17 +106,16 @@ class ArcadeDrive(DriveControlStrategy):
         return self.__wheel_speed_transformation
 
     #@override
-    def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
-        linear_rate = self.__deadband(self.__linear_axis.of(gamepad_state))
-        turn_rate = self.__deadband(self.__turn_axis.of(gamepad_state))
+    def get_wheel_speeds(self, gamepad_state: GamepadState, reverse: bool = False) -> WheelSpeeds:
+        reverse_multiplier = -1 if reverse else 1
+        linear_rate = self.__deadband(reverse_multiplier * self.__linear_axis.of(gamepad_state))
+        turn_rate = self.__deadband(reverse_multiplier * self.__turn_axis.of(gamepad_state))
 
         if self.__shape != 1:
             linear_rate = math.copysign(abs(linear_rate) ** self.__shape, linear_rate)
             turn_rate = math.copysign(abs(turn_rate) ** self.__shape, turn_rate)
         linear_component = self.__full_forward_magnitude * linear_rate
-        #print(linear_component)
         angular_component = (1 - self.__full_forward_magnitude) * turn_rate
-        #print(angular_component)
         wheel_speeds = WheelSpeeds(left=linear_component - angular_component, right=linear_component + angular_component)
         if self.__wheel_speed_transformation is None:
             return wheel_speeds

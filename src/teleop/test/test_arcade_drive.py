@@ -68,6 +68,14 @@ def test_invert_turn() -> None:
         f'Wheel speeds {wheel_speeds} are incorrect for CW turning'
 
 
+def test_reverse() -> None:
+    state = GamepadState(left_stick=StickPosition(y=abs(StickPosition.MAX_Y)))
+    drive = ArcadeDrive(linear_axis=GamepadAxis.LEFT_Y, turn_axis=GamepadAxis.LEFT_X, full_forward_magnitude=0.7)
+    wheel_speeds = drive.get_wheel_speeds(state, reverse=True)
+    assert wheel_speeds.is_close(WheelSpeeds(left=-0.7, right=-0.7)), \
+        f'Wheel speeds {wheel_speeds} are not full reverse'
+
+
 def verify_speeds(linear_velocity: float,
                   angular_velocity: float,
                   full_forward_magnitude: float) -> None:
