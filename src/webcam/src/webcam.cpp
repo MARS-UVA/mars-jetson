@@ -30,7 +30,7 @@ private:
     void timer_callback()
     {
         cv::Mat frame;
-        vc >> frame;
+        vc_ >> frame;
         if (frame.empty())
             return;
         if (cv::waitKey(30) >= 0)
