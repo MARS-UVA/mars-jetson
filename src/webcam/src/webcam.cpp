@@ -14,15 +14,18 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include <chrono>
 #include <functional>
+#include <queue>
 
-using namespace std::chrono_literals;
+using namespace std::chrono_literals; 
+//std::priority_queue<int, std::vector<int>, std::greater<int>> webcam_indices;
+int cam_idx;
 class Webcam : public rclcpp::Node
 {
 public:
     Webcam(cv::VideoCapture &cap)
         : Node("Webcam"), vc_(cap), count_(0)
     {
-        timer_ = this->create_wall_timer(10ms, std::bind(&Webcam::timer_callback, this));
+        timer_ = this->create_wall_timer(20ms, std::bind(&Webcam::timer_callback, this));
         if (!vc_.isOpened())
         {
             std::cerr << "Failed to open cam" << std::endl;
@@ -90,9 +93,9 @@ std::string findWebcam()
         std::cout << "Yo I just found the webcam, can you believe it, BOOM! : " << devicePath << " [" << devVideoCard << "]\n";
         if (!isRealSenseCamera(devVideoCard))
         {
-            std::cout << "Found a non-RealSense camera" << std::endl;
+	    cam_idx = (int)((devicePath.substr(10, 1)[0])-'0');
+            std::cout << "Found a non-RealSense camera" << (int)((devicePath.substr(10, 1)[0])-'0') << std::endl;
             close(fd);
-            return devicePath;
         }
         else
         {
@@ -106,15 +109,10 @@ std::string findWebcam()
 
 int main(int argc, char *argv[])
 {
-    std::string devicePath = findWebcam();
-    if (devicePath.empty())
-    {
-        std::cerr << "No non-RealSense camera found.\n";
-        return -1;
-    }
-    std::cout << "About to connect" << std::endl;
+    findWebcam();
+    //std::cout << "yo" << cam_idx << std::endl;
     cv::VideoCapture cap(0);
-    std::cout << "Bro just connected" << std::endl;
+    //std::cout << "Bro just connected" << std::endl;
     if (!cap.isOpened())
     {
         std::cerr << "Failed to open the cam before init of ros node" << std::endl;
