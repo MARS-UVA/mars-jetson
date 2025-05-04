@@ -19,16 +19,16 @@ find_package(OpenCV REQUIRED)
 # find_package(<dependency> REQUIRED)
 include_directories(include)
 
-add_executable(net_node
+add_executable(webcam
   src/webcam.cpp
   ../server/server.cpp
   ../server/client.cpp
   ../server/frame_sender.cpp
 )
 
-target_link_libraries(net_node ${OpenCV_LIBS})
-target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
-ament_target_dependencies(net_node 
+target_link_libraries(webcam ${OpenCV_LIBS})
+target_include_directories(webcam PRIVATE ${OpenCV_INCLUDE_DIRS})
+ament_target_dependencies(webcam 
   rclcpp 
   std_msgs 
   sensor_msgs 
