@@ -12,7 +12,6 @@
 #include "../../server/client.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
-#includde < rcl
 
 class Webcam : public rclcpp::Node
 {
