@@ -12,6 +12,8 @@
 #include "../../server/client.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
+#include <chrono>
+#include <functional>
 
 class Webcam : public rclcpp::Node
 {
@@ -19,7 +21,7 @@ public:
     Webcam(cv::VideoCapture &cap)
         : Node("Webcam"), vc_(cap), count_(0)
     {
-        timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
+        timer_ = this->create_wall_timer(10ms, std::bind(&Webcam::timer_callback, this));
         if (!cap.isOpened())
         {
             std::cerr << "Failed to open cam \n"
