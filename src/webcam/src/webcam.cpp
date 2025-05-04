@@ -23,10 +23,9 @@ public:
         : Node("Webcam"), vc_(cap), count_(0)
     {
         timer_ = this->create_wall_timer(10ms, std::bind(&Webcam::timer_callback, this));
-        if (!cap.isOpened())
+        if (!vc_.isOpened())
         {
-            std::cerr << "Failed to open cam \n"
-                      << std::endl;
+            std::cerr << "Failed to open cam" << std::endl;
             rclcpp::shutdown();
         }
     }
@@ -116,6 +115,10 @@ int main(int argc, char *argv[])
         return -1;
     }
     cv::VideoCapture cap(devicePath, cv2::CAP_V4L2);
+    if (!cap.isOpened())
+    {
+        std::cerr << "Failed to open the cam before init of ros node" << std::endl;
+    }
     rclcpp::init(argc, argv);
     auto node = std::make_shared<Webcam>(cap);
     rclcpp::spin(node);
