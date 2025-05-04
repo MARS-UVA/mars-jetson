@@ -37,6 +37,7 @@ ament_target_dependencies(webcam
 )
 
 install(TARGETS
+  webcam
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
