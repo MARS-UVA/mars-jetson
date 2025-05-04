@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
         std::cerr << "No non-RealSense camera found.\n";
         return -1;
     }
-    cv::VideoCapture cap(devicePath);
+    cv::VideoCapture cap(devicePath, cv2::CAP_V4L2);
     rclcpp::init(argc, argv);
     auto node = std::make_shared<Webcam>(cap);
     rclcpp::spin(node);
