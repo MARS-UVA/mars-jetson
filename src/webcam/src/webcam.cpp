@@ -66,11 +66,11 @@ std::string findWebcam()
     {
         if (strncmp(entry->d_name, "video", 5) == 0)
         {
-            devices.emplace_back("/dev/" + std::string(entry->d_name));
+            allVideoDevices.emplace_back("/dev/" + std::string(entry->d_name));
         }
     }
     closedir(devPath);
-    for (const auto &devicePath : devices)
+    for (const auto &devicePath : allVideoDevices)
     {
         int fd = open(devicePath.c_str(), O_RDWR);
         if (fd == -1)
