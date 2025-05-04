@@ -16,7 +16,7 @@
 class ObstacleDetectNode : public rclcpp::Node
 {
 public:
-ObstacleDetectNode()
+  ObstacleDetectNode()
       : Node("ObstacleDetectNode")
   {
     // publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
@@ -24,29 +24,27 @@ ObstacleDetectNode()
     //     "webcam_image", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
 
-
   void start()
   {
     while (rclcpp::ok())
     {
-        vertices = new std::vector<Vertex>();
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(this->vertices, DECIMATION_KERNEL_SIZE);
-        delete *vertices;
-        vertices.reset();
+      vertices = new std::vector<Vertex>();
+      std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(this->vertices, DECIMATION_KERNEL_SIZE);
+      delete *vertices;
+      vertices.reset();
     }
   }
-private:
-std::optional<std::vector<Vertex> *> vertices;
-};
 
+private:
+  std::optional<std::vector<Vertex> *> vertices;
+};
 
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<ObstacleDetectNode>();
-  std::thread async_spin([&]() {
-    rclcpp::spin(node);
-  });
+  std::thread async_spin([&]()
+                         { rclcpp::spin(node); });
   node->start();
   rclcpp::shutdown();
   shm_unlink(SHM_NAME);
