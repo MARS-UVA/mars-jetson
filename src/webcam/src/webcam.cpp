@@ -112,6 +112,18 @@ int main(int argc, char *argv[])
     findWebcam();
     //std::cout << "yo" << cam_idx << std::endl;
     cv::VideoCapture cap(0);
+    double exposure = cap.get(cv::CAP_PROP_EXPOSURE);
+    if(exposure == 0){
+	    std::cout << "auto exposure is enabled" << std::endl;
+    } else if(exposure > 0){
+	    //std::cout << "exosure set to " << exposure << std::endl;
+	    printf("exposure set to %lf", exposure);
+    } else {
+	    //std::cout << "exposure low at " << exposure << std::end;
+	    printf("exposure low at %lf", exposure);
+    }
+    //cap.set(cv::CAP_PROP_AUTO_EXPOSURE, 3);
+    //cap.set(cv::CAP_PROP_EXPOSURE, -20);
     //std::cout << "Bro just connected" << std::endl;
     if (!cap.isOpened())
     {

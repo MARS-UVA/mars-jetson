@@ -5,7 +5,7 @@
 
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
 //const char* CONTROL_STATION_IP_FOR_CLIENT = "192.168.0.100";
-const char* CONTROL_STATION_IP = "192.168.0.200";
+//const char* CONTROL_STATION_IP = "192.168.0.200";
 ConnectionHeaders create_connection_headers(int port)
 {
     /* Create new client socket to send frame: */
@@ -22,7 +22,7 @@ ConnectionHeaders create_connection_headers(int port)
     control_station_addr.sin_family = AF_INET;
     control_station_addr.sin_port = htons(port);
     //std::cout << "Control station ip: " << CONTROL_STATION_IP_FOR_CLIENT << std::endl;
-    control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP);
+    control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP_FOR_CLIENT);
 
     ConnectionHeaders connection_headers = {client_socket_fd, control_station_addr};
     return connection_headers;
