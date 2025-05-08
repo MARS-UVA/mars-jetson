@@ -176,7 +176,7 @@ void processColorFrame(rs2::frame &color)
     // std::cout << "finished copying color data" << std::endl;
     // sendPic(width, height);
     // imgWriter.processImage(width, height, monoBuffer);
-    cv::Mat image(height, width, CV_8UC3, (void *)colorData);
+    cv::Mat image(height, width, CV_8UC1, (void *)monoBuffer);
     // std::cout << "Got image" << std::endl;
     //std::vector<uchar> compressed_buf;
     //std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
