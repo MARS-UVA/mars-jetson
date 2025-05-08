@@ -123,6 +123,7 @@ private:
 
       const char delimiter[] = ",";
       char *token;
+      uint8_t drive_mode;
 
       token = strtok(info.client_message, delimiter);
       size_t field_i = 0;
@@ -141,7 +142,10 @@ private:
           RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
           return;
         }
-        if (field_i < NUM_GAMEPAD_BTNS)
+        if (field_i == 0) {
+          drive_mode = static_cast<uint8_t>(value);
+        }
+        else if (field_i < NUM_GAMEPAD_BTNS+1)
         {
           auto field = fields[field_i];
           (gamepad_msg.get())->*(field.second) = static_cast<bool>(value);
@@ -198,7 +202,7 @@ private:
           gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
 
       human_input_msg->gamepad_state = *gamepad_msg;
-      human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+      human_input_msg->drive_mode = drive_mode;
       human_input_msg->a_stop = false;
       human_input_msg->e_stop = false;
 
