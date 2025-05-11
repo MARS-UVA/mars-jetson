@@ -27,10 +27,10 @@
 #define NUM_GAMEPAGE_STICKS 2
 
 using namespace std::chrono_literals;
+using nucleo_msgs::msg::Feedback;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using nucleo_msgs::msg::Feedback;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -56,9 +56,11 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 
 // ImageReader imgReader;
 
-//const char* CONTROL_STATION_IP_CLIENT = std::getenv("CONTROL_STATION_IP");
+// const char* CONTROL_STATION_IP_CLIENT = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
+
+uint8_t drive_mode = 0;
 
 const int MOTOR_CURRENT_BYTES = 4;
 int Socket(ThreadInfo *info)
@@ -94,7 +96,7 @@ private:
     float actuator_height = msg->actuator_height;
 
     size_t buffer_size = 36;
-    unsigned char* buffer = new unsigned char[buffer_size];
+    unsigned char *buffer = new unsigned char[buffer_size];
     std::memcpy(&buffer[0], &front_left, 4);
     std::memcpy(&buffer[4], &front_right, 4);
     std::memcpy(&buffer[8], &back_left, 4);
@@ -135,17 +137,52 @@ private:
         RCLCPP_INFO(this->get_logger(), "Token:%s", token);
         try
         {
-          value = std::stod(token);
+          std::string token_str = std::string(token);
+          if (token_str == "estop")
+          {
+            // E-stop signal
+            rclcpp::shutdown(); // Right now will shut down the communication system
+            return;
+          }
+          else if (token_str == "Auto")
+          {
+            // Auto signal - do nothing
+            return;
+          }
+          else if (token_str == "Direct")
+          {
+            // Manual signal
+            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_NORMAL;
+            return;
+          }
+          else if (token_str == "Reverse")
+          {
+            // Manual signal
+            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_REVERSE;
+            return;
+          }
+          else if (token_str == "Idle")
+          {
+            // Idle signal
+            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_IDLE;
+            publisher_->publish(*human_input_msg);
+            return;
+          }
+          else
+          {
+            value = std::stod(token);
+          }
         }
         catch (...)
         {
           RCLCPP_INFO(this->get_logger(), "Invalid packet encountered");
           return;
         }
-        if (field_i == 0) {
+        if (field_i == 0)
+        {
           drive_mode = static_cast<uint8_t>(value);
         }
-        else if (field_i < NUM_GAMEPAD_BTNS+1)
+        else if (field_i < NUM_GAMEPAD_BTNS + 1)
         {
           auto field = fields[field_i];
           (gamepad_msg.get())->*(field.second) = static_cast<bool>(value);
