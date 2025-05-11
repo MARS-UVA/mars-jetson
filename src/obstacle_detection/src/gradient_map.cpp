@@ -12,13 +12,40 @@
 #include <numeric>
 #include <omp.h>
 #include <chrono>
+#include <random>
 
 std::mutex sumMutex;
 std::mutex copyMutex;
 
+std::random_device rd;
+
 float magnitude(float x, float y)
 {
   return std::sqrt((x * x) + (y * y));
+}
+
+std::vector<float> fit_plane(const Vertex &v1, const Vertex &v2, const Vertex &v3)
+{
+  float x1 = v1.x, y1 = v1.y, z1 = v1.z;
+  float x2 = v2.x, y2 = v2.y, z2 = v2.z;
+  float x3 = v3.x, y3 = v3.y, z3 = v3.z;
+
+  // Normal vector components <a, b, c>
+  float a = (y2 - y1) * (z3 - z1) - (y3 - y1) * (z2 - z1);
+  float b = (x3 - x1) * (z2 - z1) - (x2 - x1) * (z3 - z1);
+  float c = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
+
+  // Normalize the normal vector using cross product of normal vector with any point
+  float d = -(a * x1 + b * y1 + c * z1);
+
+  return {a, b, c, d};
+}
+
+float height_from_plane(const std::vector<float> &plane, const Vertex &v)
+{
+  // Calculates distance from plane, the expected behavior is that the plan fits points in the x,y plane and the height of points is subject to the condition of being an outlier
+  float a = plane[0], b = plane[1], c = plane[2], d = plane[3];
+  return std::abs(a * v.x + b * v.y + c * v.z + d) / std::sqrt(a * a + b * b + c * c);
 }
 
 /* Depending on Autonomous travel decision, can use parallel processes or Jetson CUDA cores to create gradient map */
@@ -40,11 +67,6 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
   std::vector<std::thread> threads;
   std::mutex resultMutex;
 
-  // std::atomic<float> globalSum(0.0f);
-  // std::atomic<float> globalSquareSum(0.0f);
-  // std::atomic<float> globalGradSum(0.0f);
-  // std::atomic<float> globalSquareGradSum(0.0f);
-  // std::atomic<int> totalValidPoints(0);
   std::vector<float> localMeans(numThreads, 0.0f);
   std::vector<float> localSquareSums(numThreads, 0.0f);
   std::vector<float> localStdevs(numThreads, 0.0f);
@@ -71,6 +93,80 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
                            localValidPoints[n] = tile.numValidPoints;
                            localGradMeans[n] = tile.gradientSum / tile.numValidPoints;
                            copyTileResults(result, tileGradients, tile); });
+  }
+  std::vector<std::vector<bool>> inliers(fullRows, std::vector<bool>(fullCols, false));
+
+  // Create a mapping of valid points for more efficient random selection
+  std::vector<std::pair<int, int>> validPoints;
+  validPoints.reserve(actualCoordinates.size() * actualCoordinates[0].size());
+#pragma omp parallel for collapse(2)
+  for (int r = 0; r < fullRows; r++)
+  {
+    for (int c = 0; c < fullCols; c++)
+    {
+      if (c < actualCoordinates[r].size() && actualCoordinates[r][c].valid)
+      {
+#pragma omp critical
+        {
+          validPoints.push_back({r, c});
+        }
+      }
+    }
+  }
+
+#pragma omp parallel for
+  for (int i = 0; i < RANSAC_ITERATIONS; i++)
+  {
+    // Get a secure random seed for this thread
+    unsigned int seed = rd() ^ omp_get_thread_num();
+    std::mt19937 local_gen(seed);
+    std::uniform_int_distribution<> local_dist(0, validPoints.size() - 1);
+
+    // Randomly select 3 different valid points
+    int idx1 = local_dist(local_gen);
+    int idx2 = local_dist(local_gen);
+    int idx3 = local_dist(local_gen);
+
+    // Make sure we have 3 different points
+    while (idx1 == idx2 || idx1 == idx3 || idx2 == idx3)
+    {
+      if (idx1 == idx2)
+        idx2 = local_dist(local_gen);
+      if (idx1 == idx3 || idx2 == idx3)
+        idx3 = local_dist(local_gen);
+    }
+
+    auto [r1, c1] = validPoints[idx1];
+    auto [r2, c2] = validPoints[idx2];
+    auto [r3, c3] = validPoints[idx3];
+
+    // Fit plane to these 3 points
+    std::vector<float> plane = fit_plane(
+        Vertex(actualCoordinates[r1][c1].x, actualCoordinates[r1][c1].y, heights[r1][c1]),
+        Vertex(actualCoordinates[r2][c2].x, actualCoordinates[r2][c2].y, heights[r2][c2]),
+        Vertex(actualCoordinates[r3][c3].x, actualCoordinates[r3][c3].y, heights[r3][c3]));
+
+// Check all points against this plane
+#pragma omp parallel for collapse(2)
+    for (int row = 0; row < fullRows; row++)
+    {
+      for (int col = 0; col < fullCols; col++)
+      {
+        if (col < actualCoordinates[row].size() && actualCoordinates[row][col].valid)
+        {
+          float height = height_from_plane(plane,
+                                           Vertex(actualCoordinates[row][col].x, actualCoordinates[row][col].y, heights[row][col]));
+
+          if (height < RANSAC_THRESHOLD)
+          {
+#pragma omp critical
+            {
+              inliers[row][col] = true;
+            }
+          }
+        }
+      }
+    }
   }
 
   for (auto &thread : threads)
@@ -111,7 +207,7 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
         bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
         bool isGlobalOutlier = std::abs(heights[leftIndices.second][leftIndices.first] - globalStats.mean) > 2.5 * globalStats.stdDev;
         bool isGradientOutlier = std::abs(result[leftIndices.second][leftIndices.first] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
-        if (isGlobalOutlier || isGradientOutlier)
+        if (isGlobalOutlier || isGradientOutlier || !inliers[leftIndices.second][leftIndices.first])
         {
           Vertex partOfObstacle(actualCoordinates[leftIndices.second][leftIndices.first].x, actualCoordinates[leftIndices.second][leftIndices.first].y, heights[leftIndices.second][leftIndices.first]);
           obstacleVertices.push_back(partOfObstacle);
@@ -127,7 +223,7 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
         bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
         bool isGlobalOutlier = std::abs(heights[rightIndices.second][rightIndices.first] - globalStats.mean) > 2.5 * globalStats.stdDev;
         bool isGradientOutlier = std::abs(result[rightIndices.second][rightIndices.first] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
-        if (isGlobalOutlier || isGradientOutlier)
+        if (isGlobalOutlier || isGradientOutlier || !inliers[rightIndices.second][rightIndices.first])
         {
           Vertex partOfObstacle(actualCoordinates[rightIndices.second][rightIndices.first].x, actualCoordinates[rightIndices.second][rightIndices.first].y, heights[rightIndices.second][rightIndices.first]);
           obstacleVertices.push_back(partOfObstacle);
@@ -143,29 +239,6 @@ std::vector<std::vector<float>> ParallelGradientCalculator::calculateGradientsPa
     leftIndices.first = fullCols - 1;
     rightIndices.first = 0;
   }
-
-  // #pragma omp parallel for collapse(2)
-  //   for (int i = 0; i < fullRows; ++i)
-  //   {
-  //     for (int j = 0; j < fullCols; ++j)
-  //     {
-  //       if (actualCoordinates[i][j].valid)
-  //       {
-  //         float localMean = localStats[i / tileRows].mean;
-  //         float localStdDev = localStats[i / tileRows].stdDev;
-  //         bool isLocalOutlier = std::abs(heights[i][j] - localMean) > 2.5 * localStdDev;
-  //         bool hasHighLocalVariance = localStdDev > globalStats.stdDev;
-  //         bool isGlobalOutlier = std::abs(heights[i][j] - globalStats.mean) > 2.5 * globalStats.stdDev;
-  //         bool isGradientOutlier = std::abs(result[i][j] - globalStats.gradMean) > 20 * globalStats.gradStdDev;
-  //         if (isGlobalOutlier || isGradientOutlier)
-  //         {
-  //           Vertex partOfObstacle(actualCoordinates[i][j].x, actualCoordinates[i][j].y, heights[i][j]);
-  //           obstacleVertices.push_back(partOfObstacle);
-  //           obstacleTree.add(partOfObstacle);
-  //         }
-  //       }
-  //     }
-  //   }
 
   return result;
 }

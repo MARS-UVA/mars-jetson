@@ -8,6 +8,8 @@
 #include "models/obstacle_clustering_tree.h"
 
 #define OVERLAP 1
+#define RANSAC_ITERATIONS 500
+#define RANSAC_THRESHOLD 0.05f
 
 struct Tile
 {
