@@ -4,7 +4,7 @@ using namespace std;
 void send_frame(ConnectionHeaders connectionHeaders, cv::Mat &image)
 {
     // return;
-    std::cout << "inside frame sender" << std::endl;
+    //std::cout << "inside frame sender" << std::endl;
     uint16_t total_chunks;
     uint32_t start, end;
 

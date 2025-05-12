@@ -13,6 +13,8 @@
 #include <atomic>
 #include <cstdlib>
 #include <iostream>
+#include "../../server/client.hpp"
+#include "../../server/main.hpp"
 
 #define DECIMATION_KERNEL_SIZE 4
 
@@ -42,6 +44,7 @@ int main(int argc, char *argv[])
 
     cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
     cfg.enable_stream(RS2_STREAM_COLOR, 848, 480, RS2_FORMAT_RGB8, 30);
+    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 
     pipe.start(cfg);
 
@@ -52,7 +55,19 @@ int main(int argc, char *argv[])
     while (!halt)
     {
         vertices = new std::vector<Vertex>();
+	rs2::frameset frames = pipe.wait_for_frames();
+	rs2::motion_frame gyro_frame = frames.first_or_default(RS2_STREAM_GYRO);
         std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
+	if(gyro_frame){
+		rs2_vector gyro_data = gyro_frame.get_motion_data();
+		std::cout << "Gyro X: " << gyro_data.x << ", Y: " << gyro_data.y << ", Z: " << gyro_data.z << std::endl;
+		size_t buffer_size = 12;
+		unsigned char *buffer = new unsigned char[buffer_size];
+		std::memcpy(&buffer[0], &gyro_data.x, 4);
+		std::memcpy(&buffer[4], &gyro_data.y, 4);
+		std::memcpy(&buffer[8], &gyro_data.z, 4);
+		client_send(buffer, buffer_size, 2027);
+	}	
         delete *vertices;
         vertices.reset();
     }
