@@ -1,8 +1,8 @@
 #include "serial_node.hpp"
 using namespace std::chrono_literals;
 
-SerialNode::SerialNode(const rclcpp::NodeOptions& options) : 
-Node("serial_cpp", options), 
+SerialNode::SerialNode(): 
+Node("serial_cpp"), 
 serial_handler("/dev/ttyUSB0", 115200) {
     auto qos_profile = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
@@ -20,15 +20,44 @@ serial_handler("/dev/ttyUSB0", 115200) {
 
 void SerialNode::send_currents() {
     int msg_type = 1;
-    boost::asio::write(serial_handler, boost::asio::buffer(&msg_type, 4));
-    boost::asio::write(serial_handler, boost::asio::buffer(motorData));
+    serial_handler.send(msg_type, motorData);
 }
 
-void SerialNode::update_currents(teleop_msgs::msg::MotorChanges msg) {
-
+void SerialNode::update_currents(teleop_msgs::msg::MotorChanges::ConstSharedPtr msg) {
+    std::vector<std::string> idx2motor = {"FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"};
+    std::vector<teleop_msgs::msg::AddMotor> adds = msg->adds;
+    std::vector<teleop_msgs::msg::SetMotor> sets = msg->changes;
+    for(auto s : sets) {
+        RCLCPP_DEBUG_STREAM(this->get_logger(), "Setting " << idx2motor[s.index] << "to" << s.velocity << std::endl);
+        motorData[s.index] = s.velocity;
+    }
+    for(auto a : adds) {
+        RCLCPP_DEBUG_STREAM(this->get_logger(), "Adding " << a.vel_increment << "to" << idx2motor[a.index] << std::endl);
+        motorData[a.index] += a.vel_increment;
+        motorData[a.index] = std::max(motorData[a.index],0);
+        motorData[a.index] = std::min(motorData[a.index],254);
+    }
 }
 
 void SerialNode::read_feedback() {
+    std::vector<float> feedback = serial_handler.readMsg();
+    nucleo_msgs::msg::Feedback msg;
+    msg.front_left = feedback[0];
+    msg.front_right = feedback[1];
+    msg.back_left = feedback[2];
+    msg.back_right = feedback[3];
+    msg.l_drum = feedback[4];
+    msg.r_drum = feedback[5];
+    msg.l_actuator = feedback[6];
+    msg.r_actuator = feedback[7];
+    msg.actuator_height = feedback[8];
+    feedback_publisher_->publish(msg);
+}
 
+int main(int argc, char *argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<SerialNode>());
+  rclcpp::shutdown();
 }
 

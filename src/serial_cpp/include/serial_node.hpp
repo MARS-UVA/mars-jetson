@@ -15,13 +15,14 @@
 
 class SerialNode : public rclcpp::Node {
     public:
-        SerialNode(const rclcpp::NodeOptions& options);
+        SerialNode();
         
     private:
         void send_currents();
-        void update_currents(teleop_msgs::msg::MotorChanges msg);
+        void update_currents(teleop_msgs::msg::MotorChanges::ConstSharedPtr msg);
         void read_feedback();
-        int motorData[6] = {127, 127, 127, 127, 127, 127};
+        int motorData[6] = {127, 127, 127, 127, 127, 127}; //motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
+        
         SerialHandler serial_handler;
 
         // Subscribers and Publishers
