@@ -16,6 +16,10 @@
 #include <functional>
 #include <queue>
 
+#define REDUCE_RESOLUTION 0
+#define OUT_IMG_WIDTH 400
+#define OUT_IMG_HEIGHT 250
+
 using namespace std::chrono_literals; 
 //std::priority_queue<int, std::vector<int>, std::greater<int>> webcam_indices;
 int cam_idx;
@@ -41,8 +45,14 @@ private:
             return;
         if (cv::waitKey(30) >= 0)
             return;
-
-        client_send(frame, WEBCAM_PORT);
+        if(REDUCE_RESOLUTION) {
+            cv::Mat small_frame;
+            cv::resize(frame, small_frame, cv::Size(OUT_IMG_WIDTH, OUT_IMG_HEIGHT), 0, 0, cv::INTER_AREA);
+            client_send(small_frame, WEBCAM_PORT);
+        }
+        else {
+            client_send(frame, WEBCAM_PORT);
+        }
         RCLCPP_INFO(this->get_logger(), "Sent webcam feed");
     }
     cv::VideoCapture vc_;
@@ -96,6 +106,7 @@ std::string findWebcam()
 	    cam_idx = (int)((devicePath.substr(10, 1)[0])-'0');
             std::cout << "Found a non-RealSense camera" << (int)((devicePath.substr(10, 1)[0])-'0') << std::endl;
             close(fd);
+            // return "";
         }
         else
         {
@@ -110,8 +121,11 @@ std::string findWebcam()
 int main(int argc, char *argv[])
 {
     findWebcam();
-    //std::cout << "yo" << cam_idx << std::endl;
-    cv::VideoCapture cap(0);
+    std::cout << "yo" << cam_idx << std::endl;
+    cv::VideoCapture cap(cam_idx);
+    // if(!cap.set(cv::CAP_PROP_FRAME_WIDTH, 640) ||
+    //     !cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480))
+    // {std::cout << "could not set width" << std::endl;}
     double exposure = cap.get(cv::CAP_PROP_EXPOSURE);
     if(exposure == 0){
 	    std::cout << "auto exposure is enabled" << std::endl;
