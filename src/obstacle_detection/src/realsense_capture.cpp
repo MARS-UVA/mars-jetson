@@ -206,10 +206,11 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         int decimation_magnitude = decimationKernelSize;
         decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
-        rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
+        
         rs2::frame color = frames.get_color_frame();
         processColorFrame(color);
-
+        return NULL; // dont do depth
+        rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
         auto stream = depth.get_profile().as<rs2::video_stream_profile>();
         auto intrinsics = stream.get_intrinsics();
 
