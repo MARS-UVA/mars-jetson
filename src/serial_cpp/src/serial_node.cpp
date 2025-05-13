@@ -41,6 +41,10 @@ void SerialNode::update_currents(teleop_msgs::msg::MotorChanges::ConstSharedPtr 
 
 void SerialNode::read_feedback() {
     std::vector<float> feedback = serial_handler.readMsg();
+    if(feedback.empty()) return;
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "Sending Data: ");
+    for(auto i : feedback) RCLCPP_DEBUG_STREAM(this->get_logger(), i<<" ");
+    RCLCPP_DEBUG_STREAM(this->get_logger(), std::endl);
     nucleo_msgs::msg::Feedback msg;
     msg.front_left = feedback[0];
     msg.front_right = feedback[1];
