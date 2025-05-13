@@ -41,23 +41,33 @@ int main(int argc, char *argv[])
     std::optional<std::vector<Vertex> *> vertices;
     rs2::pipeline pipe;
     rs2::config cfg;
+    std::cout << "instantiated pipe" << std::endl;
 
     // cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
     cfg.enable_stream(RS2_STREAM_COLOR, 848, 480, RS2_FORMAT_RGB8, 30);
     cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 
     pipe.start(cfg);
+    std::cout << "started pipe" << std::endl;
 
     for (int i = 0; i < 30; i++)
     {
+	//std::cout << "Requesting frame" << std::endl;
         pipe.wait_for_frames();
+	//std::cout << "Got a frame" << std::endl;
     }
     while (!halt)
     {
         vertices = new std::vector<Vertex>();
 	rs2::frameset frames = pipe.wait_for_frames();
+	//std::cout << "Got an actual frame" << std::endl;
 	rs2::motion_frame gyro_frame = frames.first_or_default(RS2_STREAM_GYRO);
-        std::shared_ptr<Matrices> retMatrices = capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe);
+	//std::cout << "Extracted gyro frame" << std::endl;
+        //std::shared_ptr<Matrices> retMatrices = 
+	//capture_depth_matrix(vertices, DECIMATION_KERNEL_SIZE, pipe, frames);
+	rs2::frame color_frame = frames.get_color_frame();
+	processColorFrame(color_frame);
+	//std::cout << "Got done with capture_depth_matrix" << std::endl;
 	if(gyro_frame){
 		rs2_vector gyro_data = gyro_frame.get_motion_data();
 		std::cout << "Gyro X: " << gyro_data.x << ", Y: " << gyro_data.y << ", Z: " << gyro_data.z << std::endl;

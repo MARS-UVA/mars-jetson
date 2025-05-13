@@ -157,6 +157,7 @@ void processColorFrame(rs2::frame &color)
     }
 
     const uint8_t *colorData = static_cast<const uint8_t *>(videoFrame.get_data());
+    //std::cout << "Finished suspicious memory manipulation" << std::endl;
     // std::cout << "color data..." << std::endl;
     for (int i = 0; i < height; i++)
     {
@@ -182,6 +183,7 @@ void processColorFrame(rs2::frame &color)
     //std::vector<int> compression_params = {cv::IMWRITE_PNG_COMPRESSION, 3};
     //cv::imencode(".jpeg", image, compressed_buf, compression_params);
     //cv::Mat compressedImg = cv::imdecode(compressed_buf, cv::IMREAD_GRAYSCALE);
+    //std::cout << "Sending image" << std::endl;
     client_send(image, IMAGE_PORT);
 }
 
@@ -206,9 +208,13 @@ std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex>
         int decimation_magnitude = decimationKernelSize;
         decimation.set_option(RS2_OPTION_FILTER_MAGNITUDE, decimation_magnitude);
         rs2::frameset frames = pipe.wait_for_frames();
+	//std::cout << "Got frames in capture_depth_matrix :(" << std::endl;
+	
         
         rs2::frame color = frames.get_color_frame();
+	//std::cout << "Got color frame from it" << std::endl;
         processColorFrame(color);
+	//std::cout << "Finished processing color frame" << std::endl;
         return NULL; // dont do depth
         rs2::depth_frame depth = decimation.process(frames.get_depth_frame());
         auto stream = depth.get_profile().as<rs2::video_stream_profile>();

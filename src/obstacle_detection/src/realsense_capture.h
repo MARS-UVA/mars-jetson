@@ -43,5 +43,5 @@ void save_matrices_to_txt(const std::vector<std::vector<float>> &heights,
                           const std::string &filename);
 std::shared_ptr<Matrices> load_matrices_from_txt(const std::string &filename);
 std::shared_ptr<Matrices> capture_depth_matrix(std::optional<std::vector<Vertex> *> &vertices, int decimationKernelSize, rs2::pipeline& pipe);
-
+void processColorFrame(rs2::frame& frame);
 #endif
