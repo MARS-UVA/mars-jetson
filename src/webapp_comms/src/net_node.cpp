@@ -137,41 +137,7 @@ private:
         RCLCPP_INFO(this->get_logger(), "Token:%s", token);
         try
         {
-          std::string token_str = std::string(token);
-          if (token_str == "estop")
-          {
-            // E-stop signal
-            rclcpp::shutdown(); // Right now will shut down the communication system
-            return;
-          }
-          else if (token_str == "Auto")
-          {
-            // Auto signal - do nothing
-            return;
-          }
-          else if (token_str == "Direct")
-          {
-            // Manual signal
-            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_NORMAL;
-            return;
-          }
-          else if (token_str == "Reverse")
-          {
-            // Manual signal
-            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_REVERSE;
-            return;
-          }
-          else if (token_str == "Idle")
-          {
-            // Idle signal
-            drive_mode = (uint8_t)human_input_msg->DRIVEMODE_IDLE;
-            publisher_->publish(*human_input_msg);
-            return;
-          }
-          else
-          {
-            value = std::stod(token);
-          }
+          value = std::stod(token);
         }
         catch (...)
         {
