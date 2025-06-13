@@ -1,31 +1,27 @@
-# teleop
+# teleop (Node)
+Accepts raw human input state and converts to motor queries, which are then published. Performs conversions of the type "A is pressed, so add +7 to motor index 3".
 
-The `teleop` package provides a ROS node which processes human input, publishing motor queries for a different node to send to the motors themselves.
+Code: `teleop/teleop/teleop.py`
 
-This package has primarily been tested on ROS 2 Jazzy, but it likely also supports Humble.
+## Publishers
 
-## Available nodes
+| Topic | Message type | Behavior |
+| ---- | ------------ | -------- |
+| `/teleop` | `teleop_msgs/MotorChanges` | Publish changes, including setting and incrementing motor currents, to indicate how the motor currents need to change. |
 
-### `teleop`
+## Subscriptions
 
-How to execute:
+| Topic | Message type | Behavior |
+| ---- | ------------ | -------- |
+| `/human_input_state` | `teleop_msgs/HumanInputState` | Receive human input state, including gamepad input and all UI buttons. |
+
+## Usage
 
 ```shell
 ros2 run teleop teleop --ros-args linear_axis:=VALUE -p turn_axis:=VALUE -p full_forward_magnitude:=VALUE [-p shape:=VALUE [-p deadband:=VALUE]]
 ```
 
-Executable name: `teleop`
-
-#### Topics
-
-| Name | Message type | Behavior |
-| ---- | ------------ | -------- |
-| `/teleop` | `teleop_msgs/MotorChanges` | This node publishes data to this topic to indicate how the motor currents need to change. |
-| `/human_input_state` | `teleop_msgs/HumanInputState` | This node subscribes to this topic to obtain human inputs. |
-
-#### Parameters
-
-| Name | Type | Description |
+| Parameter | Type | Description |
 | ---- | ---- | ----------- |
 | `linear_axis` | `string` (read-only) | **Required.** The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted. |
 | `turn_axis` | `string` (read-only) | **Required.** The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted |
