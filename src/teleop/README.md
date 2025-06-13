@@ -1,5 +1,18 @@
 # teleop (Node)
-Accepts raw human input state and converts to motor queries, which are then published. Performs conversions of the type "A is pressed, so add +7 to motor index 3".
+Accepts raw human input state and converts to motor queries, which are then published. Performs conversions of the type "A is pressed, so add +7 to motor 3 and set motor 2 to 173".
+
+Currently existing controls:
+
+Left stick - drive wheels \
+DPad Up/Down - raise/lower bucket drum (press and hold) \
+Right stick - raise/lower bucket drum, finer control of height \
+RB/LB - spin bucket drum incrementally forward/backward \
+Start - engage wheel cruise control \
+Back - disengage wheel cruise control \
+X - set wheels to drive slowly backwards, then engage cruise control (Craig's EasyDig feature) \
+Y - stop spinning bucket drum
+
+Note: This node (teleop) sends empty messages at a reduced rate, so that even if no motor changes are prompted, the serial node knows teleop is alive.
 
 Code: `teleop/teleop/teleop.py`
 
