@@ -182,6 +182,7 @@ class TeleopNode(Node):
         self.prev_gamepad_state = gamepad_state
     
     def __stopped_motors(self) -> None:
+        self.get_logger().warning(f'HAVEN\'T RECIEVED MESSAGES IN 2 SECONDS! ROBOT WILL NOW STOP!')
         no_wheel_speed_msg = stop_motors()
         self._wheel_speed_publisher.publish(no_wheel_speed_msg)
 
