@@ -18,6 +18,6 @@ Code: `serial_ros/serial_ros/node.py`
 `ros2 run serial_ros op_reader`
 
 # serial_handler (Utility)
-Handles low-level serial sending and receiving. For sending, packets of length 7 are preceded with a start byte (255), and the entire message is duplicated. This means each outgoing packet is 16 bytes. This is to prevent packet misalignment while allowing non-blocking IO reads on the receiving end.
+Handles low-level serial sending and receiving. For sending, packets are preceded with a start byte (255). This is to prevent packet misalignment while allowing non-blocking IO reads on the receiving end.
 
 Code: `serial_ros/serial_ros/serial_handler.py`
