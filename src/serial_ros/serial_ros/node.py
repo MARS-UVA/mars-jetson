@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node, QoSProfile
 from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
 from serial_ros.serial_handler import SerialHandler
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from teleop_msgs.msg import MotorChanges
 from nucleo_msgs.msg import Feedback
 
@@ -30,6 +30,20 @@ class SerialNode(Node):
         self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
         self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
         self.serial_handler = SerialHandler()
+
+        #Add heartbeat publisher
+        self.heartbeat_pub.publisher(
+            Bool,
+            'health/serialROS',
+            10)
+        timer_period = 2.0
+        self.timer = self.create_timer(timer_period,self.send_heartbeat)
+
+
+    def send_heartbeat(self):
+        msg = Bool()
+        msg.data = True
+        self.heartbeat_pub.publish(msg)
 
     def listener_callback(self, msg):
         # self.get_logger().warn("Received motor query")

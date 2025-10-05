@@ -1,5 +1,6 @@
 import copy
 import sys
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -10,7 +11,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
 from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors#, bucket_drum_speed_cruise_control
-
+from std_msgs.msg import Bool
 
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""
@@ -131,6 +132,14 @@ class TeleopNode(Node):
         self.get_logger().info(f'shape: {self.__drive_control_strategy.shape}')
         self.get_logger().info(f'deadband: {self.__drive_control_strategy.deadband.min_magnitude}')
 
+        #Add heartbeat publisher
+        self.heartbeat_pub.publisher(
+            Bool,
+            'health/teleop',
+            10)
+        timer_period = 2.0
+        self.timer = self.create_timer(timer_period,self.send_heartbeat)
+
     @property
     def drive_control_strategy(self) -> DriveControlStrategy:
         return self.__drive_control_strategy
@@ -217,6 +226,12 @@ class TeleopNode(Node):
 
     def __on_deadband_changed(self, deadband: rclpy.parameter.Parameter) -> None:
         self.__drive_control_strategy.deadband.min_magnitude = deadband.get_parameter_value().double_value
+
+    #send heartbeat signal
+    def send_heartbeat(self):
+        msg = Bool()
+        msg.data = True
+        self.heartbeat_pub.publish(msg)
 
 
 def main() -> None:
