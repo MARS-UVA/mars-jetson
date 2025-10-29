@@ -10,8 +10,6 @@
 #include <chrono>
 #include <opencv2/opencv.hpp>
 
-#include "../../platform_compat.h"
-
 int create_test_server()
 {
     int server_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);

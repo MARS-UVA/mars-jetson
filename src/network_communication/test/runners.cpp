@@ -10,8 +10,6 @@
 #include <fcntl.h>
 #include <chrono>
 
-#include "../../platform_compat.h"
-
 #define FEEDBACK_PORT 2001
 #define VIDEO_PORT 2000
 #define WEBUI_PORT 8080

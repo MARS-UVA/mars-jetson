@@ -10,7 +10,6 @@ add_executable(test
     ../src/client.cpp
     ../src/frame_sender.cpp
     ../src/server.cpp
-    ../../platform_compat.c
 )
 
 add_executable(send
@@ -18,7 +17,6 @@ add_executable(send
     ../src/client.cpp
     ../src/server.cpp
     ../src/frame_sender.cpp
-    ../../platform_compat.c
 )
 
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain ${OpenCV_LIBS})

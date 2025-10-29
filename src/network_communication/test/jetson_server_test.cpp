@@ -11,8 +11,6 @@
 #include <chrono>
 #include <opencv2/opencv.hpp>
 
-#include "../../platform_compat.h"
-
 TEST_CASE("Test server receiving small data")
 {
     ThreadInfo info;

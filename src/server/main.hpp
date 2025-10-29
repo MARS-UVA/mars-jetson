@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include "../platform_compat.h"
-
 // #define CONTROL_STATION_IP "192.168.0.200"
 #define IMAGE_PORT 2000
 #define WEBCAM_PORT 2026
