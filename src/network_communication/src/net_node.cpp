@@ -11,16 +11,15 @@
 #include <nucleo_msgs/msg/feedback.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include "../../server/main.hpp"
-// #include "../../server/rgb_reader.h"
+#include "main.hpp"
 #include <cmath>
 #include <cstdlib>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
-#include "../../server/client.hpp"
-#include "../../server/server.hpp"
+#include "client.hpp"
+#include "server.hpp"
 #include <regex>
 
 #define NUM_GAMEPAD_BTNS 14
