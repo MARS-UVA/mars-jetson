@@ -1,9 +1,0 @@
-gamepad_state:
-  left_stick:
-    x: 0.0
-    y: 1.0
-  right_stick:
-    x: 0.5
-    y: 0.7
-  start_pressed: true
-  back_pressed: false
