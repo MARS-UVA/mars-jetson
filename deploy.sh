@@ -14,7 +14,7 @@ fi
 
 # Build the packages
 # colcon build --packages-select teleop_msgs nucleo_msgs
-colcon build --symlink-install --packages-select startup nucleo_msgs teleop_msgs webapp_comms teleop serial_ros webcam
+colcon build --symlink-install --packages-select startup nucleo_msgs teleop_msgs webapp_comms teleop serial_node webcam
 # Source the setup file
 source install/setup.bash
 

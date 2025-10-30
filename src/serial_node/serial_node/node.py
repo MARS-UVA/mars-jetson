@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node, QoSProfile
 from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
-from serial_ros.serial_handler import SerialHandler
+from serial_node.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
 from nucleo_msgs.msg import Feedback
