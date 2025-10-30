@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.8)
-project(webapp_comms)
+project(network_communication)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
-find_package(Catch2 3 REQUIRED)
+# find_package(Catch2 3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
@@ -27,6 +27,7 @@ add_executable(net_node
   src/net_node.cpp
   src/server.cpp
   src/client.cpp
+  src/frame_sender.cpp
 )
 
 target_link_libraries(net_node ${OpenCV_LIBS})

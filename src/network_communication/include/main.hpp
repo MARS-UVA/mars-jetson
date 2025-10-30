@@ -5,7 +5,11 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include "../platform_compat.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 // #define CONTROL_STATION_IP "192.168.0.200"
 #define IMAGE_PORT 2000
