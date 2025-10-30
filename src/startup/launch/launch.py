@@ -24,9 +24,9 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
-            package='serial_ros',
+            package='serial_node',
             executable='op_reader',
-            name='serial_ros',
+            name='serial_node',
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
