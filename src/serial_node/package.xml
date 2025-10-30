@@ -7,7 +7,7 @@
   <maintainer email="ericzn248@gmail.com">mars</maintainer>
   <license>Apache-2.0</license>
 
-  <exec_depend>nucleo_msgs</exec_depend>
+  <exec_depend>serial_msgs</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

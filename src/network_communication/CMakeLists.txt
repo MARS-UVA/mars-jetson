@@ -16,7 +16,7 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
-find_package(nucleo_msgs REQUIRED)
+find_package(serial_msgs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -40,7 +40,7 @@ ament_target_dependencies(net_node
   image_transport 
   OpenCV 
   teleop_msgs
-  nucleo_msgs
+  serial_msgs
 )
 
 install(TARGETS

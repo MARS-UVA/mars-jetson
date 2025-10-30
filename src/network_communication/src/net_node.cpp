@@ -8,7 +8,7 @@
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
-#include <nucleo_msgs/msg/feedback.hpp>
+#include <serial_msgs/msg/feedback.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -29,7 +29,7 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using nucleo_msgs::msg::Feedback;
+using serial_msgs::msg::Feedback;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -74,12 +74,12 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<nucleo_msgs::msg::Feedback>(
+    subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
         "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
   }
 
 private:
-  void topic_callback(const nucleo_msgs::msg::Feedback::SharedPtr msg)
+  void topic_callback(const serial_msgs::msg::Feedback::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
     float front_left = msg->front_left;
@@ -217,7 +217,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Subscription<nucleo_msgs::msg::Feedback>::SharedPtr subscription_;
+  rclcpp::Subscription<serial_msgs::msg::Feedback>::SharedPtr subscription_;
   size_t count_;
 };
 

@@ -13,8 +13,8 @@ if [ $# -ge 1 ];
 fi
 ##
 #Build the packages
-# colcon build --packages-select teleop_msgs nucleo_msgs
-#colcon build --symlink-install --packages-select startup nucleo_msgs teleop_msgs webapp_comms teleop serial_node webcam
+# colcon build --packages-select teleop_msgs serial_msgs
+#colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs webapp_comms teleop serial_node webcam
 # Source the setup file
 source install/setup.bash
 
