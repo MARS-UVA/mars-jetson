@@ -18,11 +18,12 @@ class StreamController(Node):
 
         # Create GStreamer pipeline string for OpenCV
         self.gst_pipeline = (
-            f"appsrc is-live-true format=time ! videoconvert ! "
-            f"video/x-raw,format=BGR,width={self.width},height={self.height},framerate={self.framerate}/1 ! "
-            f"jpegenc ! rtpjpegpay ! "
+            f"appsrc is-live=true format=time ! "
+            f"image/jpeg,width={self.width},height={self.height},framerate={self.framerate}/1 ! "
+            f"jpegparse ! rtpjpegpay ! "
             f"udpsink host={self.host} port={self.port} sync=false"
         )
+
 
         # OpenCV VideoWriter with GStreamer backend
         self.writer = cv2.VideoWriter(
