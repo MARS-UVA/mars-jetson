@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="gstream_py" exec="cameras" name="cameras" namespace="bot" />
+  <node pkg="gstream_py" exec="ros_streamer" name="ros_streamer" namespace="bot" />
+</launch>
