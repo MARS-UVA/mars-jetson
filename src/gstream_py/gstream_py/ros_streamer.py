@@ -3,55 +3,65 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst, GObject
+
+Gst.init(None)
 
 class StreamController(Node):
     def __init__(self):
         super().__init__('opencv_gstreamer_stream_controller')
         self.bridge = CvBridge()
 
-        # Adjustable streaming settings
+        # Streaming settings
         self.width = 640
         self.height = 480
         self.framerate = 30
         self.host = "127.0.0.1"
-        self.port = 1010
+        self.port = 25000
 
-        # Create GStreamer pipeline string for OpenCV
+        # Create GStreamer pipeline string for MJPEG over UDP
         self.gst_pipeline = (
-            f"appsrc is-live=true format=time ! "
+            f"appsrc name=mysrc is-live=true block=true format=time ! "
             f"image/jpeg,width={self.width},height={self.height},framerate={self.framerate}/1 ! "
             f"jpegparse ! rtpjpegpay ! "
             f"udpsink host={self.host} port={self.port} sync=false"
         )
 
+        # Launch pipeline
+        self.pipeline = Gst.parse_launch(self.gst_pipeline)
+        self.appsrc = self.pipeline.get_by_name("mysrc")
+        self.pipeline.set_state(Gst.State.PLAYING)
 
-        # OpenCV VideoWriter with GStreamer backend
-        self.writer = cv2.VideoWriter(
-            self.gst_pipeline, cv2.CAP_GSTREAMER, 0, self.framerate, (self.width, self.height)
-        )
-        if not self.writer.isOpened():
-            self.get_logger().error("Failed to open GStreamer pipeline!")
-            raise RuntimeError("GStreamer pipeline failed")
-
-        # Subscribe to ROS image topic
         self.subscription = self.create_subscription(
             Image, 'webcam_image', self.image_callback, 10
         )
 
-    def image_callback(self, msg):
-        self.get_logger().info('got image')
-        # Convert ROS Image to OpenCV image
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        self.frame_count = 0
 
-        # Resize if needed (optional)
+    def image_callback(self, msg):
+        # Convert ROS Image to OpenCV
+        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         frame = cv2.resize(frame, (self.width, self.height))
 
-        # Write frame to GStreamer pipeline
-        self.writer.write(frame)
+        # Encode to JPEG
+        _, jpeg_frame = cv2.imencode('.jpg', frame)
+        data = jpeg_frame.tobytes()
+
+        # Create GStreamer buffer
+        buf = Gst.Buffer.new_allocate(None, len(data), None)
+        buf.fill(0, data)
+        buf.duration = Gst.SECOND // self.framerate
+        buf.pts = self.frame_count * Gst.SECOND // self.framerate
+        buf.dts = buf.pts
+        self.frame_count += 1
+
+        # Push buffer to pipeline
+        self.appsrc.emit("push-buffer", buf)
 
     def destroy_node(self):
-        # Release the VideoWriter on shutdown
-        self.writer.release()
+        self.pipeline.set_state(Gst.State.NULL)
         super().destroy_node()
 
 def main(args=None):
