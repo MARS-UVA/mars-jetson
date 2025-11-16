@@ -4,6 +4,8 @@ import socket
 # Replace with your webhook URL
 WEBHOOK_URL = "https://discord.com/api/webhooks/1435393485262946445/kpzKJ9iZ4o8wSZdboCGKRg_2LlTLTAHPFNhh_sUDncrlvFW1xgsy4BsUjbuznVZzhlUu"
 
+JETSON_NO = int(input())
+
 # Get local IP (Jetson's eduroam IP)
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -20,5 +22,5 @@ def get_ip():
 ip_address = get_ip()
 
 # Post to Discord
-data = {"content": f"Jetson IP: {ip_address}"}
+data = {"content": f"Jetson {JETSON_NO} IP: {ip_address}"}
 requests.post(WEBHOOK_URL, json=data)
