@@ -1,10 +1,16 @@
 import requests
 import socket
+import argparse
+
+parser = argparse.ArgumentParser()
+
 
 # Replace with your webhook URL
 WEBHOOK_URL = "https://discord.com/api/webhooks/1435393485262946445/kpzKJ9iZ4o8wSZdboCGKRg_2LlTLTAHPFNhh_sUDncrlvFW1xgsy4BsUjbuznVZzhlUu"
 
-JETSON_NO = int(input())
+parser.add_argument("jetson_no")
+args = parser.parse_args()
+JETSON_NO = args.jetson_no
 
 # Get local IP (Jetson's eduroam IP)
 def get_ip():
