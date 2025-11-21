@@ -1,15 +1,13 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>network_communication</name>
+  <name>network-comms</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="mars_host@todo.todo">mars_host</maintainer>
+  <maintainer email="edpaschke@gmail.com">xerix</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>image_transport</depend>
-  <depend>teleop_msgs</depend>
-  <depend>serial_msgs</depend>
+  <depend>std_msgs</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
