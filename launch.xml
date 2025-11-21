@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    <node pkg="v4l2_camera" exec="v4l2_camera_node" name="camera1" namespace="awareness">
+        <param name="video_device" value="/dev/video1"/>
+        <param name="output_encoding" value="mono8"/>
+        <param name="image_size" value="[1280, 800]"/>
+    </node>
+    <node pkg="cameras" exec="display" name="camera1_viewer" namespace="awareness">
+    </node>
+</launch>
