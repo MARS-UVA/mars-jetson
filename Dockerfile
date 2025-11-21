@@ -19,4 +19,4 @@ COPY ./ ./
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --packages-select cameras
 
-CMD [ "." "launch.sh" ]
+CMD [ "./launch.sh" ]
