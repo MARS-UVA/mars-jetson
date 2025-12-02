@@ -43,6 +43,7 @@ class Streamer : public rclcpp::Node
         RCLCPP_ERROR(this->get_logger(), "Failed to create pipeline: %s", error->message);
         return;
       }
+      RCLCPP_INFO(this->get_logger(), "Pipeline created");
 
       appsrc = GST_APP_SRC(gst_bin_get_by_name(GST_BIN(stream_pipeline), "mysrc"));
       gst_element_set_state(stream_pipeline, GST_STATE_PLAYING);
@@ -61,7 +62,40 @@ class Streamer : public rclcpp::Node
   private:
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) const
     {
-      
+      cv_bridge::CvImagePtr cv_ptr;
+      try {
+        cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
+      } catch (cv_bridge::Exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "cv_bridge error: %s", e.what());
+        return;
+      }
+
+      cv::Mat frame;
+      cv::resize(cv_ptr->image, frame, cv::Size(width_, height_));
+
+      // Encode to jpeg
+      std::vector<uchar> jpeg_data;
+      if (!cv::imencode(".jpg", frame, jpeg_data)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to encode jpeg");
+        return;
+      }
+
+      // Create gstream buffer
+      GstBuffer *buffer = gst_buffer_new_allocate(nullptr, jpeg_data.size(), nullptr);
+      gst_buffer_fill(buffer, 0, jpeg_data.data(), jpeg_data.size());
+
+      GstClockTime timestamp = gst_clock_get_time(gst_system_clock_obtain());
+      GST_BUFFER_PTS(buffer) = timestamp;
+      GST_BUFFER_DTS(buffer) = timestamp;
+      GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, framerate);
+
+      // Push buffer into appsrc
+      GstFlowReturn ret;
+      g_signal_emit_by_name(appsrc, "push-buffer", buffer, &ret);
+      gst_buffer_unref(buffer);
+      if (ret != GST_FLOW_OK) {
+        RCLCPP_WARN(this->get_logger(), "GStreamer push buffer returned: %d", ret);
+      }
     }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
