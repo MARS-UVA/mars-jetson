@@ -46,6 +46,21 @@ class Streamer : public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), "Pipeline created");
 
       appsrc = GST_APP_SRC(gst_bin_get_by_name(GST_BIN(stream_pipeline), "mysrc"));
+      GstCaps *caps = gst_caps_new_simple(
+        "image/jpeg",
+        "width", G_TYPE_INT, width_,
+        "height", G_TYPE_INT, height_,
+        "framerate", GST_TYPE_FRACTION, framerate, 1,
+        NULL);
+      
+      gst_app_src_set_caps(appsrc, caps);
+      gst_caps_unref(caps);    
+      g_object_set(appsrc,
+        "stream-type", GST_APP_STREAM_TYPE_STREAM,
+        "is-live", TRUE,
+        "do-timestamp", TRUE,
+        NULL);
+
       gst_element_set_state(stream_pipeline, GST_STATE_PLAYING);
 
       // ROS subscriber
@@ -55,6 +70,7 @@ class Streamer : public rclcpp::Node
 
     ~Streamer()
     {
+      gst_app_src_end_of_stream(appsrc);
       gst_element_set_state(stream_pipeline, GST_STATE_NULL);
       gst_object_unref(stream_pipeline);
     }
@@ -84,15 +100,8 @@ class Streamer : public rclcpp::Node
       GstBuffer *buffer = gst_buffer_new_allocate(nullptr, jpeg_data.size(), nullptr);
       gst_buffer_fill(buffer, 0, jpeg_data.data(), jpeg_data.size());
 
-      GstClockTime timestamp = gst_clock_get_time(gst_system_clock_obtain());
-      GST_BUFFER_PTS(buffer) = timestamp;
-      GST_BUFFER_DTS(buffer) = timestamp;
-      GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, framerate);
-
       // Push buffer into appsrc
-      GstFlowReturn ret;
-      g_signal_emit_by_name(appsrc, "push-buffer", buffer, &ret);
-      gst_buffer_unref(buffer);
+      GstFlowReturn ret = gst_app_src_push_buffer(appsrc, buffer);
       if (ret != GST_FLOW_OK) {
         RCLCPP_WARN(this->get_logger(), "GStreamer push buffer returned: %d", ret);
       }
