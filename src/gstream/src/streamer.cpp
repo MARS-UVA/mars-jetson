@@ -78,6 +78,7 @@ class Streamer : public rclcpp::Node
   private:
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) const
     {
+      RCLCPP_DEBUG(this->get_logger(), "got image")
       cv_bridge::CvImagePtr cv_ptr;
       try {
         cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
