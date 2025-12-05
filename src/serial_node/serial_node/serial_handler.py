@@ -12,7 +12,7 @@ class SerialHandler:
 		except serial.SerialException as e:
 			print(f"Error: Could not open or close serial port: {e}")
 
-		self.numMotors = 6
+		self.numMotors = 8
 		self.bytesPerMotor = 1
 		self.totalDataBytes = self.numMotors * self.bytesPerMotor
 
@@ -47,9 +47,9 @@ class SerialHandler:
 if __name__ == "__main__":
 	import sys
 	header = 0 # 0 for motor commands
-	totalDataBytes = 6
+	totalDataBytes = 8
 	data = [ord('A') for i in range(totalDataBytes)] # populate a list with A's as default values
-	for i in range(1, len(sys.argv)): # populate data with (up to 6) args passed into command line
+	for i in range(1, len(sys.argv)): # populate data with (up to 8) args passed into command line
 		data[i-1] = int(sys.argv[i])
 	print(f"Data {data}")
 	handler = SerialHandler()
