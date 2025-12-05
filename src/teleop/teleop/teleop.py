@@ -9,12 +9,12 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors#, bucket_drum_speed_cruise_control
+from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors, stop_spin#, bucket_drum_speed_cruise_control
 
 
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""
-
+    
     linear_axis_param_descriptor = ParameterDescriptor(
         name='linear_axis',
         type=ParameterType.PARAMETER_STRING,
@@ -65,6 +65,8 @@ class TeleopNode(Node):
     def __init__(self, **kwargs):
         super().__init__('teleop', **kwargs)
         self.prev_gamepad_state : GamepadState = None
+        self.left_arm_control = False
+        self.right_arm_control = False
         self.MAX_EMPTY_UPDATES = 30
         self.emptyUpdatesSent = 0
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -147,10 +149,26 @@ class TeleopNode(Node):
         self.timer.reset()
         gamepad_state : GamepadState = human_input_state.gamepad_state
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
-        
+
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
         
+
+        if gamepad_state.x_pressed:
+            self.left_arm_control = True
+            self.right_arm_control = False
+            stop_spin(motor_msg)
+        if gamepad_state.b_pressed:
+            self.left_arm_control = False
+            self.right_arm_control = True
+            stop_spin(motor_msg)
+        if gamepad_state.y_pressed:
+            self.left_arm_control = True
+            self.right_arm_control = True
+            stop_spin(motor_msg)
+        
+
+
         if gamepad_state.lb_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.lb_pressed): #spin bucket drum backwards
             self.get_logger().info("bucket drum -15")
             motor_msg.adds.append(AddMotor(vel_increment = -15))
@@ -158,7 +176,9 @@ class TeleopNode(Node):
             motor_msg.adds.append(AddMotor(vel_increment = 15))
             self.get_logger().info("bucket drum +15")
         
-        if gamepad_state.y_pressed: #stop bucket drum
+
+
+        if gamepad_state.a_pressed: #stop bucket drums
             motor_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity=127))
         
         
