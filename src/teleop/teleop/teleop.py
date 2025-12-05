@@ -153,17 +153,16 @@ class TeleopNode(Node):
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
         
-
-        if gamepad_state.x_pressed:
+        if gamepad_state.y_pressed:
+            self.left_arm_control = True
+            self.right_arm_control = True
+            stop_spin(motor_msg)
+        elif gamepad_state.x_pressed:
             self.left_arm_control = True
             self.right_arm_control = False
             stop_spin(motor_msg)
-        if gamepad_state.b_pressed:
+        elif gamepad_state.b_pressed:
             self.left_arm_control = False
-            self.right_arm_control = True
-            stop_spin(motor_msg)
-        if gamepad_state.y_pressed:
-            self.left_arm_control = True
             self.right_arm_control = True
             stop_spin(motor_msg)
         
