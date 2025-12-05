@@ -9,7 +9,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, bucket_actuator_speed, stop_motors, stop_spin, increment_drum_spin#, bucket_drum_speed_cruise_control
+from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, stop_spin, increment_drum_spin#, bucket_drum_speed_cruise_control
 
 
 class TeleopNode(Node):
@@ -185,10 +185,11 @@ class TeleopNode(Node):
         
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
-        # bucket_speed = int(127 + (gamepad_state.right_stick.y*127)) # old bucket drum controls
+        if gamepad_state.lb_pressed:
+            raise_arms(-15, self.left_arm_control, self.right_arm_control, motor_msg)
+        if gamepad_state.rb_pressed:
+            raise_arms(+15, self.left_arm_control, self.right_arm_control, motor_msg)
         
-        # wheel_speed_msg.changes.append(SetMotor(index=SetMotor.BUCKET_DRUM_SPIN_MOTOR, velocity = bucket_speed))
-        motor_msg.changes.append(bucket_actuator_speed())
         
         
         if human_input_state.gamepad_state.start_pressed:
