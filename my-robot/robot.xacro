@@ -1,0 +1,429 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my-robot">
+  <xacro:arg name="camera_name"   default="zed" />
+  <xacro:arg name="camera_model"  default="zed" />
+  <xacro:arg name="use_zed_localization" default="true" />
+  <xacro:property name="default_mass" value="1e-09"/>
+  <xacro:property name="default_inertia" value="1e-09"/>
+  <xacro:property name="default_effort" value="10"/>
+  <xacro:property name="default_velocity" value="10"/>
+  <!-- Generated from robot.urdf -->
+  <!-- Link frame_assembly -->
+  <link name="frame_assembly">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <!-- Part frame__length_0_40640000000000004_meter -->
+    <visual>
+      <origin xyz="2.77556e-17 -0.2921 -1.38778e-17" rpy="6.82962e-17 6.82962e-17 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_40640000000000004_meter_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.77556e-17 -0.2921 -1.38778e-17" rpy="6.82962e-17 6.82962e-17 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part frame__length_0_40640000000000004_meter_2 -->
+    <visual>
+      <origin xyz="2.77556e-17 0.2921 -1.38778e-17" rpy="6.82962e-17 6.82962e-17 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_40640000000000004_meter_2_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.77556e-17 0.2921 -1.38778e-17" rpy="6.82962e-17 6.82962e-17 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part frame__length_0_40640000000000004_meter_3 -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_40640000000000004_meter_3_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part frame__length_0_6096_meter -->
+    <visual>
+      <origin xyz="0.2159 1.1189e-16 -2.1684e-18" rpy="6.82962e-17 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_6096_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_6096_meter_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.2159 1.1189e-16 -2.1684e-18" rpy="6.82962e-17 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_6096_meter.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part frame__length_0_6096_meter_2 -->
+    <visual>
+      <origin xyz="-0.2159 -1.09987e-16 -2.18865e-18" rpy="6.82962e-17 -0 1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_6096_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_6096_meter_2_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.2159 -1.09987e-16 -2.18865e-18" rpy="6.82962e-17 -0 1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_6096_meter.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Link wheel -->
+  <link name="wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+      <material name="wheel_material">
+        <color rgba="0.231373 0.380392 0.705882 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame_assembly to wheel -->
+  <joint name="wheel_1" type="continuous">
+    <origin xyz="0.23495 -0.2159 0.04445" rpy="-1.5708 -0 1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="wheel"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}"/>
+  </joint>
+
+  <!-- Link wheel_2 -->
+  <link name="wheel_2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+      <material name="wheel_2_material">
+        <color rgba="0.231373 0.380392 0.705882 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame_assembly to wheel_2 -->
+  <joint name="wheel_2" type="continuous">
+    <origin xyz="0.23495 0.2159 0.0508" rpy="-1.5708 -0 1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="wheel_2"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}"/>
+  </joint>
+
+  <!-- Link wheel_3 -->
+  <link name="wheel_3">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+      <material name="wheel_3_material">
+        <color rgba="0.231373 0.380392 0.705882 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame_assembly to wheel_3 -->
+  <joint name="wheel_3" type="continuous">
+    <origin xyz="-0.23495 0.2159 0.0508" rpy="-1.5708 -0 -1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="wheel_3"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}"/>
+  </joint>
+
+  <!-- Link wheel_4 -->
+  <link name="wheel_4">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+      <material name="wheel_4_material">
+        <color rgba="0.231373 0.380392 0.705882 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wheel.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame_assembly to wheel_4 -->
+  <joint name="wheel_4" type="continuous">
+    <origin xyz="-0.23495 -0.2159 0.0508" rpy="-1.5708 -0 -1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="wheel_4"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}"/>
+  </joint>
+
+  <!-- Link frame__length_0_40640000000000004_meter -->
+  <link name="frame__length_0_40640000000000004_meter">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.173037 0 -1.73472e-18" rpy="-1.5708 -1.66039e-32 1.48742e-17"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_40640000000000004_meter_4_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.173037 0 -1.73472e-18" rpy="-1.5708 -1.66039e-32 1.48742e-17"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Link drum -->
+  <link name="drum">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.00254" rpy="-1.5708 -1.57526e-32 4.0637e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+      <material name="drum_material">
+        <color rgba="0.85098 0.756863 0.866667 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.00254" rpy="-1.5708 -1.57526e-32 4.0637e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame__length_0_40640000000000004_meter to drum -->
+  <joint name="drum_1" type="revolute">
+    <origin xyz="0.357187 0.0476885 0.0381" rpy="1.51327e-16 -1.41588e-16 -1.5708"/>
+    <parent link="frame__length_0_40640000000000004_meter"/>
+    <child link="drum"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+
+  <!-- Link drum_2 -->
+  <link name="drum_2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 1.48742e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+      <material name="drum_2_material">
+        <color rgba="0.85098 0.756863 0.866667 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 1.48742e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame__length_0_40640000000000004_meter to drum_2 -->
+  <joint name="drum_2" type="revolute">
+    <origin xyz="0.357187 0.0476885 -0.0381" rpy="-7.85046e-17 4.12558e-32 -3.14159"/>
+    <parent link="frame__length_0_40640000000000004_meter"/>
+    <child link="drum_2"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+
+  <!-- Joint from frame_assembly to frame__length_0_40640000000000004_meter -->
+  <joint name="arm_1" type="revolute">
+    <origin xyz="3.1225e-17 -0.2921 0.0508" rpy="-1.5708 -1.0472 -1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="frame__length_0_40640000000000004_meter"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+
+  <!-- Link frame__length_0_40640000000000004_meter_2 -->
+  <link name="frame__length_0_40640000000000004_meter_2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.173038 0 -1.73472e-18" rpy="-1.5708 2.95247e-34 -2.62968e-17"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+      <material name="frame__length_0_40640000000000004_meter_5_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.173038 0 -1.73472e-18" rpy="-1.5708 2.95247e-34 -2.62968e-17"/>
+      <geometry>
+        <mesh filename="package://assets/frame__length_0_40640000000000004_meter.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Link drum_3 -->
+  <link name="drum_3">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.00254" rpy="-1.5708 -1.08695e-32 -3.82533e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+      <material name="drum_3_material">
+        <color rgba="0.85098 0.756863 0.866667 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.00254" rpy="-1.5708 -1.08695e-32 -3.82533e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame__length_0_40640000000000004_meter_2 to drum_3 -->
+  <joint name="drum_3" type="revolute">
+    <origin xyz="0.357187 0.0476885 0.0381" rpy="3.90337e-31 5.47109e-32 -3.14159"/>
+    <parent link="frame__length_0_40640000000000004_meter_2"/>
+    <child link="drum_3"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+
+  <!-- Link drum_4 -->
+  <link name="drum_4">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${default_mass}"/>
+      <inertia ixx="${default_inertia}" ixy="0" ixz="0" iyy="${default_inertia}" iyz="0" izz="${default_inertia}"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 -1.35584e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+      <material name="drum_4_material">
+        <color rgba="0.85098 0.756863 0.866667 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 -1.35584e-17"/>
+      <geometry>
+        <mesh filename="package://assets/drum.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint from frame__length_0_40640000000000004_meter_2 to drum_4 -->
+  <joint name="drum_4" type="revolute">
+    <origin xyz="0.357188 0.0476885 -0.0381" rpy="6.51149e-31 -1.66571e-30 -8.18079e-17"/>
+    <parent link="frame__length_0_40640000000000004_meter_2"/>
+    <child link="drum_4"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+
+  <!-- Joint from frame_assembly to frame__length_0_40640000000000004_meter_2 -->
+  <joint name="arm_2" type="revolute">
+    <origin xyz="3.1225e-17 0.2921 0.0508" rpy="-1.5708 -1.0472 1.5708"/>
+    <parent link="frame_assembly"/>
+    <child link="frame__length_0_40640000000000004_meter_2"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="${default_effort}" velocity="${default_velocity}" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+</robot>
