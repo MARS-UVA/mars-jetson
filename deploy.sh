@@ -14,7 +14,7 @@ fi
 
 # Build the packages
 # colcon build --packages-select teleop_msgs serial_msgs
-colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs webapp_comms teleop serial_node webcam
+colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs network_communication teleop serial_node
 # Source the setup file
 source install/setup.bash
 
