@@ -1,3 +1,4 @@
+from inspect import Parameter
 import time
 
 import rclpy
@@ -27,7 +28,19 @@ class AutonomousActionServer(Node):
         description='The magnitude of the wheel\'s speeds when starting dumping',
         dynamic_typing=True
     )
-
+    
+    dump_raise_drums_magnitude_param_descriptor = ParameterDescriptor(
+        name='dump_raise_drums_magnitude',
+        type=Parameter.Type.PARAMETER_INT,
+        description='The magnitude the drums should be raised when dumping',
+        dynamic_typing=True
+    )
+    dump_spin_drums_magnitude_param_descriptor = ParameterDescriptor(
+        name='dump_spin_drums_magnitude',
+        type=Parameter.Type.PARAMETER_INT,
+        description='The magnitude the drums should spin when dumping',
+        dynamic_typing=True
+    )
     # Dig Parameters
     drum_lowering_time_param_descriptor = ParameterDescriptor(
         name='drum_lowering_time',
