@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'teleop', 'teleop_msgs'],
     zip_safe=True,
     maintainer='xerix',
     maintainer_email='edpaschke@gmail.com',
