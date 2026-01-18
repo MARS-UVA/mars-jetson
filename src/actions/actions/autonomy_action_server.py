@@ -68,6 +68,11 @@ class AutonomousActionServer(Node):
             AutonomousActions,
             'autonomous_actions',
             self.execute_callback)
+        self._publisher = self.create_publisher(
+            msg_type=MotorChanges,
+            topic='teleop',
+            qos_profile=1
+        )
 
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
