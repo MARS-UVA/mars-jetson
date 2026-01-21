@@ -57,7 +57,8 @@ class AutonomousActionServer(Node):
     dump_time_param_descriptor = ParameterDescriptor(
         name='dump_time',
         type=ParameterType.PARAMETER_INTEGER,
-        description='Time in seconds that the robot should spend dumping.'
+        description='Time in seconds that the robot should spend dumping.',
+        dynamic_typing=True
     )
     # Dig Parameters
     drum_dig_lowering_time_param_descriptor = ParameterDescriptor(
@@ -107,7 +108,7 @@ class AutonomousActionServer(Node):
         super().__init__('autonomous_action_server')
         self._action_server = ActionServer(
             self,
-            AutonomousActionServer,
+            AutonomousActions,
             'autonomous_actions',
             self.execute_callback)
         self.serial_publisher = self.create_publisher(
