@@ -32,7 +32,7 @@ class SerialHandler:
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		# logger.warn(f"Wrate {data}")
 		self.SER.write(bytes(data)) # write the data to serial port
-		logger.warn(f"Wrote {data} to Nucleo")
+		#logger.warn(f"Wrote {data} to Nucleo")
 
 	def readMsg(self, logger=None):
 		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')

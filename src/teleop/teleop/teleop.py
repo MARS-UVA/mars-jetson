@@ -185,10 +185,11 @@ class TeleopNode(Node):
         
         # Raise and Lower Bucket Drum Arm(s)
         if gamepad_state.lb_pressed:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)     
         if gamepad_state.rb_pressed:
             raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
-        
+        if not gamepad_state.lb_pressed and not gamepad_state.rb_pressed:
+            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
         
         if human_input_state.gamepad_state.start_pressed:
             self.cruise_control=True #turn on cruise control
