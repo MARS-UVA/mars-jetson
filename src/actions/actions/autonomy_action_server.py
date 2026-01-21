@@ -6,9 +6,9 @@ from rclpy.action import ActionServer
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 from teleop_msgs.msg import SetMotor, MotorChanges
-from teleop.teleop.motor_queries import wheel_speed_to_motor_queries
-from teleop import WheelSpeeds
-from teleop.teleop import motor_queries
+from teleop.motor_queries import wheel_speed_to_motor_queries
+from teleop.control.base import WheelSpeeds
+from teleop import motor_queries
 
 from autonomy_msgs.action import AutonomousActions
 
