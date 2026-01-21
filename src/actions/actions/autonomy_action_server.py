@@ -103,6 +103,26 @@ class AutonomousActionServer(Node):
             topic='teleop',
             qos_profile=1
         )
+        self.declare_parameter(self.dump_forward_magnitude_param_descriptor.name,
+                               descriptor=self.dump_forward_magnitude_param_descriptor)
+        self.declare_parameter(self.dump_raise_drums_magnitude_param_descriptor.name,
+                               descriptor=self.dump_raise_drums_magnitude_param_descriptor)
+        self.declare_parameter(self.dump_spin_drums_magnitude_param_descriptor.name,
+                               descriptor=self.dump_spin_drums_magnitude_param_descriptor)
+        self.declare_parameter(self.drum_dig_lowering_time_param_descriptor.name,
+                               descriptor=self.drum_dig_lowering_time_param_descriptor)
+        self.declare_parameter(self.drum_dig_raising_time_param_descriptor.name,
+                               descriptor=self.drum_dig_raising_time_param_descriptor)
+        self.declare_parameter(self.dig_wheel_speed_param_descriptor.name,
+                               descriptor=self.dig_wheel_speed_param_descriptor)
+        self.declare_parameter(self.dig_spin_drums_speed_param_descriptor.name,
+                               descriptor=self.dig_spin_drums_speed_param_descriptor)
+        self.declare_parameter(self.dig_drum_arm_magnitude_param_descriptor.name,
+                               descriptor=self.dig_drum_arm_magnitude_param_descriptor)
+        self.declare_parameter(self.dig_time_param_descriptor.name,
+                               descriptor=self.dig_time_param_descriptor)
+        self.declare_parameter(self.sleep_time_param_descriptor.name,
+                               descriptor=self.sleep_time_param_descriptor)
 
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
