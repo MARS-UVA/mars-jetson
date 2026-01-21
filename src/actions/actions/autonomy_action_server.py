@@ -209,11 +209,16 @@ class AutonomousActionServer(Node):
                 
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
+                
                 # Drive forward
-                motor_queries.wheel_speed_to_motor_queries(wheel_speed)
-                # sleep(some time)
+                msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                self.serial_publisher.publish(msg)
+
+                # sleep then stop driving
                 time.sleep(drum_lowering_delay)
-                motor_queries.wheel_speed_to_motor_queries(WheelSpeeds(0,0))
+                msg = motor_queries.wheel_speed_to_motor_queries(WheelSpeeds(0,0))
+                self.serial_publisher.publish(msg)
+
                 # Raise Drums (?)
                 motor_queries.raise_arms(actuator_speed, True, True)
                 # Spin Drums to Dump
