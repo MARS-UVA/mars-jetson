@@ -8,6 +8,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import SetMotor, MotorChanges
 from teleop.teleop.motor_queries import wheel_speed_to_motor_queries
 from teleop import WheelSpeeds
+from teleop.teleop import motor_queries
 
 
 class AutonomousActionServer(Node):
@@ -136,7 +137,7 @@ class AutonomousActionServer(Node):
                 drum_lowering_delay = self.drum_dig_lowering_time_param_descriptor.value
                 dig_time = self.dig_time_param_descriptor.value
                 # Stop all motors currently moving on the robot
-                serial_publisher.publish(motor_queries.stop_motors())
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start digging
@@ -145,7 +146,7 @@ class AutonomousActionServer(Node):
                 # Start Lowering of Drums
                 motor_queries.raise_arms(actuator_speed, True, True, msg)
                 # Send initial msg to serial node
-                serial_publisher.publish(msg)
+                self.serial_publisher.publish(msg)
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
                 # Start Driving Forward
@@ -153,11 +154,11 @@ class AutonomousActionServer(Node):
                 # Stop drum lowering
                 motor_queries.raise_arms(127, True, True, msg)
                 # Send message to drive and dig
-                serial_publisher.publish(msg)
+                self.serial_publisher.publish(msg)
                 # Sleep while digging and driving forward
                 time.sleep(dig_time)
                 # Stop Digging
-                serial_publisher.publish(motor_queries.stop_motors())
+                self.serial_publisher.publish(motor_queries.stop_motors())
 
                 # if action = move+dig
                 # set the 4 wheel motors and also the drums
