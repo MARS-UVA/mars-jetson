@@ -5,6 +5,8 @@ import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
+from teleop_msgs.msg import MotorChanges, SetMotor
+import teleop.motor_queries
 
 
 class AutonomousActionServer(Node):
@@ -25,37 +27,37 @@ class AutonomousActionServer(Node):
     # Dump Parameters
     dump_forward_magnitude_param_descriptor = ParameterDescriptor(
         name='dump_forward_magnitude',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='The magnitude of the wheel\'s speeds when starting dumping',
         dynamic_typing=True
     )
     
     dump_raise_drums_magnitude_param_descriptor = ParameterDescriptor(
         name='dump_raise_drums_magnitude',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='The magnitude the drums should be raised when dumping',
         dynamic_typing=True
     )
     dump_spin_drums_magnitude_param_descriptor = ParameterDescriptor(
         name='dump_spin_drums_magnitude',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='The magnitude the drums should spin when dumping',
         dynamic_typing=True
     )
     # Dig Parameters
     drum_dig_lowering_time_param_descriptor = ParameterDescriptor(
         name='drum_dig_lowering_time',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
     )
     drum_dig_raising_time_param_descriptor = ParameterDescriptor(
         name='drum_dig_raising_time',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
     )
     dig_wheel_speed_param_descriptor = ParameterDescriptor(
         name='dig_wheel_speed',
-        type=ParameterType.PARAMETER_DOUBLE,
+        type=ParameterTypePARAMETER_DOUBLE,
         description='The speed of wheel speed when doing autonomous dig actions',
         floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=1.0)],
@@ -71,7 +73,7 @@ class AutonomousActionServer(Node):
     )
     dig_drum_arm_magnitude_param_descriptor = ParameterDescriptor(
         name='drum_arm_speed',
-        type=Parameter.Type.PARAMETER_DOUBLE,
+        type=ParameterType.PARAMETER_DOUBLE,
         description='The speed the drum should be raised and lowered.',
         floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=1.0)],
@@ -79,16 +81,8 @@ class AutonomousActionServer(Node):
     )
     dig_time_param_descriptor = ParameterDescriptor(
         name='dig_time',
-        type=Parameter.Type.PARAMETER_INT,
+        type=ParameterType.PARAMETER_INTEGER,
         description='Time in seconds that the robot should spend digging.'
-    )
-    
-    
-
-    sleep_time_param_descriptor = ParameterDescriptor(
-        name='sleep_time',
-        type=Parameter.Type.PARAMETER_INT,
-        description='The time the r'
     )
 
     def __init__(self):
@@ -98,7 +92,7 @@ class AutonomousActionServer(Node):
             AutonomousActions,
             'autonomous_actions',
             self.execute_callback)
-        self._publisher = self.create_publisher(
+        self.serial_publisher = self.create_publisher(
             msg_type=MotorChanges,
             topic='teleop',
             qos_profile=1
@@ -121,8 +115,6 @@ class AutonomousActionServer(Node):
                                descriptor=self.dig_drum_arm_magnitude_param_descriptor)
         self.declare_parameter(self.dig_time_param_descriptor.name,
                                descriptor=self.dig_time_param_descriptor)
-        self.declare_parameter(self.sleep_time_param_descriptor.name,
-                               descriptor=self.sleep_time_param_descriptor)
 
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
@@ -133,7 +125,35 @@ class AutonomousActionServer(Node):
                 return
             case 1:
                 # Dig Autonomy
-                
+                drum_speed = self.dig_spin_drums_speed_param_descriptor.value
+                actuator_speed = self.dig_drum_arm_magnitude_param_descriptor.value
+                wheel_speed = self.dig_wheel_speed_param_descriptor.value
+                drum_lowering_delay = self.drum_dig_lowering_time_param_descriptor.value
+                dig_time = self.dig_time_param_descriptor.value
+                # Stop all motors currently moving on the robot
+                serial_publisher.publish(motor_queries.stop_motors())
+                # Create msg to send initial state
+                msg = MotorChanges(changes=[], adds=[])
+                # Set Drums to start digging
+                msg.adds.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
+                msg.adds.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                # Start Lowering of Drums
+                motor_queries.raise_arms(actuator_speed, True, True, msg)
+                # Send initial msg to serial node
+                serial_publisher.publish(msg)
+                # Sleep while drums lower
+                time.sleep(drum_lowering_delay)
+                # Start Driving Forward
+                msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                # Stop drum lowering
+                motor_queries.raise_arms(127, True, True, msg)
+                # Send message to drive and dig
+                serial_publisher.publish(msg)
+                # Sleep while digging and driving forward
+                time.sleep(dig_time)
+                # Stop Digging
+                serial_publisher.publish(motor_queries.stop_motors())
+
                 # if action = move+dig
                 # set the 4 wheel motors and also the drums
                 # spin drums
