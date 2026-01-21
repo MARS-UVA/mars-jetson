@@ -36,8 +36,8 @@ class AutonomousActionServer(Node):
         dynamic_typing=True
     )
     
-    dump_raise_drums_magnitude_param_descriptor = ParameterDescriptor(
-        name='dump_raise_drums_magnitude',
+    dump_arm_speed_magnitude_param_descriptor = ParameterDescriptor(
+        name='dump_arm_speed_magnitude',
         type=ParameterType.PARAMETER_INTEGER,
         description='The magnitude the drums should be raised when dumping',
         dynamic_typing=True
@@ -47,6 +47,17 @@ class AutonomousActionServer(Node):
         type=ParameterType.PARAMETER_INTEGER,
         description='The magnitude the drums should spin when dumping',
         dynamic_typing=True
+    )
+    dump_start_delay_param_descriptor = ParameterDescriptor(
+        name='dump_start_delay',
+        type=ParameterType.PARAMETER_INTEGER,
+        description='The time (ms) to wait after driving forward before starting to dump',
+        dynamic_typing=True
+    )
+    dump_time_param_descriptor = ParameterDescriptor(
+        name='dump_time',
+        type=ParameterType.PARAMETER_INTEGER,
+        description='Time in seconds that the robot should spend dumping.'
     )
     # Dig Parameters
     drum_dig_lowering_time_param_descriptor = ParameterDescriptor(
@@ -96,7 +107,7 @@ class AutonomousActionServer(Node):
         super().__init__('autonomous_action_server')
         self._action_server = ActionServer(
             self,
-            AutonomousActions,
+            AutonomousActionServer,
             'autonomous_actions',
             self.execute_callback)
         self.serial_publisher = self.create_publisher(
@@ -104,16 +115,22 @@ class AutonomousActionServer(Node):
             topic='teleop',
             qos_profile=1
         )
+        # Dump Paramaters
+
+        # Dump Wheel Speed
         self.declare_parameter(self.dump_forward_magnitude_param_descriptor.name,
                                descriptor=self.dump_forward_magnitude_param_descriptor)
-        self.declare_parameter(self.dump_raise_drums_magnitude_param_descriptor.name,
-                               descriptor=self.dump_raise_drums_magnitude_param_descriptor)
+        # Dump Arm Speed
+        self.declare_parameter(self.dump_arm_speed_magnitude_param_descriptor.name,
+                               descriptor=self.dump_arm_speed_magnitude_param_descriptor)
         self.declare_parameter(self.dump_spin_drums_magnitude_param_descriptor.name,
                                descriptor=self.dump_spin_drums_magnitude_param_descriptor)
-        self.declare_parameter(self.drum_dig_lowering_time_param_descriptor.name,
-                               descriptor=self.drum_dig_lowering_time_param_descriptor)
-        self.declare_parameter(self.drum_dig_raising_time_param_descriptor.name,
-                               descriptor=self.drum_dig_raising_time_param_descriptor)
+        self.declare_parameter(self.dump_start_delay_param_descriptor.name,
+                               descriptor=self.dump_start_delay_param_descriptor)
+        self.declare_parameter(self.dump_time_param_descriptor.name,
+                               descriptor=self.dump_time_param_descriptor)
+        
+        # Dig Parameters
         self.declare_parameter(self.dig_wheel_speed_param_descriptor.name,
                                descriptor=self.dig_wheel_speed_param_descriptor)
         self.declare_parameter(self.dig_spin_drums_speed_param_descriptor.name,
@@ -176,14 +193,39 @@ class AutonomousActionServer(Node):
                 return
             case 2:
                 # Dump Autonomy
+                drum_speed = self.get_parameter(
+                    self.dump_spin_drums_magnitude_param_descriptor.name).value
+                actuator_speed = self.get_parameter(
+                    self.dump_spin_drums_magnitude_param_descriptor.name).value
+                wheel_speed = WheelSpeeds(self.get_parameter(
+                    self.dump_forward_magnitude_param_descriptor.name).value,
+                    self.get_parameter(
+                    self.dump_forward_magnitude_param_descriptor.name).value)
+                drum_lowering_delay = self.get_parameter(
+                    self.dump_start_delay_param_descriptor.name).value
+                dump_time = self.get_parameter(
+                    self.dump_time_param_descriptor.name).value
                 
+                # Stop all motors currently moving on the robot
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 # Drive forward
-                wheel_speed_to_motor_queries(self.dump_forward_wheel_speeds)
-                # slleep(some time)
-                wheel_speed_to_motor_queries(WheelSpeeds(0,0))
+                motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                # sleep(some time)
+                time.sleep(drum_lowering_delay)
+                motor_queries.wheel_speed_to_motor_queries(WheelSpeeds(0,0))
                 # Raise Drums (?)
+                motor_queries.raise_arms(actuator_speed, True, True)
                 # Spin Drums to Dump
+                # Create msg to send initial state
+                msg = MotorChanges(changes=[], adds=[])
+                # Set Drums to start dumping
+                msg.adds.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
+                msg.adds.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                self.serial_publisher.publish(msg)
                 # sleep(some time)                
+                time.sleep(dump_time)
+                # Stop all motors
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 return
 
         """
