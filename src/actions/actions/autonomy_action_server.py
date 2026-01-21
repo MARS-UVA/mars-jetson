@@ -43,18 +43,47 @@ class AutonomousActionServer(Node):
         dynamic_typing=True
     )
     # Dig Parameters
-    drum_lowering_time_param_descriptor = ParameterDescriptor(
-        name='drum_lowering_time',
+    drum_dig_lowering_time_param_descriptor = ParameterDescriptor(
+        name='drum_dig_lowering_time',
         type=Parameter.Type.PARAMETER_INT,
-        description='The time the drum should be lowered before the drum lowering motor is told to stop.'
+        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
     )
-
-    # Shared Parameters
-    drum_arm_magnitude = ParameterDescriptor(
-        name='drum_arm_magnitude',
+    drum_dig_raising_time_param_descriptor = ParameterDescriptor(
+        name='drum_dig_raising_time',
         type=Parameter.Type.PARAMETER_INT,
-        description='The apeed the drum should be raised and lowered.'
+        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
     )
+    dig_wheel_speed_param_descriptor = ParameterDescriptor(
+        name='dig_wheel_speed',
+        type=ParameterType.PARAMETER_DOUBLE,
+        description='The speed of wheel speed when doing autonomous dig actions',
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)],
+        dynamic_typing=True,
+    )
+    dig_spin_drums_speed_param_descriptor = ParameterDescriptor(
+        name='dig_spin_drums_speed',
+        type=ParameterType.PARAMETER_DOUBLE,
+        description='The speed the drums should spin while digging',
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)],
+        dynamic_typing=True,
+    )
+    dig_drum_arm_magnitude_param_descriptor = ParameterDescriptor(
+        name='drum_arm_speed',
+        type=Parameter.Type.PARAMETER_DOUBLE,
+        description='The speed the drum should be raised and lowered.',
+        floating_point_range=[FloatingPointRange(from_value=0.0,
+                                                 to_value=1.0)],
+        dynamic_typing=True,
+    )
+    dig_time_param_descriptor = ParameterDescriptor(
+        name='dig_time',
+        type=Parameter.Type.PARAMETER_INT,
+        description='Time in seconds that the robot should spend digging.'
+    )
+    
+    
 
     sleep_time_param_descriptor = ParameterDescriptor(
         name='sleep_time',
