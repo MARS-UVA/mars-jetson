@@ -4,7 +4,7 @@ import time
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from rcl_interfaces.msg import ParameterDescriptor
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 
 
 class AutonomousActionServer(Node):
