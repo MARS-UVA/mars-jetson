@@ -52,12 +52,14 @@ class AutonomousActionServer(Node):
     drum_dig_lowering_time_param_descriptor = ParameterDescriptor(
         name='drum_dig_lowering_time',
         type=ParameterType.PARAMETER_INTEGER,
-        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
+        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.',
+        dynamic_typing=True
     )
     drum_dig_raising_time_param_descriptor = ParameterDescriptor(
         name='drum_dig_raising_time',
         type=ParameterType.PARAMETER_INTEGER,
-        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.'
+        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.',
+        dynamic_typing=True
     )
     dig_wheel_speed_param_descriptor = ParameterDescriptor(
         name='dig_wheel_speed',
@@ -86,7 +88,8 @@ class AutonomousActionServer(Node):
     dig_time_param_descriptor = ParameterDescriptor(
         name='dig_time',
         type=ParameterType.PARAMETER_INTEGER,
-        description='Time in seconds that the robot should spend digging.'
+        description='Time in seconds that the robot should spend digging.',
+        dynamic_typing=True
     )
 
     def __init__(self):
@@ -103,10 +106,6 @@ class AutonomousActionServer(Node):
         )
         self.declare_parameter(self.dump_forward_magnitude_param_descriptor.name,
                                descriptor=self.dump_forward_magnitude_param_descriptor)
-        self.dump_forward_wheel_speeds = WheelSpeeds(self.get_parameter(
-            self.dump_forward_magnitude_param_descriptor.name).value,
-            self.get_parameter(
-            self.dump_forward_magnitude_param_descriptor.name).value)
         self.declare_parameter(self.dump_raise_drums_magnitude_param_descriptor.name,
                                descriptor=self.dump_raise_drums_magnitude_param_descriptor)
         self.declare_parameter(self.dump_spin_drums_magnitude_param_descriptor.name,
@@ -133,11 +132,11 @@ class AutonomousActionServer(Node):
                 return
             case 1:
                 # Dig Autonomy
-                drum_speed = self.dig_spin_drums_speed_param_descriptor.value
-                actuator_speed = self.dig_drum_arm_magnitude_param_descriptor.value
-                wheel_speed = self.dig_wheel_speed_param_descriptor.value
-                drum_lowering_delay = self.drum_dig_lowering_time_param_descriptor.value
-                dig_time = self.dig_time_param_descriptor.value
+                drum_speed = self.get_parameter(dig_spin_drums_speed_param_descriptor.name).value
+                actuator_speed = self.get_parameter(dig_drum_arm_magnitude_param_descriptor.name).value
+                wheel_speed = self.get_parameter(dig_wheel_speed_param_descriptor.name).value
+                drum_lowering_delay = self.get_parameter(drum_dig_lowering_time_param_descriptor.name).value
+                dig_time = self.get_parameter(dig_time_param_descriptor.name).value
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
                 # Create msg to send initial state
