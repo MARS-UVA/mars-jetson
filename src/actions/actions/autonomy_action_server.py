@@ -152,11 +152,11 @@ class AutonomousActionServer(Node):
 
             case 1:
                 # Dig Autonomy
-                drum_speed = self.get_parameter(dig_spin_drums_speed_param_descriptor.name).value
-                actuator_speed = self.get_parameter(dig_drum_arm_magnitude_param_descriptor.name).value
-                wheel_speed = self.get_parameter(dig_wheel_speed_param_descriptor.name).value
-                drum_lowering_delay = self.get_parameter(drum_dig_lowering_time_param_descriptor.name).value
-                dig_time = self.get_parameter(dig_time_param_descriptor.name).value
+                drum_speed = self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value
+                actuator_speed = self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value
+                wheel_speed = self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value
+                drum_lowering_delay = self.get_parameter(self.drum_dig_lowering_time_param_descriptor.name).value
+                dig_time = self.get_parameter(self.dig_time_param_descriptor.name).value
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
                 # Create msg to send initial state
