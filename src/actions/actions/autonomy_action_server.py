@@ -5,8 +5,10 @@ import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import MotorChanges, SetMotor
-import teleop.motor_queries
+from teleop_msgs.msg import SetMotor, MotorChanges
+from teleop.teleop.motor_queries import wheel_speed_to_motor_queries
+from teleop import WheelSpeeds
+from teleop.teleop import motor_queries
 
 from autonomy_msgs.action import AutonomousActions
 
@@ -101,6 +103,10 @@ class AutonomousActionServer(Node):
         )
         self.declare_parameter(self.dump_forward_magnitude_param_descriptor.name,
                                descriptor=self.dump_forward_magnitude_param_descriptor)
+        self.dump_forward_wheel_speeds = WheelSpeeds(self.get_parameter(
+            self.dump_forward_magnitude_param_descriptor.name).value,
+            self.get_parameter(
+            self.dump_forward_magnitude_param_descriptor.name).value)
         self.declare_parameter(self.dump_raise_drums_magnitude_param_descriptor.name,
                                descriptor=self.dump_raise_drums_magnitude_param_descriptor)
         self.declare_parameter(self.dump_spin_drums_magnitude_param_descriptor.name,
@@ -171,9 +177,11 @@ class AutonomousActionServer(Node):
                 return
             case 2:
                 # Dump Autonomy
-
+                
                 # Drive forward
+                wheel_speed_to_motor_queries(self.dump_forward_wheel_speeds)
                 # slleep(some time)
+                wheel_speed_to_motor_queries(WheelSpeeds(0,0))
                 # Raise Drums (?)
                 # Spin Drums to Dump
                 # sleep(some time)                
