@@ -9,6 +9,7 @@
 
   <exec_depend>teleop</exec_depend>
   <exec_depend>teleop_msgs</exec_depend>
+  <exec_depend>autonomy_msgs</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

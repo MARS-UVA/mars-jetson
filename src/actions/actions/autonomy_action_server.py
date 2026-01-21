@@ -8,6 +8,8 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import MotorChanges, SetMotor
 import teleop.motor_queries
 
+from autonomy_msgs.action import AutonomousActions
+
 
 class AutonomousActionServer(Node):
     """ Example Variable
@@ -57,7 +59,7 @@ class AutonomousActionServer(Node):
     )
     dig_wheel_speed_param_descriptor = ParameterDescriptor(
         name='dig_wheel_speed',
-        type=ParameterTypePARAMETER_DOUBLE,
+        type=ParameterType.PARAMETER_DOUBLE,
         description='The speed of wheel speed when doing autonomous dig actions',
         floating_point_range=[FloatingPointRange(from_value=0.0,
                                                  to_value=1.0)],
@@ -131,7 +133,7 @@ class AutonomousActionServer(Node):
                 drum_lowering_delay = self.drum_dig_lowering_time_param_descriptor.value
                 dig_time = self.dig_time_param_descriptor.value
                 # Stop all motors currently moving on the robot
-                serial_publisher.publish(motor_queries.stop_motors())
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start digging
@@ -140,7 +142,7 @@ class AutonomousActionServer(Node):
                 # Start Lowering of Drums
                 motor_queries.raise_arms(actuator_speed, True, True, msg)
                 # Send initial msg to serial node
-                serial_publisher.publish(msg)
+                self.serial_publisher.publish(msg)
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
                 # Start Driving Forward
@@ -148,11 +150,11 @@ class AutonomousActionServer(Node):
                 # Stop drum lowering
                 motor_queries.raise_arms(127, True, True, msg)
                 # Send message to drive and dig
-                serial_publisher.publish(msg)
+                self.serial_publisher.publish(msg)
                 # Sleep while digging and driving forward
                 time.sleep(dig_time)
                 # Stop Digging
-                serial_publisher.publish(motor_queries.stop_motors())
+                self.serial_publisher.publish(motor_queries.stop_motors())
 
                 # if action = move+dig
                 # set the 4 wheel motors and also the drums
