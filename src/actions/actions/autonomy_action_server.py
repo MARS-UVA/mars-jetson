@@ -4,6 +4,7 @@ import time
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
+from rcl_interfaces.msg import ParameterDescriptor
 
 
 class AutonomousActionServer(Node):
@@ -51,7 +52,7 @@ class AutonomousActionServer(Node):
     # Shared Parameters
     drum_arm_magnitude = ParameterDescriptor(
         name='drum_arm_magnitude',
-        type=Paramter.Type.PARAMETER_INT,
+        type=Parameter.Type.PARAMETER_INT,
         description='The apeed the drum should be raised and lowered.'
     )
 
