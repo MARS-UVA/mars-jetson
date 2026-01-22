@@ -35,7 +35,7 @@ class AutonomousActionServer(Node):
         description='The magnitude of the wheel\'s speeds when starting dumping',
         dynamic_typing=True
     )
-    
+
     dump_arm_speed_magnitude_param_descriptor = ParameterDescriptor(
         name='dump_arm_speed_magnitude',
         type=ParameterType.PARAMETER_INTEGER,
@@ -130,7 +130,7 @@ class AutonomousActionServer(Node):
                                descriptor=self.dump_start_delay_param_descriptor)
         self.declare_parameter(self.dump_time_param_descriptor.name,
                                descriptor=self.dump_time_param_descriptor)
-        
+
         # Dig Parameters
         self.declare_parameter(self.dig_wheel_speed_param_descriptor.name,
                                descriptor=self.dig_wheel_speed_param_descriptor)
@@ -147,7 +147,9 @@ class AutonomousActionServer(Node):
         match goal_handle.request.index:
             case 0:
                 # teleop
-                return
+                # return AutonomousActions.Result()
+                pass
+
             case 1:
                 # Dig Autonomy
                 drum_speed = self.get_parameter(dig_spin_drums_speed_param_descriptor.name).value
@@ -191,7 +193,8 @@ class AutonomousActionServer(Node):
                 # raise drums
 
                 # motor command 5?
-                return
+                #return AutonomousActions.Result()
+
             case 2:
                 # Dump Autonomy
                 drum_speed = self.get_parameter(
@@ -206,10 +209,10 @@ class AutonomousActionServer(Node):
                     self.dump_start_delay_param_descriptor.name).value
                 dump_time = self.get_parameter(
                     self.dump_time_param_descriptor.name).value
-                
+
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
-                
+
                 # Drive forward
                 msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
                 self.serial_publisher.publish(msg)
@@ -228,11 +231,11 @@ class AutonomousActionServer(Node):
                 msg.adds.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
                 msg.adds.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
                 self.serial_publisher.publish(msg)
-                # sleep(some time)                
+                # sleep(some time)
                 time.sleep(dump_time)
                 # Stop all motors
                 self.serial_publisher.publish(motor_queries.stop_motors())
-                return
+                #return AutonomousActions.Result()
 
         """
                 for i in range(1, goal_handle.request.order):
@@ -249,6 +252,7 @@ class AutonomousActionServer(Node):
                 return result
         """
         goal_handle.succeed()
+        return AutonomousActions.Result()
 
 def main(args=None):
     rclpy.init(args=args)
