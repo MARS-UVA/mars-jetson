@@ -115,7 +115,7 @@ class TeleopNode(Node):
                                                 .double_value)
         )
         self.teleop_state_subscription = self.create_subscription(
-            msg_type-UInt8,
+            msg_type=UInt8,
             topic='teleop/state',
             callback=self.change_state,
             qos_profile=10,
@@ -153,7 +153,8 @@ class TeleopNode(Node):
         self.__drive_control_strategy = copy.copy(value)
     
     def change_state(self, target_state: UInt8) -> None:
-        self.teleop_state = target_state
+        self.teleop_state = target_state.data
+        self.get_logger().info(f'Teleop state changed to: {self.teleop_state}')
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         if self.teleop_state:
