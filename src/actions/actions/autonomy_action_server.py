@@ -132,6 +132,10 @@ class AutonomousActionServer(Node):
                                descriptor=self.dump_time_param_descriptor)
 
         # Dig Parameters
+        self.declare_parameter(self.drum_dig_lowering_time_param_descriptor.name,
+                                descriptor=self.drum_dig_lowering_time_param_descriptor)
+        self.declare_parameter(self.drum_dig_raising_time_param_descriptor.name,
+                                descriptor=self.drum_dig_raising_time_param_descriptor)
         self.declare_parameter(self.dig_wheel_speed_param_descriptor.name,
                                descriptor=self.dig_wheel_speed_param_descriptor)
         self.declare_parameter(self.dig_spin_drums_speed_param_descriptor.name,
@@ -152,9 +156,12 @@ class AutonomousActionServer(Node):
 
             case 1:
                 # Dig Autonomy
-                drum_speed = self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value
-                actuator_speed = self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value
-                wheel_speed = self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value
+                drum_speed = int(self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value * 127 + 127)
+                actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127 + 127)
+                wheel_speed = WheelSpeeds(
+                    self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
+                    self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
+                )
                 drum_lowering_delay = self.get_parameter(self.drum_dig_lowering_time_param_descriptor.name).value
                 dig_time = self.get_parameter(self.dig_time_param_descriptor.name).value
                 # Stop all motors currently moving on the robot
@@ -162,8 +169,8 @@ class AutonomousActionServer(Node):
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start digging
-                msg.adds.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
-                msg.adds.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
                 # Start Lowering of Drums
                 motor_queries.raise_arms(actuator_speed, True, True, msg)
                 # Send initial msg to serial node
@@ -252,7 +259,9 @@ class AutonomousActionServer(Node):
                 return result
         """
         goal_handle.succeed()
-        return AutonomousActions.Result()
+        result = AutonomousActions.Result()
+        result.success = True
+        return result
 
 def main(args=None):
     rclpy.init(args=args)
