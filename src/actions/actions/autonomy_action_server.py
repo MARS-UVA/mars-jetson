@@ -230,7 +230,8 @@ class AutonomousActionServer(Node):
                 self.serial_publisher.publish(msg)
 
                 # Raise Drums (?)
-                motor_queries.raise_arms(actuator_speed, True, True)
+                msg = MotorChanges(changes=[], adds=[])
+                motor_queries.raise_arms(actuator_speed, True, True, msg)
                 # Spin Drums to Dump
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
