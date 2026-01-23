@@ -236,8 +236,8 @@ class AutonomousActionServer(Node):
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start dumping
-                msg.adds.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
-                msg.adds.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
                 self.serial_publisher.publish(msg)
                 # sleep(some time)
                 time.sleep(dump_time)
