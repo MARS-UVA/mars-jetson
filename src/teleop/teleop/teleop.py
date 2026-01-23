@@ -6,6 +6,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, Duration, QoSHistoryPolicy, QoSReliabilityPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState, AddMotor
+from std_msgs.msg import UInt8
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
@@ -64,6 +65,7 @@ class TeleopNode(Node):
 
     def __init__(self, **kwargs):
         super().__init__('teleop', **kwargs)
+        self.teleop_state = 1
         self.prev_gamepad_state : GamepadState = None
         self.front_arm_control = True
         self.back_arm_control = True
@@ -112,6 +114,12 @@ class TeleopNode(Node):
                                                 .get_parameter_value()
                                                 .double_value)
         )
+        self.teleop_state_subscription = self.create_subscription(
+            msg_type-UInt8,
+            topic='teleop/state',
+            callback=self.change_state,
+            qos_profile=10,
+        )
         self.__human_input_state_subscription = self.create_subscription(
             msg_type=HumanInputState,
             topic='human_input_state', 
@@ -143,53 +151,57 @@ class TeleopNode(Node):
             raise ValueError('drive control strategy must be of type DriveControlStrategy')
 
         self.__drive_control_strategy = copy.copy(value)
+    
+    def change_state(self, target_state: UInt8) -> None:
+        self.teleop_state = target_state
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
-        # self.get_logger().warn(f"Got message, dpad down: {human_input_state.gamepad_state.dd_pressed}")
-        self.timer.reset()
-        gamepad_state : GamepadState = human_input_state.gamepad_state
-        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
+        if self.teleop_state:
+            # self.get_logger().warn(f"Got message, dpad down: {human_input_state.gamepad_state.dd_pressed}")
+            self.timer.reset()
+            gamepad_state : GamepadState = human_input_state.gamepad_state
+            wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
-        if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
-        elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
-        
-        # Set states for control of bucket drums
-        if gamepad_state.y_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.y_pressed):
-            self.front_arm_control = True
-            self.back_arm_control = True
-            # stop_drum_spin(motor_msg)
-        elif gamepad_state.x_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.x_pressed):
-            self.front_arm_control = True
-            self.back_arm_control = False
-            # stop_drum_spin(motor_msg)
-        elif gamepad_state.b_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.b_pressed):
-            self.front_arm_control = False
-            self.back_arm_control = True
-            # stop_drump_spin(motor_msg)
-        
-
-        # Spin Bucket Drum(s)
-        if gamepad_state.lt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.lt_pressed): #spin bucket drum backwards
-            self.get_logger().info("bucket drum -15")
-            increment_drum_spin(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+            if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
+            elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
             
-        elif gamepad_state.rt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.rt_pressed): #spin bucket drum forward
-            self.get_logger().info("bucket drum +15")
-            increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+            # Set states for control of bucket drums
+            if gamepad_state.y_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.y_pressed):
+                self.front_arm_control = True
+                self.back_arm_control = True
+                # stop_drum_spin(motor_msg)
+            elif gamepad_state.x_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.x_pressed):
+                self.front_arm_control = True
+                self.back_arm_control = False
+                # stop_drum_spin(motor_msg)
+            elif gamepad_state.b_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.b_pressed):
+                self.front_arm_control = False
+                self.back_arm_control = True
+                # stop_drump_spin(motor_msg)
+            
 
-        # Stop Bucket Drum(s)
-        if gamepad_state.a_pressed:
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
-        
-        self.get_logger().info(f'Calculated: {wheel_speeds}')
-        
-        # Raise and Lower Bucket Drum Arm(s)
-        if gamepad_state.lb_pressed:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
-        if gamepad_state.rb_pressed:
-            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
-        
-        
+            # Spin Bucket Drum(s)
+            if gamepad_state.lt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.lt_pressed): #spin bucket drum backwards
+                self.get_logger().info("bucket drum -15")
+                increment_drum_spin(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+                
+            elif gamepad_state.rt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.rt_pressed): #spin bucket drum forward
+                self.get_logger().info("bucket drum +15")
+                increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+
+            # Stop Bucket Drum(s)
+            if gamepad_state.a_pressed:
+                stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
+            
+            self.get_logger().info(f'Calculated: {wheel_speeds}')
+            
+            # Raise and Lower Bucket Drum Arm(s)
+            if gamepad_state.lb_pressed:
+                raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+            if gamepad_state.rb_pressed:
+                raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+            
+        # This runs regardless of teleop_state being disabled (0)
         if human_input_state.gamepad_state.start_pressed:
             self.cruise_control=True #turn on cruise control
         elif human_input_state.gamepad_state.back_pressed: #turn off cruise control
