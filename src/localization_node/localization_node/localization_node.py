@@ -30,7 +30,7 @@ class LocalizationNode(Node):
         
 
         ## PUBLISHER FOR ZED_POSE## TEMPLATE
-        self.publisher_ = self.create_publisher(PoseWithCovarianceStamped, 'set_pose', 10) ## VERIFY THE TOPIC
+        self.publisher_ = self.create_publisher(PoseWithCovarianceStamped, 'pose_with_covar', 10) ## VERIFY THE TOPIC
         timer_period = TIMER_PERIOD ## how often it will publish
         self.timer = self.create_timer(timer_period, self.zed_pose_callback) ## timer
         self.callback_counter = 0 ##callback counter
@@ -38,7 +38,7 @@ class LocalizationNode(Node):
         ## SUBSCRIBER FOR SLAM ##
         self.subscription = self.create_subscription(
             PoseStamped, ## type for topic 'pose'
-            'pose', ### topic name for the Zed2 Localizer
+            'zed/zed_node/pose', ### topic name for the Zed2 Localizer
             self.slam_callback,
             10 ## ROS2 Docs told me to do it.
         )
