@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'autonomy_action_server = actions.autonomy_action_server:main'
+            'autonomy_action_server = actions.autonomy_action_server:main',
+            'toy_autonomy_action_client = actions.toy_autonomy_action_client:main'
         ],
     },
 )
