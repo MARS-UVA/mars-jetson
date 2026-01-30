@@ -229,7 +229,7 @@ class AutonomousActionServer(Node):
                 drum_speed = int(self.get_parameter(
                     self.dump_spin_drums_magnitude_param_descriptor.name).value)
                 actuator_speed = int(self.get_parameter(
-                    self.dump_spin_drums_magnitude_param_descriptor.name).value)
+                    self.dump_arm_speed_magnitude_param_descriptor.name).value)
                 wheel_speed = WheelSpeeds(self.get_parameter(
                     self.dump_forward_magnitude_param_descriptor.name).value,
                     self.get_parameter(
