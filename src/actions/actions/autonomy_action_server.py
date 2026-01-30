@@ -252,6 +252,7 @@ class AutonomousActionServer(Node):
                 # sleep then stop driving
                 time.sleep(drum_lowering_delay)
                 self.serial_publisher.publish(motor_queries.stop_motors())
+                time.sleep(0.1)
 
                 # Raise Drums
                 msg = MotorChanges(changes=[], adds=[])
