@@ -240,10 +240,12 @@ class AutonomousActionServer(Node):
                     self.dump_time_param_descriptor.name).value
                 dump_raising_time = self.get_parameter(
                     self.drum_dump_raising_time_param_descriptor.name).value
+                
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
 
                 # Drive forward
+                msg = MotorChanges(changes=[], adds=[])
                 msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
                 self.serial_publisher.publish(msg)
 
@@ -251,20 +253,21 @@ class AutonomousActionServer(Node):
                 time.sleep(drum_lowering_delay)
                 self.serial_publisher.publish(motor_queries.stop_motors())
 
-                # Raise Drums (?)
+                # Raise Drums
                 msg = MotorChanges(changes=[], adds=[])
                 motor_queries.raise_arms(actuator_speed, True, True, msg)
 
                 self.serial_publisher.publish(msg)
 
                 time.sleep(dump_raising_time)
-                self.serial_publisher.publish(motor_queries.stop_motors())
-                # Spin Drums to Dump
+
+                # Stop raising and spin drums
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start dumping
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                motor_queries.raise_arms(127, True, True, msg)
                 self.serial_publisher.publish(msg)
                 # sleep(some time)
                 time.sleep(dump_time)
