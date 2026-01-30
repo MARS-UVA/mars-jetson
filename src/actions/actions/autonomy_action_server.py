@@ -258,6 +258,7 @@ class AutonomousActionServer(Node):
                 self.serial_publisher.publish(msg)
 
                 time.sleep(dump_raising_time)
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 # Spin Drums to Dump
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
