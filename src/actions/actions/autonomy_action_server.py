@@ -11,6 +11,7 @@ from teleop.control.base import WheelSpeeds
 from teleop import motor_queries
 
 from autonomy_msgs.action import AutonomousActions
+from std_msgs.msg import UInt8
 
 
 class AutonomousActionServer(Node):
@@ -116,6 +117,11 @@ class AutonomousActionServer(Node):
             topic='teleop',
             qos_profile=1
         )
+        self.teleop_state_publisher = self.create_publisher(
+            msg_type=UInt8,
+            topic='teleop/state',
+            qos_profile=1
+        )
         # Dump Paramaters
 
         # Dump Wheel Speed
@@ -150,11 +156,16 @@ class AutonomousActionServer(Node):
 
         match goal_handle.request.index:
             case 0:
+                msg = UInt8()
+                msg.data = 1
                 # teleop
+                self.teleop_state_publisher.publish(msg)
                 # return AutonomousActions.Result()
                 pass
-
             case 1:
+                msg = UInt8()
+                msg.data = 0
+                self.teleop_state_publisher.publish(msg)
                 # Dig Autonomy
                 drum_speed = int(self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value * 127 + 127)
                 actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127 + 127)
@@ -203,6 +214,9 @@ class AutonomousActionServer(Node):
                 #return AutonomousActions.Result()
 
             case 2:
+                msg = UInt8()
+                msg.data = 0
+                self.teleop_state_publisher.publish(msg)
                 # Dump Autonomy
                 drum_speed = int(self.get_parameter(
                     self.dump_spin_drums_magnitude_param_descriptor.name).value)
