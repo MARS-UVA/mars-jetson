@@ -68,7 +68,7 @@ ekf_filter_node:
 
 
         pose1: /localization/estimated_pose   #topic of positions from apriltag
-        pose1_config: [true, true, true,
+        pose1_config: [true, true, false,
                       false, false, true,
                       false, false, false,
                       false, false, false,

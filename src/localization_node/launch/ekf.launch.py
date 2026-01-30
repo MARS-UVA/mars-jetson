@@ -13,6 +13,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
@@ -30,7 +31,7 @@ def generate_launch_description():
     package_name = 'localization_node'
 
     # Config file paths
-    ekf_config_file_path = 'config/ekf.yaml'
+    ekf_config_file_path = 'ekf.yaml'
 
     # Set the path to different packages
     pkg_share = FindPackageShare(package=package_name).find(package_name)
@@ -54,9 +55,8 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',
-        parameters=[
-            ekf_config_file
-        ]
+        parameters=[os.path.join(get_package_share_directory("localization_node"), 'config/ekf.yaml')],
+
     )
 
     # Create the launch description and populate
