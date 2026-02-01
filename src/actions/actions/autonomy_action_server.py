@@ -176,7 +176,7 @@ class AutonomousActionServer(Node):
                 self.teleop_state_publisher.publish(msg)
                 # Dig Autonomy
                 drum_speed = int(self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value * 127 + 127)
-                actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127 + 127)
+                actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127)
                 wheel_speed = WheelSpeeds(
                     self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
                     self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
@@ -240,7 +240,7 @@ class AutonomousActionServer(Node):
                     self.dump_time_param_descriptor.name).value
                 dump_raising_time = self.get_parameter(
                     self.drum_dump_raising_time_param_descriptor.name).value
-                
+
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
 
