@@ -1,0 +1,10 @@
+build
+*.egg-info
+.idea/*
+.DS_Store
+**/__pycache__
+*.egg-info
+
+/.venv/
+
+/_skbuild/
