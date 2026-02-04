@@ -1,10 +1,10 @@
 #ifndef MARSLOCALIZER_PNP_HPP
 #define MARSLOCALIZER_PNP_HPP
 
-
 #include <vector>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
+
 #include "camera.hpp"
 #include "data.hpp"
 

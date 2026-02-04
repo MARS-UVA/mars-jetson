@@ -1,5 +1,11 @@
 #include "wrapper.hpp"
 
+#include <apriltag.h>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
+
 std::map<const apriltag_family_t*, std::shared_ptr<apriltag::AprilTagFamily>> apriltag::AprilTagFamily::_instances {};
 
 std::shared_ptr<apriltag::AprilTagFamily> apriltag::AprilTagFamily::get(apriltag_family_t* family, Deleter& deleter) {

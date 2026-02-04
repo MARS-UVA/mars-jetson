@@ -2,13 +2,15 @@
 #define MARSLOCALIZER_WRAPPER_HPP
 
 #include <apriltag.h>
+#include <array>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
 #include <string>
 #include <Eigen/Dense>
 // ReSharper disable once CppUnusedIncludeDirective
-#include <opencv2/core/mat.hpp>
+#include <opencv2/opencv.hpp>
 
 /** @file */
 

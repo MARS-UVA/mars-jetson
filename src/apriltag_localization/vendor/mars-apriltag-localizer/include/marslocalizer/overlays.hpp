@@ -1,8 +1,9 @@
 #ifndef MARSLOCALIZER_DISPLAY_HPP
 #define MARSLOCALIZER_DISPLAY_HPP
 
+#include <vector>
 // ReSharper disable once CppUnusedIncludeDirective
-#include <opencv2/core/mat.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "wrapper.hpp"
 

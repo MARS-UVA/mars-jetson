@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <nlohmann/json.hpp>
+#include <opencv2/core/eigen.hpp>
 
 using json = nlohmann::json;
 
