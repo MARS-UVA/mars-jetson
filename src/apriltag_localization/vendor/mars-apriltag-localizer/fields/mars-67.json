@@ -1,0 +1,34 @@
+{
+    "name": "MARS 6-7 test field",
+    "fiducials": [
+        {
+            "id": 6,
+            "translation": [
+                -0.013,
+                0.525,
+                -1.264
+            ],
+            "rotation": [
+                -90,
+                0,
+                -91.4
+            ],
+            "size": 0.135
+        },
+        {
+            "id": 7,
+            "translation": [
+                0.157,
+                0.000,
+                -1.264
+            ],
+            "rotation": [
+                -90,
+                0,
+                0
+            ],
+            "size": 0.135
+        }
+    ],
+    "tag_family": "tagStandard41h12"
+}
