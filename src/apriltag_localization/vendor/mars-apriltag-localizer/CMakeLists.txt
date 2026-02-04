@@ -5,6 +5,7 @@ project(marslocalizer
 )
 
 option(BUILD_EXAMPLES "Build example executables" ON)
+option(INSTALL_PKG_CONFIG "Install a .pc file for this library" ON)
 
 include(GNUInstallDirs)
 
@@ -51,49 +52,51 @@ target_link_libraries(${PROJECT_NAME}
         PUBLIC ${OpenCV_LIBS}
         PUBLIC nlohmann_json::nlohmann_json
 )
-configure_file(marslocalizer.pc.in marslocalizer.pc @ONLY)
 install(
         TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-install(
-        FILES ${CMAKE_BINARY_DIR}/marslocalizer.pc
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
-)
+if (INSTALL_PKG_CONFIG)
+    configure_file(marslocalizer.pc.in marslocalizer.pc @ONLY)
+    install(
+            FILES ${CMAKE_BINARY_DIR}/marslocalizer.pc
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
+    )
+endif ()
 
 if (BUILD_EXAMPLES)
-add_executable(2d_detect
-        examples/2d_detect.cpp
-)
-add_executable(2d_detect_simple
-        examples/2d_detect_simple.cpp
-)
-add_executable(localize
-        examples/localize.cpp
-)
-add_executable(localize_data
-        examples/localize_data.cpp
-)
-add_dependencies(2d_detect ${PROJECT_NAME})
-add_dependencies(2d_detect_simple ${PROJECT_NAME})
-add_dependencies(localize ${PROJECT_NAME})
-add_dependencies(localize_data ${PROJECT_NAME})
+    add_executable(2d_detect
+            examples/2d_detect.cpp
+    )
+    add_executable(2d_detect_simple
+            examples/2d_detect_simple.cpp
+    )
+    add_executable(localize
+            examples/localize.cpp
+    )
+    add_executable(localize_data
+            examples/localize_data.cpp
+    )
+    add_dependencies(2d_detect ${PROJECT_NAME})
+    add_dependencies(2d_detect_simple ${PROJECT_NAME})
+    add_dependencies(localize ${PROJECT_NAME})
+    add_dependencies(localize_data ${PROJECT_NAME})
 
-target_link_libraries(2d_detect
-        ${PROJECT_NAME}
-)
-target_link_libraries(2d_detect_simple
-        ${PROJECT_NAME}
-)
-target_link_libraries(localize
-        ${PROJECT_NAME}
-)
-target_link_libraries(localize_data
-        ${PROJECT_NAME}
-)
-install(
-        TARGETS 2d_detect 2d_detect_simple localize localize_data
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+    target_link_libraries(2d_detect
+            ${PROJECT_NAME}
+    )
+    target_link_libraries(2d_detect_simple
+            ${PROJECT_NAME}
+    )
+    target_link_libraries(localize
+            ${PROJECT_NAME}
+    )
+    target_link_libraries(localize_data
+            ${PROJECT_NAME}
+    )
+    install(
+            TARGETS 2d_detect 2d_detect_simple localize localize_data
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif ()
