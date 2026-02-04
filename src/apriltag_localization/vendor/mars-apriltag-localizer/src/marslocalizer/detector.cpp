@@ -101,9 +101,9 @@ image_u8_t apriltag::cv2cimage(const cv::Mat& image) {
         throw std::invalid_argument("Invalid image type");
     }
     return {
-        .width = image.cols,
-        .height = image.rows,
-        .stride = static_cast<std::int32_t>(image.step[0]), // NOLINT(*-pro-bounds-avoid-unchecked-container-access)
-        .buf = image.data
+        image.cols,  // width
+        image.rows,  // height
+        static_cast<std::int32_t>(image.step[0]), // step NOLINT(*-pro-bounds-avoid-unchecked-container-access)
+        image.data  // buffer
     };
 }
