@@ -1,5 +1,11 @@
 #include "wrapper.hpp"
 
+#include <apriltag.h>
+#include <array>
+#include <memory>
+#include <Eigen/Dense>
+#include <opencv2/core/mat.hpp>
+
 int apriltag::AprilTagDetection::id() const {
     return _detection->id;
 }

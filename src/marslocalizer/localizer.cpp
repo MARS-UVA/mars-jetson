@@ -6,6 +6,8 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
 #include "pnp.hpp"
 
 namespace {

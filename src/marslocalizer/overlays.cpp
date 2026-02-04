@@ -1,6 +1,10 @@
-#include <opencv2/imgproc.hpp>
-
 #include "overlays.hpp"
+
+#include <array>
+#include <string>
+#include <vector>
+#include <Eigen/Dense>
+#include <opencv2/opencv.hpp>
 
 namespace {
 

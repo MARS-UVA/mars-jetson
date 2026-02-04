@@ -1,6 +1,11 @@
-#include <exception>
-
 #include "wrapper.hpp"
+
+#include <apriltag.h>
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <vector>
+#include <opencv2/core/mat.hpp>
 
 // Accessors
 

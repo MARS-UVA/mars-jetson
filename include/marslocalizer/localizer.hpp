@@ -5,6 +5,11 @@
 #ifndef MARSLOCALIZER_LOCALIZER_HPP
 #define MARSLOCALIZER_LOCALIZER_HPP
 
+#include <memory>
+#include <optional>
+#include <vector>
+#include <opencv2/opencv.hpp>
+
 #include "camera.hpp"
 #include "data.hpp"
 #include "field.hpp"

@@ -1,6 +1,6 @@
 #include "pnp.hpp"
 
-#include <algorithm>
+#include <exception>
 #include <vector>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>

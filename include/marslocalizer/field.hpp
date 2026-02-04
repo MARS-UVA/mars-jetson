@@ -5,12 +5,12 @@
 #ifndef MARSLOCALIZER_FIELD_HPP
 #define MARSLOCALIZER_FIELD_HPP
 
+#include <cstdint>
 #include <fstream>
 #include <string>
 #include <unordered_map>
 #include <Eigen/Geometry>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/core/mat.hpp>
+#include <opencv2/opencv.hpp>
 
 namespace apriltag {
 
