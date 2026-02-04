@@ -6,11 +6,10 @@ project(marslocalizer
 
 include(GNUInstallDirs)
 
-find_package(apriltag REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(apriltag REQUIRED)
-find_package(nlohmann_json 3.12.0 REQUIRED)
+find_package(apriltag 3 REQUIRED)
+find_package(nlohmann_json 3 REQUIRED)
 
 include_directories(
         include/marslocalizer
