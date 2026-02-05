@@ -52,7 +52,7 @@ class AprilTagField {
 
 public:
 
-    static std::shared_ptr<AprilTagField> parse(std::ifstream& input);
+    static std::shared_ptr<AprilTagField> parse(std::ifstream&& input);
 
     const AprilTagInfo* tag(const std::uint32_t tag_id) const {
         if (const auto entry = _fiducials.find(tag_id); entry != _fiducials.end()) {

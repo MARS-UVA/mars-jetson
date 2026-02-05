@@ -40,8 +40,8 @@ void apriltag::AprilTagInfo::set_pose(const Eigen::Affine3d& pose) {
     cv::eigen2cv(_corners, _corners_cv);
 }
 
-std::shared_ptr<apriltag::AprilTagField> apriltag::AprilTagField::parse(std::ifstream& input) {
-    const json json_data = json::parse(input);
+std::shared_ptr<apriltag::AprilTagField> apriltag::AprilTagField::parse(std::ifstream&& input) {
+    const json json_data = json::parse(std::move(input));
 
     if (!json_data.contains("fiducials")) {
         throw std::invalid_argument("Bad AprilTag field JSON: no fiducials provided");
