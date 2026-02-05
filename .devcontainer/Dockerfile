@@ -17,8 +17,15 @@ RUN apt update -q \
     xauth \
     openssh-client \
     # ROS libraries for image handling
+    ros-jazzy-vision-opencv \
     ros-jazzy-cv-bridge \
     ros-jazzy-image-transport \
+    # ROS libraries for AprilTags
+    ros-jazzy-apriltag \
+    # For linear algebra
+    libeigen3-dev \
+    # Other
+    nlohmann-json3-dev
     wget \
     at \
     && apt clean \
