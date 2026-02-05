@@ -11,33 +11,17 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(robot_localization REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 include_directories(include)
 
-add_executable(webcam
-  src/webcam.cpp
-  ../server/server.cpp
-  ../server/client.cpp
-  ../server/frame_sender.cpp
-)
-
-target_link_libraries(webcam ${OpenCV_LIBS})
-target_include_directories(webcam PRIVATE ${OpenCV_INCLUDE_DIRS})
-ament_target_dependencies(webcam 
-  rclcpp 
-  std_msgs 
-  sensor_msgs 
-  cv_bridge 
-  OpenCV 
-)
-
 install(TARGETS
-  webcam
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -52,10 +36,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# ament_python_install_package(${PROJECT_NAME})
-# install(PROGRAMS
-#   scripts/webcam_publisher.py
-#   scripts/display.py
-#   DESTINATION lib/${PROJECT_NAME})
+ament_python_install_package(${PROJECT_NAME})
+install(PROGRAMS
+  webcam/webcam_publisher.py
+  webcam/display.py
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
