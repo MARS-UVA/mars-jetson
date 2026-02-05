@@ -60,7 +60,7 @@ class PosePublisher(Node):
 
         # Add covariance
         out.pose.covariance = self.zed_covariance
-        out.header.frame_id = 'odom'
+        #out.header.frame_id = 'odom'
 
         self.pub_cov.publish(out)
 
@@ -104,7 +104,7 @@ class PosePublisher(Node):
         # --------------------------
         msg_est = PoseWithCovarianceStamped()
         msg_est.header.stamp = now
-        msg_est.header.frame_id = 'odom'
+        msg_est.header.frame_id = 'map'
 
         # Linear motion along x
         msg_est.pose.pose.position.x = math.cos(self.t)
