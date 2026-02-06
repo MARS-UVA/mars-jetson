@@ -20,10 +20,15 @@ RUN apt update -q \
     ros-jazzy-vision-opencv \
     ros-jazzy-cv-bridge \
     ros-jazzy-image-transport \
+    ros-jazzy-v4l2-camera \
     # ROS libraries for AprilTags
     ros-jazzy-apriltag \
+    ros-jazzy-tf2 \
+    ros-jazzy-tf2-ros \
+    ros-jazzy-tf2-geometry-msgs \
     # For linear algebra
     libeigen3-dev \
+    ros-jazzy-gtsam \
     # Other
     nlohmann-json3-dev
     wget \
