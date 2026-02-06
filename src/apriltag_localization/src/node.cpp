@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <tagStandard41h12.h>
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -43,12 +44,12 @@ public:
         std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::ifstream(field_path));
         _localizer = std::make_unique<apriltag::CameraLocalizer>(field, apriltag::PnPMethod::SQPNP);
 
-        //_image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
+        const auto family = apriltag::AprilTagFamily::get(tagStandard41h12_create(), tagStandard41h12_destroy);
+        _localizer->detector().nthreads() = 8;
+        _localizer->detector().add_family(family);
 
-        
-
-        _camera_subscriber = image_transport::create_camera_subscription(
-            this,
+        _image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
+        _camera_subscriber = _image_transport->subscribeCamera(
             "arducam1/image_raw",
             std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2),
             "raw",

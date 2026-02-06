@@ -49,6 +49,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}
   marslocalizer
+  apriltag
   rclcpp::rclcpp
   image_transport::image_transport
   cv_bridge::cv_bridge
