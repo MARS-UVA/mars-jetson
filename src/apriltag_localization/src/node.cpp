@@ -4,7 +4,7 @@
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_ros/transform_listener.hpp>
@@ -43,11 +43,17 @@ public:
         std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::ifstream(field_path));
         _localizer = std::make_unique<apriltag::CameraLocalizer>(field, apriltag::PnPMethod::SQPNP);
 
-        _image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
-        _camera_subscriber = _image_transport->subscribeCamera(
+        //_image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
+
+        
+
+        _camera_subscriber = image_transport::create_camera_subscription(
+            this,
             "arducam1/image_raw",
-            10,
-            std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2)
+            std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2),
+            "raw",
+            rclcpp::SensorDataQoS().get_rmw_qos_profile()
+
         );
         _tf2_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         _tf2_listener = std::make_shared<tf2_ros::TransformListener>(*_tf2_buffer);
