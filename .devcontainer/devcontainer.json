@@ -1,0 +1,45 @@
+{
+  "name": "ROS 2 Jazzy Workspace",
+  "remoteUser": "rosdev",
+  "build": {
+      "dockerfile": "Dockerfile",
+      "args": {
+          "USERNAME": "rosdev",
+          "GID": "1002",
+          "UID": "1002"
+      }
+  },
+  "customizations": {
+      "vscode": {
+          "extensions": [
+            "ms-python.python",
+            "charliermarsh.ruff",
+            "ms-vscode.cpptools-extension-pack",
+            "ranch-hand-robotics.rde-pack",
+            "smilerobotics.urdf",
+            "redhat.vscode-xml",
+            "tamasfe.even-better-toml",
+            "timonwong.shellcheck",
+            "yzhang.markdown-all-in-one",
+            "mhutchie.git-graph"
+          ],
+          "settings": {
+              "files.associations": {
+                  "*.rviz": "yaml",
+                  "*.srdf": "xml",
+                  "*.urdf": "xml",
+                  "*.xacro": "xml"
+              },
+              "python.analysis.extraPaths": [
+                "${workspaceFolder}/install/*/lib/python3.12/site-packages/**"
+              ]
+          }
+      }
+  },
+  "workspaceFolder": "/home/rosdev/ros2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/rosdev/ros2_ws/,type=bind",
+  "mounts": [],
+  "runArgs": [
+      "--net=host"
+  ]
+}

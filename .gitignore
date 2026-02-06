@@ -11,9 +11,6 @@ log
 # Built Python packages
 *.egg-info
 
-# Ignore dev containers for now
-.devcontainer
-
 # Also ignore Python virtual environments
 .venv
 
