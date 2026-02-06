@@ -13,6 +13,8 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(GTSAM REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
@@ -52,6 +54,8 @@ target_link_libraries(${PROJECT_NAME}
   cv_bridge::cv_bridge
   tf2_eigen::tf2_eigen
   tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  gtsam
   ${sensor_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
 )

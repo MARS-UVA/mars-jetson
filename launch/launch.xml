@@ -1,0 +1,9 @@
+<launch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://design.ros2.org/articles/roslaunch_xml.html schema/launch.xsd">
+    <node pkg="apriltag_localization"
+          exec="apriltag_localization"
+          name="apriltag_localization"
+          namespace="awareness">
+        <param name="field" value="fields/mars-67.json"/>
+    </node>
+</launch>

@@ -16,6 +16,7 @@
   <depend>image_transport</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>gtsam</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
 
