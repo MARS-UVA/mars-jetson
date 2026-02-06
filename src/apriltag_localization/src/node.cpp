@@ -26,7 +26,7 @@ using immutable_shared_ptr = const std::shared_ptr<const T>;
 class AprilTagLocalizationNode : public rclcpp::Node {
 
     std::unique_ptr<apriltag::CameraLocalizer> _localizer;
-    image_transport::ImageTransport _image_transport { shared_from_this() };
+    std::unique_ptr<image_transport::ImageTransport> _image_transport;
     image_transport::CameraSubscriber _camera_subscriber;
     std::unique_ptr<tf2_ros::Buffer> _tf2_buffer;
     std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
@@ -43,7 +43,8 @@ public:
         std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::ifstream(field_path));
         _localizer = std::make_unique<apriltag::CameraLocalizer>(field, apriltag::PnPMethod::SQPNP);
 
-        _camera_subscriber = _image_transport.subscribeCamera(
+        _image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
+        _camera_subscriber = _image_transport->subscribeCamera(
             "arducam1/image_raw",
             10,
             std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2)
