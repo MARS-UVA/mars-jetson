@@ -24,11 +24,10 @@ def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
 
 # Raises the arms of the robot
 def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
-    arm_velocity = 127 + velocity
     if front_arm:
-        msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
+        msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=velocity))
     if back_arm:
-        msg.changes.append(SetMotor(index=SetMotor.ARM_BACK_ACTUATOR, velocity=arm_velocity))
+        msg.changes.append(SetMotor(index=SetMotor.ARM_BACK_ACTUATOR, velocity=velocity))
 
 # Stops spinning the bucket drum(s) selected
 def stop_drum_spin(front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
