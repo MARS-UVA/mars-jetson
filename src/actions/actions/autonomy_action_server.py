@@ -77,7 +77,7 @@ class AutonomousActionServer(Node):
     drum_dig_raising_time_param_descriptor = ParameterDescriptor(
         name='drum_dig_raising_time',
         type=ParameterType.PARAMETER_INTEGER,
-        description='The time (ms) the drum should be lowered before the drum lowering motor is told to stop.',
+        description='The time (ms) the drum should be raised before the drum lowering motor is told to stop.',
         dynamic_typing=True
     )
     dig_wheel_speed_param_descriptor = ParameterDescriptor(
