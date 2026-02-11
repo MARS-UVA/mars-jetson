@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/point_cloud.h>
@@ -22,8 +25,10 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr rotate_pointcloud(pcl::PointCloud<pcl::Point
     return transformed_cloud;
 }
 
-PointCloudTransformNode::PointCloudTransformNode(const rclcpp::NodeOptions& options) : rclcpp::Node("pointcloud_tf") {
-
+PointCloudTransformNode::PointCloudTransformNode(const rclcpp::NodeOptions& options) : rclcpp::Node("pointcloud_tf", options) {
+    const auto qos = rclcpp::SystemDefaultsQoS();
+    pointcloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+        "/zed/zed_node/point_cloud/cloud_registered", qos, std::bind(&PointCloudTransformNode::pointcloud_callback, this, std::placeholders::_1));
 }
 
 
