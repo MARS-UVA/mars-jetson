@@ -32,5 +32,4 @@ WORKDIR /ws
 COPY ./src /ws/src
 
 # Source ROS 2 and run startup
-ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer &&
-    source install/setup.bash && ros2 run gstreamer webrtc_stream"]
+ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer && source install/setup.bash && ros2 run gstreamer webrtc_stream"]
