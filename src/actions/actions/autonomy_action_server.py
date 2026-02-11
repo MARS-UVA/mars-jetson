@@ -40,7 +40,7 @@ class AutonomousActionServer(Node):
     dump_arm_speed_magnitude_param_descriptor = ParameterDescriptor(
         name='dump_arm_speed_magnitude',
         type=ParameterType.PARAMETER_INTEGER,
-        description='The magnitude the drums should be raised when dumping',
+        description='The speed at which the drums should be raised when dumping',
         dynamic_typing=True
     )
     dump_spin_drums_magnitude_param_descriptor = ParameterDescriptor(
@@ -61,8 +61,8 @@ class AutonomousActionServer(Node):
         description='Time in seconds that the robot should spend dumping.',
         dynamic_typing=True
     )
-    drum_dump_raising_time_param_descriptor = ParameterDescriptor(
-        name='drum_dump_raising_time',
+    drum_dump_lowering_time_param_descriptor = ParameterDescriptor(
+        name='drum_dump_lowered_time',
         type=ParameterType.PARAMETER_INTEGER,
         description='The time the drum should be lowered before the drum lowering motor is told to stop.',
         dynamic_typing=True
@@ -142,8 +142,8 @@ class AutonomousActionServer(Node):
                                descriptor=self.dump_start_delay_param_descriptor)
         self.declare_parameter(self.dump_time_param_descriptor.name,
                                descriptor=self.dump_time_param_descriptor)
-        self.declare_parameter(self.drum_dump_raising_time_param_descriptor.name,
-                               descriptor=self.drum_dump_raising_time_param_descriptor)
+        self.declare_parameter(self.drum_dump_lowering_time_param_descriptor.name,
+                               descriptor=self.drum_dump_lowering_time_param_descriptor)
 
         # Dig Parameters
         self.declare_parameter(self.drum_dig_lowering_time_param_descriptor.name,
@@ -238,8 +238,8 @@ class AutonomousActionServer(Node):
                     self.dump_start_delay_param_descriptor.name).value
                 dump_time = self.get_parameter(
                     self.dump_time_param_descriptor.name).value
-                dump_raising_time = self.get_parameter(
-                    self.drum_dump_raising_time_param_descriptor.name).value
+                dump_lowering_time = self.get_parameter(
+                    self.drum_dump_lowering_time_param_descriptor.name).value
 
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
@@ -256,11 +256,11 @@ class AutonomousActionServer(Node):
 
                 # Raise Drums
                 msg = MotorChanges(changes=[], adds=[])
-                motor_queries.raise_arms(actuator_speed, True, True, msg)
+                motor_queries.raise_arms(-actuator_speed, True, True, msg)
 
                 self.serial_publisher.publish(msg)
 
-                time.sleep(dump_raising_time)
+                time.sleep(dump_lowering_time)
 
                 # Stop raising and spin drums
                 # Create msg to send initial state
