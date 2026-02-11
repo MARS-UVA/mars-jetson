@@ -46,7 +46,7 @@ class WebRTCNode(Node):
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
             caps=video/x-raw,format=BGR,width={IMAGE_WIDTH},height={IMAGE_HEIGHT},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue ! 
-            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate 2000000 ! 
+            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate=2000000 ! 
             rtpvp8pay ! 
             application/x-rtp,media=video,encoding-name=VP8,payload=96 ! 
             webrtcbin name=sendrecv bundle-policy=max-bundle stun-server={STUN_SERVER}
