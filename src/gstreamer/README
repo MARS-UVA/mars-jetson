@@ -1,0 +1,2 @@
+This package runs the gstreamer node on the robot to connect with our UI.
+It requires gstreamer >= 1.22 for webrtc components
