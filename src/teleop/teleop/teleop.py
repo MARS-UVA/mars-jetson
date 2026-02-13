@@ -196,9 +196,7 @@ class TeleopNode(Node):
             raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
         
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.y_pressed:
-            self.cruise_control=True #turn on cruise control
-        elif human_input_state.gamepad_state.back_pressed: #turn off cruise control
-            self.cruise_control = False
+            self.cruise_control = not self.cruise_control
             # self._motor_publisher.publish(stop_motors()) #this happens on the next tick anyway
 
         if not motor_msg.changes and not motor_msg.adds:
