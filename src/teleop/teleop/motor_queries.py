@@ -22,8 +22,9 @@ def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
         actuator_value = 127 + int(human_input.gamepad_state.right_stick.y * ACTUATOR_SMALL_SPEED_MAX)
     return SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = actuator_value)
 
-# Raises the arms of the robot
-def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
+# Moves the arms of the robot
+# 127 stops arms, 255 raises arms at full speed, and 0 lowers arms at full speed
+def move_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
     arm_velocity = velocity
     if front_arm:
         msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
