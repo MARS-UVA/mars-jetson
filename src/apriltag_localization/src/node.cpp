@@ -5,7 +5,11 @@
 #include <tagStandard41h12.h>
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
+#ifdef LEGACY_CV_BRIDGE
 #include <cv_bridge/cv_bridge.h>
+#else
+#include <cv_bridge/cv_bridge.hpp>
+#endif
 #include <image_transport/image_transport.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_ros/transform_listener.hpp>
@@ -27,7 +31,6 @@ using immutable_shared_ptr = const std::shared_ptr<const T>;
 class AprilTagLocalizationNode : public rclcpp::Node {
 
     std::unique_ptr<apriltag::CameraLocalizer> _localizer;
-    std::unique_ptr<image_transport::ImageTransport> _image_transport;
     image_transport::CameraSubscriber _camera_subscriber;
     std::unique_ptr<tf2_ros::Buffer> _tf2_buffer;
     std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
@@ -48,13 +51,12 @@ public:
         _localizer->detector().nthreads() = 8;
         _localizer->detector().add_family(family);
 
-        _image_transport = std::make_unique<image_transport::ImageTransport>(shared_from_this());
-        _camera_subscriber = _image_transport->subscribeCamera(
+        _camera_subscriber = image_transport::create_camera_subscription(
+            this,
             "arducam1/image_raw",
             std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2),
             "raw",
             rclcpp::SensorDataQoS().get_rmw_qos_profile()
-
         );
         _tf2_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         _tf2_listener = std::make_shared<tf2_ros::TransformListener>(*_tf2_buffer);

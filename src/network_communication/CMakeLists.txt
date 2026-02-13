@@ -30,15 +30,19 @@ add_executable(net_node
   src/frame_sender.cpp
 )
 
+if ($ENV{ROS_DISTRO} STREQUAL "humble")
+target_compile_definitions(netnode LEGACY_CV_BRIDGE)
+endif ()
+
 target_link_libraries(net_node ${OpenCV_LIBS})
 target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
-ament_target_dependencies(net_node 
-  rclcpp 
-  std_msgs 
-  sensor_msgs 
-  cv_bridge 
-  image_transport 
-  OpenCV 
+ament_target_dependencies(net_node
+  rclcpp
+  std_msgs
+  sensor_msgs
+  cv_bridge
+  image_transport
+  OpenCV
   teleop_msgs
   serial_msgs
 )

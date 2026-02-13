@@ -2,7 +2,11 @@
 #include <functional>
 #include <memory>
 #include <string>
+#ifdef LEGACY_CV_BRIDGE
 #include <cv_bridge/cv_bridge.h>
+#else
+#include <cv_bridge/cv_bridge.hpp>
+#endif
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>

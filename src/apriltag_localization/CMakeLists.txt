@@ -35,6 +35,10 @@ add_dependencies(${PROJECT_NAME}
   marslocalizer
 )
 
+if ($ENV{ROS_DISTRO} STREQUAL "humble")
+target_compile_definitions(${PROJECT_NAME} LEGACY_CV_BRIDGE)
+endif ()
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
