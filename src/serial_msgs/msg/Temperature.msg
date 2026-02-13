@@ -1,4 +1,4 @@
-float32 front_left_wheel_temperature
+float32 front_left_wheel_temperature #°C
 float32 back_left_wheel_temperature
 float32 front_right_wheel_temperature
 float32 back_right_wheel_temperature

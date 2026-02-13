@@ -1,2 +1,2 @@
-float32 front_actuator_position
+float32 front_actuator_position # calibrated position
 float32 back_actuator_position
