@@ -175,11 +175,11 @@ class TeleopNode(Node):
         
 
         # Spin Bucket Drum(s)
-        if gamepad_state.lt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.lt_pressed): #spin bucket drum backwards
+        if gamepad_state.lb_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.lb_pressed): #spin bucket drum backwards
             self.get_logger().info("bucket drum -15")
             increment_drum_spin(-15, self.front_arm_control, self.back_arm_control, motor_msg)
             
-        elif gamepad_state.rt_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.rt_pressed): #spin bucket drum forward
+        elif gamepad_state.rb_pressed and (not self.prev_gamepad_state or not self.prev_gamepad_state.rb_pressed): #spin bucket drum forward
             self.get_logger().info("bucket drum +15")
             increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
 
@@ -188,13 +188,12 @@ class TeleopNode(Node):
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
+        rightStickY = gamepad_state.right_stick.y
         # Raise and Lower Bucket Drum Arm(s)
-        if gamepad_state.lb_pressed:
+        if rightStickY > 0.2:
             raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)     
-        if gamepad_state.rb_pressed:
+        if rightStickY < -0.2:
             raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
-        if not gamepad_state.lb_pressed and not gamepad_state.rb_pressed:
-            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
         
         if human_input_state.gamepad_state.start_pressed:
             self.cruise_control=True #turn on cruise control
