@@ -5,6 +5,9 @@ from serial_node.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import Feedback
+from serial_msgs.msg import CurrentBusVoltage
+from serial_msgs.msg import Position
+from serial_msgs.msg import Temperature
 
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.02
@@ -26,9 +29,25 @@ class SerialNode(Node):
             topic='feedback',
             qos_profile=1
         )
+        self.current_bus_voltage_publisher = self.create_publisher(
+            msg_type=CurrentBusVoltage,
+            topic='current_bus_voltage',
+            qos_profile=1
+        )
+        self.position_publisher = self.create_publisher(
+            msg_type=Position,
+            topic='position',
+            qos_profile=1
+        )
+        self.temperature_publisher = self.create_publisher(
+            msg_type=Temperature,
+            topic='temperature',
+            qos_profile=1
+        )
+
         self.subscription  # prevent unused variable warning
         self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
-        self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFromNucleo)
+        self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFeedback)
         self.serial_handler = SerialHandler()
 
     def listener_callback(self, msg):
@@ -60,9 +79,42 @@ class SerialNode(Node):
         self.get_logger().warn(f"Sending currents: {self.data}")
         self.serial_handler.send(MOTOR_CURRENT_MSG, self.data, self.get_logger())
         
-    def readFromNucleo(self):
-        data = self.serial_handler.readMsg(logger=self.get_logger())
-        if data:
+    def readFeedback(self):
+        header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
+        if header:
+            if header[1] == 0x00:
+                self.get_logger().warn("no data")
+            if header[1] == 0x01:
+                mf = CurrentBusVoltage( 
+                    front_left_wheel_current = feedback[0],
+                    back_left_wheel_current = feedback[1],
+                    front_right_wheel_current = feedback[2],
+                    back_right_wheel_current = feedback[3],
+                    front_drum_current = feedback[4],
+                    back_drum_current = feedback[5],
+                    front_actuator_current = feedback[6],
+                    back_actuator_current = feedback[7],
+                    main_battery_voltage = feedback[8],
+                    aux_battery_voltage = feedback[9]
+                )
+                self.current_bus_voltage_publisher.publish(mf) 
+            if header[1] == 0x02:
+                mf = Temperature(
+                    front_left_wheel_temperature = feedback[0],
+                    back_left_wheel_temperature = feedback[1],
+                    front_right_wheel_temperature = feedback[2],
+                    back_right_wheel_temperature = feedback[3],
+                    front_drum_temperature = feedback[4],
+                    back_drum_temperature = feedback[5]
+                )
+                self.temperature_publisher.publish(mf)
+            if header[1] == 0x03:
+                mf = Position(
+                    front_actuator_position = feedback[0],
+                    back_actuator_position = feedback[1]
+                )
+                self.position_publisher.publish(mf)
+            """ DEPRECATED FEEDBACK
             mf = Feedback(front_left = data[0],
                                 front_right = data[1],
                                 back_left = data[2],
@@ -73,8 +125,10 @@ class SerialNode(Node):
                                 r_actuator = data[7],
                                 actuator_height = data[8])
             self.feedback_publisher.publish(mf)
+            """
         else:
             self.get_logger().warn("no data")
+        
 
 def main(args=None):
     rclpy.init(args=args)

@@ -41,7 +41,7 @@ class SerialHandler:
 		header = self.SER.read(4)
 		feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, la, ra, actuator height
 		feedback = [i[0] for i in feedback]
-		return feedback
+		return (header, feedback)
 
 
 if __name__ == "__main__":
