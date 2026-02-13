@@ -118,7 +118,7 @@ class TeleopNode(Node):
             callback=self.__on_receive_human_input_state,
             qos_profile=10,
         )
-        self._wheel_speed_publisher = self.create_publisher(
+        self._motor_publisher = self.create_publisher(
             msg_type=MotorChanges,
             topic='teleop',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
@@ -150,6 +150,12 @@ class TeleopNode(Node):
         gamepad_state : GamepadState = human_input_state.gamepad_state
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
+        if gamepad_state.back_pressed:
+            self.prev_gamepad_state = gamepad_state
+            self.get_logger().info("SOFT STOP")
+            self._motor_publisher.publish(stop_motors())
+            return
+
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
         
@@ -180,7 +186,6 @@ class TeleopNode(Node):
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
-        
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
         # Raise and Lower Bucket Drum Arm(s)
@@ -195,18 +200,20 @@ class TeleopNode(Node):
             self.cruise_control=True #turn on cruise control
         elif human_input_state.gamepad_state.back_pressed: #turn off cruise control
             self.cruise_control = False
-            # self._wheel_speed_publisher.publish(stop_motors()) #this happens on the next tick anyway
+            # self._motor_publisher.publish(stop_motors()) #this happens on the next tick anyway
+
         if not motor_msg.changes and not motor_msg.adds:
             self.emptyUpdatesSent += 1
             self.emptyUpdatesSent %= self.MAX_EMPTY_UPDATES
+
         if motor_msg.changes or motor_msg.adds or self.emptyUpdatesSent == 0:
-            self._wheel_speed_publisher.publish(motor_msg)
+            self._motor_publisher.publish(motor_msg)
         # self.get_logger().warn(f"Published to serial node")
         self.prev_gamepad_state = gamepad_state
     
     def __stopped_motors(self) -> None:
         no_wheel_speed_msg = stop_motors()
-        self._wheel_speed_publisher.publish(no_wheel_speed_msg)
+        self._motor_publisher.publish(no_wheel_speed_msg)
 
     def __add_parameter_event_handlers(self) -> None:
         try:
