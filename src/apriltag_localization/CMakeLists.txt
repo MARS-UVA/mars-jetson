@@ -36,7 +36,7 @@ add_dependencies(${PROJECT_NAME}
 )
 
 if ($ENV{ROS_DISTRO} STREQUAL "humble")
-target_compile_definitions(${PROJECT_NAME} LEGACY_CV_BRIDGE)
+target_compile_definitions(${PROJECT_NAME} PRIVATE LEGACY_CV_BRIDGE)
 endif ()
 
 if(BUILD_TESTING)
