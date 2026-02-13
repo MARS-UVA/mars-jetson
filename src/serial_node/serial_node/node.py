@@ -24,11 +24,6 @@ class SerialNode(Node):
             topic='teleop',
             callback=self.listener_callback,
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)) #1 queued message
-        self.feedback_publisher = self.create_publisher(
-            msg_type=Feedback,
-            topic='feedback',
-            qos_profile=1
-        )
         self.current_bus_voltage_publisher = self.create_publisher(
             msg_type=CurrentBusVoltage,
             topic='current_bus_voltage',
