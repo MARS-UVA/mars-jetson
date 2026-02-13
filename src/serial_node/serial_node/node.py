@@ -84,7 +84,7 @@ class SerialNode(Node):
         if header:
             if header[1] == 0x00:
                 self.get_logger().warn("no data")
-            if header[1] == 0x01:
+            elif header[1] == 0x01:
                 mf = CurrentBusVoltage( 
                     front_left_wheel_current = feedback[0],
                     back_left_wheel_current = feedback[1],
@@ -98,7 +98,7 @@ class SerialNode(Node):
                     aux_battery_voltage = feedback[9]
                 )
                 self.current_bus_voltage_publisher.publish(mf) 
-            if header[1] == 0x02:
+            elif header[1] == 0x02:
                 mf = Temperature(
                     front_left_wheel_temperature = feedback[0],
                     back_left_wheel_temperature = feedback[1],
@@ -108,7 +108,7 @@ class SerialNode(Node):
                     back_drum_temperature = feedback[5]
                 )
                 self.temperature_publisher.publish(mf)
-            if header[1] == 0x03:
+            elif header[1] == 0x03:
                 mf = Position(
                     front_actuator_position = feedback[0],
                     back_actuator_position = feedback[1]

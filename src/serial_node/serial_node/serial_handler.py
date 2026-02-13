@@ -15,6 +15,7 @@ class SerialHandler:
 		self.numMotors = 6
 		self.bytesPerMotor = 1
 		self.totalDataBytes = self.numMotors * self.bytesPerMotor
+		self.currentHeader = 0
 
 	def setBytes(self, b):
 		self.totalDataBytes = b
@@ -36,9 +37,18 @@ class SerialHandler:
 
 	def readMsg(self, logger=None):
 		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
+		if self.currentHeader == 0 and self.SER.in_waiting > 3:
+			self.currentHeader == self.SER.read(4)
+		if self.currentHeader[1] == 0x01:
+			if self.SER.in_waiting < 40: return []
+			feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, la, ra, actuator height
+			feedback = [i[0] for i in feedback]
+			header = self.currentHeader
+			self.currentHeader = 0
+			return (header, feedback)
 		if(self.SER.in_waiting<40): return []
 		elif(self.SER.in_waiting>80): self.SER.read((self.SER.in_waiting//40)*40)
-		header = self.SER.read(4)
+		
 		feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, la, ra, actuator height
 		feedback = [i[0] for i in feedback]
 		return (header, feedback)
