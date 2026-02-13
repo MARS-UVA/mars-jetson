@@ -31,7 +31,7 @@ add_executable(net_node
 )
 
 if ($ENV{ROS_DISTRO} STREQUAL "humble")
-target_compile_definitions(netnode PRIVATE LEGACY_CV_BRIDGE)
+target_compile_definitions(net_node PRIVATE LEGACY_CV_BRIDGE)
 endif ()
 
 target_link_libraries(net_node ${OpenCV_LIBS})
