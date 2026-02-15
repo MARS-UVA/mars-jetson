@@ -26,4 +26,4 @@ source install/setup.bash
 
 ros2 launch startup launch.py
 
-kill $OBSTACLE_DETECT_PID
+# kill $OBSTACLE_DETECT_PID

@@ -148,13 +148,13 @@ class TeleopNode(Node):
         # self.get_logger().warn(f"Got message, dpad down: {human_input_state.gamepad_state.dd_pressed}")
         self.timer.reset()
         gamepad_state : GamepadState = human_input_state.gamepad_state
-        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
         if gamepad_state.back_pressed:
             self.prev_gamepad_state = gamepad_state
             self.get_logger().info("SOFT STOP")
             self._motor_publisher.publish(stop_motors())
             return
+        wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
@@ -191,11 +191,13 @@ class TeleopNode(Node):
         rightStickY = gamepad_state.right_stick.y
         # Raise and Lower Bucket Drum Arm(s)
         if rightStickY > 0.2:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)     
-        if rightStickY < -0.2:
-            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)     
+        elif rightStickY < -0.2:
+            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+        else:
+            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
         
-        if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.y_pressed:
+        if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
             # self._motor_publisher.publish(stop_motors()) #this happens on the next tick anyway
 
