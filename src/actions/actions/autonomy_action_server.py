@@ -188,7 +188,7 @@ class AutonomousActionServer(Node):
                 self.serial_publisher.publish(motor_queries.stop_motors())
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
-                # Set Drums to start digging
+                # Set Drums to start digging 
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
                 # Start Lowering of Drums
@@ -197,8 +197,8 @@ class AutonomousActionServer(Node):
                 self.serial_publisher.publish(msg)
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
-                # Start Driving Forward
-                msg = motor_queries.wheel_speed_to_motor_queries(0)
+                # Start Driving Forward (Shouldn't do this but we're gonna fix this later)
+                msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
                 # Stop drum lowering
                 motor_queries.move_arms(127, True, True, msg)
                 # Send message to drive and dig
@@ -210,7 +210,7 @@ class AutonomousActionServer(Node):
                 self.serial_publisher.publish(msg)
                 # Sleep while drums raise
                 time.sleep(drum_raising_delay)
-                # Stop drum raising
+                # Stop drum lowering
                 motor_queries.move_arms(127, True, True, msg)
                 # Stop Digging
                 self.serial_publisher.publish(motor_queries.stop_motors())
