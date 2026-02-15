@@ -14,7 +14,7 @@ fi
 
 # Build the packages
 # colcon build --packages-select teleop_msgs serial_msgs
-colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs network_communication teleop serial_node
+colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs network_communication teleop serial_node actions autonomy_msgs
 # Source the setup file
 source install/setup.bash
 
