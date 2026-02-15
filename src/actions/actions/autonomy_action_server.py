@@ -177,9 +177,9 @@ class AutonomousActionServer(Node):
                 # Dig Autonomy
                 drum_speed = int(self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value * 127 + 127)
                 actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127)
-                wheel_speed = WheelSpeeds( 0, 0
-                    # self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
-                    # self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
+                wheel_speed = WheelSpeeds(
+                    self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
+                    self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
                 )
                 drum_lowering_delay = self.get_parameter(self.drum_dig_lowering_time_param_descriptor.name).value
                 drum_raising_delay = self.get_parameter(self.drum_dig_raising_time_param_descriptor.name).value
@@ -198,13 +198,20 @@ class AutonomousActionServer(Node):
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
                 # Start Driving Forward
-                msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                msg = motor_queries.wheel_speed_to_motor_queries(0)
                 # Stop drum lowering
                 motor_queries.move_arms(127, True, True, msg)
                 # Send message to drive and dig
                 self.serial_publisher.publish(msg)
                 # Sleep while digging and driving forward
                 time.sleep(dig_time)
+                # raise drums
+                motor_queries.move_arms(127+actuator_speed, True, True, msg)
+                self.serial_publisher.publish(msg)
+                # Sleep while drums raise
+                time.sleep(drum_raising_delay)
+                # Stop drum raising
+                motor_queries.move_arms(127, True, True, msg)
                 # Stop Digging
                 self.serial_publisher.publish(motor_queries.stop_motors())
 
@@ -217,11 +224,6 @@ class AutonomousActionServer(Node):
                 # start driving
                 # sleep(some time)
                 # stop everything
-                # raise drums
-                motor_queries.move_arms(127+actuator_speed, True, True, msg)
-                self.serial_publisher.publish(msg)
-                # Sleep while drums lower
-                time.sleep(drum_lowering_delay)
                 # motor command 5?
                 # return AutonomousActions.Result()
 
