@@ -182,6 +182,7 @@ class AutonomousActionServer(Node):
                     self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
                 )
                 drum_lowering_delay = self.get_parameter(self.drum_dig_lowering_time_param_descriptor.name).value
+                drum_raising_delay = self.get_parameter(self.drum_dig_raising_time_param_descriptor.name).value
                 dig_time = self.get_parameter(self.dig_time_param_descriptor.name).value
                 # Stop all motors currently moving on the robot
                 self.serial_publisher.publish(motor_queries.stop_motors())
@@ -218,6 +219,9 @@ class AutonomousActionServer(Node):
                 # stop everything
                 # raise drums
                 motor_queries.move_arms(127+actuator_speed, True, True, msg)
+                self.serial_publisher.publish(msg)
+                # Sleep while drums lower
+                time.sleep(drum_lowering_delay)
                 # motor command 5?
                 # return AutonomousActions.Result()
 
