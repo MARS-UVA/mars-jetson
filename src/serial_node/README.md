@@ -33,14 +33,31 @@ Each line is a **float32** to account for the four bytes of data for each data p
 
 ### serial\_node/serial\_handler.py:
 
-**readMsg** function was updated to account for the **three different message types**. The **header** is stored within the **first four bytes**, and is saved to the variable **self.currentHeader** if self.currentHeader is zero (aka, doesn’t have a header stored right now). The actual header info is stored within the byte at **index 1** (as seen in the above documentation), and **readMsg** checks for a message of a **certain length** (either 8 bytes, 24 bytes, or 40 bytes) depending on the header.  📖
+**send** function:  
+Writes bytes to Serial to be read later by **readMsg**.
 
+**readMsg** function:  
+**readMsg** function accounts for **three different message types**. The message is read from the **self.SER** (Serial) object. The **header** is stored within the **first four bytes**, and is saved to the variable **self.currentHeader** if self.currentHeader is zero (aka, doesn’t have a header stored right now). The actual header info is stored within the byte at **index 1** (as seen in the above documentation), and **readMsg** checks for a message of a **certain length** (either 8 bytes, 24 bytes, or 40 bytes) depending on the header.  📖  
 When a full message is received, it is read and returned with the header as a **tuple** of **(header, feedback)**, where header is **4 bytes**, and feedback is a **list** of **4 byte pairs** (to match the .msg file sizes). 📋
 
 ### serial\_node/node.py:
 
-This is the node that will actually be running the connection; it subscribes to MotorChanges and creates **three publishers** that send out specific message data. On a timer, this node runs “sendCurrents” and **“readFeedback”**. 🗣️
+\_\_init\_\_:  
+Subscribes to MotorChanges (from teleop)  
+Creates three publishers:
 
-The **readFeedback** function was updated to now take a tuple pair **(header, feedback)** from the **readMsg** function in **serial\_node/serial\_handler.py**. Using the header (acquired by header\[1\]), it pairs the feedback with one of the msg classes from **serial\_msgs** and publishes it to the publisher. 🐫
+- **current\_bus\_voltage\_publisher**  
+- **temperature\_publisher**  
+- **position\_publisher**
 
+Creates timer to run **sendCurrents** and **readFeedback**.
+
+**listener\_callback** function:  
+Receives a message and stores it as data within the node.
+
+**sendCurrent** function:  
+Send data to be written via **serial\_node/serial\_handler.py**.
+
+**readFeedback** function:  
+The **readFeedback** function takes a tuple pair **(header, feedback)** from the **readMsg** function in **serial\_node/serial\_handler.py**. Using the header (acquired by header\[1\]), it pairs the feedback with one of the msg classes from **serial\_msgs** and publishes it to the publisher. 🐫  
 If the header is 0x00 or nonexistent, it sends “no data” to the logger. 😵
