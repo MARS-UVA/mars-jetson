@@ -191,7 +191,7 @@ class AutonomousActionServer(Node):
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
                 # Start Lowering of Drums
-                motor_queries.move_arms(-actuator_speed, True, True, msg)
+                motor_queries.move_arms(actuator_speed, True, True, msg)
                 # Send initial msg to serial node
                 self.serial_publisher.publish(msg)
                 # Sleep while drums lower
@@ -255,7 +255,7 @@ class AutonomousActionServer(Node):
 
                 # Lower Drums
                 msg = MotorChanges(changes=[], adds=[])
-                motor_queries.move_arms(-actuator_speed, True, True, msg)
+                motor_queries.move_arms(actuator_speed, True, True, msg)
 
                 self.serial_publisher.publish(msg)
 
