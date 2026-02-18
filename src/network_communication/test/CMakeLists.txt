@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(webapp_comms)
+project(network_communication)
 
 find_package(Catch2 3 REQUIRED)
 find_package(OpenCV REQUIRED)
