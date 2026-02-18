@@ -17,9 +17,9 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
-            package='webapp_comms',
+            package='network_communication',
             executable='net_node',
-            name='webapp_comms',
+            name='network_communication',
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
@@ -30,12 +30,12 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
-        Node(
-            package='webcam',
-            executable='webcam',
-            name='webcam',
-            output='screen',
-            arguments=['--ros-args', '--log-level', 'INFO']
-        )
+        # Node(
+        #     package='webcam',
+        #     executable='webcam',
+        #     name='webcam',
+        #     output='screen',
+        #     arguments=['--ros-args', '--log-level', 'INFO']
+        # )
     ])
 

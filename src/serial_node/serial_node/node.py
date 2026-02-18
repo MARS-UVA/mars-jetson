@@ -9,6 +9,7 @@ from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
 
+NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
 SEND_DELAY_SEC = 0.02
 RECV_DELAY_SEC = 0.03
@@ -17,7 +18,7 @@ MOTOR_STILL = 127
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [MOTOR_STILL]*6 # 0:header, [0:4]:4 wheels, 4:bucket drum, 5:linear actuator
+        self.data = [MOTOR_STILL]*NUM_MOTORS
         super().__init__('read_from_teleop')
         self.subscription = self.create_subscription(
             msg_type=MotorChanges,
@@ -47,26 +48,15 @@ class SerialNode(Node):
 
     def listener_callback(self, msg):
         # self.get_logger().warn("Received motor query")
-        # motors = ["FL", "BL", "FR", "BR", "BucketSpeed", "BucketActuator"]
-        # i = 0
         for change in msg.changes:
-            # self.get_logger().info(f"{motors[change.index]}: {change.velocity}")
-            # self.get_logger().info("Hey")
-            # self.get_logger().info(type(change.velocity))
             self.data[change.index] = change.velocity
-            # if change.index==5:
-                # self.get_logger().warn(f"Got actuator message {change.velocity}")
-            # i+=1
 
         for add in msg.adds:
             newVel = self.data[add.index] + add.vel_increment
-            self.get_logger().warning(f"{add.index}: {'+' if add.vel_increment>0 else ''}{add.vel_increment}")
+            self.get_logger().info(f"{add.index}: {'+' if add.vel_increment>0 else ''}{add.vel_increment}")
             newVel = max(0, newVel)
             newVel = min(254, newVel)
             self.data[add.index] = newVel
-        # print(f"motors: {self.data}")# logging message
-	# for field in self.data:
-        #     self.get_logger().info(str(field))
         
         
     def sendCurrents(self):
