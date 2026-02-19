@@ -4,7 +4,6 @@ from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
 from serial_node.serial_handler import SerialHandler
 from std_msgs.msg import String
 from teleop_msgs.msg import MotorChanges
-from serial_msgs.msg import Feedback
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature

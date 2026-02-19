@@ -2,13 +2,15 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
-#include <serial_msgs/msg/feedback.hpp>
+#include <serial_msgs/msg/current_bus_voltage.hpp>
+#include <serial_msgs/msg/position.hpp>
+#include <serial_msgs/msg/temperature.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -29,7 +31,9 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using serial_msgs::msg::Feedback;
+using serial_msgs::msg::CurrentBusVoltage;
+using serial_msgs::msg::Position;
+using serial_msgs::msg::Temperature;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -94,11 +98,11 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
-        "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
+    //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
     currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
         "bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
-    )
+    );
     temperatureSubscription_ = this->create_subscription<serial_msgs::msg::Temperature>(
         "temperature", 10, std::bind(&NetNode::temperature_callback, this, _1)
     );
@@ -108,6 +112,7 @@ public:
   }
 
 private:
+/*
   void topic_callback(const serial_msgs::msg::Feedback::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Received motor feedback packet");
@@ -135,7 +140,7 @@ private:
 
     // RCLCPP_WARN(this->get_logger(), "Sending now...");
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
-  }
+  }*/
 
   void send_updated_data() {
     size_t buffer_size = 72;
@@ -315,7 +320,9 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Subscription<serial_msgs::msg::Feedback>::SharedPtr subscription_;
+  rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
   size_t count_;
 };
 
