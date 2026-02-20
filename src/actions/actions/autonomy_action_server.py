@@ -194,7 +194,6 @@ class AutonomousActionServer(Node):
                 # Start Lowering of Drums
                 motor_queries.move_arms(actuator_speed, True, True, False, msg)
                 # Send initial msg to serial node
-                self.get_logger().info("lowering drums...")
                 self.serial_publisher.publish(msg)
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
@@ -203,20 +202,19 @@ class AutonomousActionServer(Node):
                 # Stop drum lowering
                 motor_queries.move_arms(127, True, True, False, msg)
                 # Send message to drive and dig
-                self.get_logger().info("stopping drums...")
                 self.serial_publisher.publish(msg)
                 # Sleep while digging and driving forward
                 time.sleep(dig_time)
+                # Stop Digging
+                self.serial_publisher.publish(motor_queries.stop_motors())
                 # raise drums
                 motor_queries.move_arms(actuator_speed, True, True, True, msg)
-                self.get_logger().info("raising drums...")
                 self.serial_publisher.publish(msg)
                 # Sleep while drums raise
                 time.sleep(drum_raising_delay)
                 # Stop drum raising
                 motor_queries.move_arms(127, True, True, False, msg)
-                # Stop Digging
-                self.serial_publisher.publish(motor_queries.stop_motors())
+                self.serial_publisher.publish(msg)
 
                 # if action = move+dig
                 # set the 4 wheel motors and also the drums
