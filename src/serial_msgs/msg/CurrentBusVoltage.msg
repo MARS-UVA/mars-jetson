@@ -1,0 +1,10 @@
+float32 front_left_wheel_current #amps
+float32 back_left_wheel_current
+float32 front_right_wheel_current
+float32 back_right_wheel_current
+float32 front_drum_current
+float32 back_drum_current
+float32 front_actuator_current
+float32 back_actuator_current
+float32 main_battery_voltage #volts
+float32 aux_battery_voltage
