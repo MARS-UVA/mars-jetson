@@ -20,6 +20,7 @@
 #include <gtsam/base/Matrix.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 #include "field.hpp"
@@ -35,6 +36,7 @@ class AprilTagLocalizationNode : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer> _tf2_buffer;
     std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _camera_pose_publisher;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr _pose_publisher;
 
 public:
@@ -53,14 +55,15 @@ public:
 
         _camera_subscriber = image_transport::create_camera_subscription(
             this,
-            "arducam1/image_raw",
+            "image_raw",
             std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2),
             "raw",
             rclcpp::SensorDataQoS().get_rmw_qos_profile()
         );
         _tf2_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         _tf2_listener = std::make_shared<tf2_ros::TransformListener>(*_tf2_buffer);
-        _pose_publisher = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("awareness", rclcpp::SensorDataQoS{});
+        _camera_pose_publisher = create_publisher<geometry_msgs::msg::PoseStamped>("camera_pose_estimate", rclcpp::SensorDataQoS{});
+        _pose_publisher = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("robot_pose_estimate", rclcpp::SensorDataQoS{});
     }
 
     void image_callback(immutable_shared_ptr<sensor_msgs::msg::Image> image, immutable_shared_ptr<sensor_msgs::msg::CameraInfo> camera_info) {
@@ -73,6 +76,11 @@ public:
         );
         if (result.has_value()) {
             RCLCPP_INFO_STREAM(get_logger(), "Got pose " << result->estimate.pose.affine());
+            geometry_msgs::msg::PoseStamped camera_pose_msg;
+            camera_pose_msg.pose = tf2::toMsg(result->estimate.pose);
+            camera_pose_msg.header = image->header;
+            _camera_pose_publisher->publish(camera_pose_msg);
+
             Eigen::Affine3d robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform(
                 "arducam1_optical", "base_link", image->header.stamp).transform);
             Eigen::Affine3d robot_to_world = result->estimate.pose * robot_to_camera;

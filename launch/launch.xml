@@ -3,7 +3,7 @@
     <node pkg="apriltag_localization"
           exec="apriltag_localization"
           name="apriltag_localization"
-          namespace="awareness">
+          namespace="awareness/arducam1">
         <param name="field" value="fields/mars-67.json"/>
     </node>
 </launch>
