@@ -24,8 +24,10 @@ def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
 
 # Moves the arms of the robot
 # 127 stops arms, 255 raises arms at full speed, and 0 lowers arms at full speed
-def move_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
+def move_arms(velocity, front_arm: bool, back_arm: bool, up: bool, msg: MotorChanges) -> None:
     arm_velocity = velocity
+    if up:
+        arm_velocity += 127
     if front_arm:
         msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
     if back_arm:
