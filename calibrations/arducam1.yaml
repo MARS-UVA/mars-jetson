@@ -1,0 +1,26 @@
+image_width: 1280
+image_height: 720
+camera_name: arducam_ov9281_usb_camera:_ardu
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [899.72237,   0.     , 651.28057,
+           0.     , 898.54706, 352.61312,
+           0.     ,   0.     ,   1.     ]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.047448, -0.071507, 0.000014, 0.002481, 0.000000]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1., 0., 0.,
+         0., 1., 0.,
+         0., 0., 1.]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [903.99036,   0.     , 654.47881,   0.     ,
+           0.     , 906.12146, 352.10256,   0.     ,
+           0.     ,   0.     ,   1.     ,   0.     ]
