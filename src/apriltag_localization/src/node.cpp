@@ -68,7 +68,16 @@ public:
 
     void image_callback(immutable_shared_ptr<sensor_msgs::msg::Image> image, immutable_shared_ptr<sensor_msgs::msg::CameraInfo> camera_info) {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(image, sensor_msgs::image_encodings::MONO8);
-        cv::Mat camera_matrix { camera_info->r, false };
+        cv::Mat camera_matrix(3, 3, CV_64F);
+        camera_matrix.at<double>(0, 0) = camera_info->k.at(0);
+        camera_matrix.at<double>(0, 1) = camera_info->k.at(1);
+        camera_matrix.at<double>(0, 2) = camera_info->k.at(2);
+        camera_matrix.at<double>(1, 0) = camera_info->k.at(3);
+        camera_matrix.at<double>(1, 1) = camera_info->k.at(4);
+        camera_matrix.at<double>(1, 2) = camera_info->k.at(5);
+        camera_matrix.at<double>(2, 0) = camera_info->k.at(6);
+        camera_matrix.at<double>(2, 1) = camera_info->k.at(7);
+        camera_matrix.at<double>(2, 2) = camera_info->k.at(8);
         std::optional<apriltag::CameraLocalizationResult> result = _localizer->localize(
             cv_ptr->image,
             camera_matrix.reshape(1, {3, 3}),
