@@ -129,16 +129,16 @@ private:
   {
     RCLCPP_INFO(this->get_logger(), "Received current bus voltage feedback packet");
 
-    std::memcpy(&buffer[0], &msg->front_left_wheel_current, 4);
-    std::memcpy(&buffer[4], &msg->back_left_wheel_current, 4);
-    std::memcpy(&buffer[8], &msg->front_right_wheel_current, 4);
-    std::memcpy(&buffer[12], &msg->back_right_wheel_current, 4);
-    std::memcpy(&buffer[16], &msg->front_drum_current, 4);
-    std::memcpy(&buffer[20], &msg->back_drum_current, 4);
-    std::memcpy(&buffer[24], &msg->front_actuator_current, 4);
-    std::memcpy(&buffer[28], &msg->back_actuator_current, 4);
-    std::memcpy(&buffer[32], &msg->main_battery_voltage, 4);
-    std::memcpy(&buffer[36], &msg->aux_battery_voltage, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_CURRENT], &msg->front_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_CURRENT], &msg->back_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_CURRENT], &msg->front_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_CURRENT], &msg->back_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_CURRENT], &msg->front_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_CURRENT], &msg->back_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_CURRENT], &msg->front_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_CURRENT], &msg->back_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::MAIN_BATTERY_VOLTAGE], &msg->main_battery_voltage, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::AUX_BATTERY_VOLTAGE], &msg->aux_battery_voltage, 4);
 
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
@@ -149,12 +149,12 @@ private:
   {
     RCLCPP_INFO(this->get_logger(), "Received temperature feedback packet");
 
-    std::memcpy(&buffer[40], &msg->front_left_wheel_temperature, 4);
-    std::memcpy(&buffer[44], &msg->back_left_wheel_temperature, 4);
-    std::memcpy(&buffer[48], &msg->front_right_wheel_temperature, 4);
-    std::memcpy(&buffer[52], &msg->back_right_wheel_temperature, 4);
-    std::memcpy(&buffer[56], &msg->front_drum_temperature, 4);
-    std::memcpy(&buffer[60], &msg->back_drum_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_TEMPERATURE], &msg->front_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_TEMPERATURE], &msg->back_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_TEMPERATURE], &msg->front_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_TEMPERATURE], &msg->back_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_TEMPERATURE], &msg->front_drum_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_TEMPERATURE], &msg->back_drum_temperature, 4);
 
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
@@ -162,8 +162,8 @@ private:
   void position_callback(const serial_msgs::msg::Position::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Received position feedback packet");
-    std::memcpy(&buffer[64], &msg->front_actuator_position, 4);
-    std::memcpy(&buffer[68], &msg->back_actuator_position, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_POSITION], &msg->front_actuator_position, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
     RCLCPP_INFO(this->get_logger(), "Updated feedback_data");
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
     RCLCPP_INFO(this->get_logger(), "send feedback_data");
