@@ -51,6 +51,7 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
+
 size_t buffer_size = 72;
 unsigned char* buffer = new unsigned char[buffer_size];
 
@@ -84,7 +85,7 @@ public:
     // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
     //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
     currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
-        "bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
+        "current_bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
     );
     temperatureSubscription_ = this->create_subscription<serial_msgs::msg::Temperature>(
         "temperature", 10, std::bind(&NetNode::temperature_callback, this, _1)
