@@ -9,7 +9,7 @@ GStreamer 1.22 or later is required.
 ### `webrtc_stream`
 How to run:\
 `ros2 run gstreamer webrtc_stream`
-#### Parameters (none are currently implemented)
+#### Parameters
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | `signaling_url` | `string` | The url of the signaling server (example: `"ws://172.26.38.226:6767"`) |
@@ -17,8 +17,7 @@ How to run:\
 | `bitrate` | `int` | The bitrate of the video stream (default: `1800000`) |
 | `stream_height` | `int` | The height of the output video stream (default: `480`) |
 | `stream_width` | `int` | The width of the output video stream (default: `640`) |
-#### Topics (only video_topic currently implemented)
+#### Topics
 | Name | Message Type | Behavior |
 | ---- | ------------ | -------- |
 | `video_topic` parameter | `sensor_msgs/Image` | The node subscribes to this topic to get the frames for the video stream |
-| `stream_settings_topic` parameter | Message tbd | The nodes subscribes to this topic for pausing stream or modifying caps |
