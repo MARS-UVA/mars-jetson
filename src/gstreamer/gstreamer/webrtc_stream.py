@@ -19,16 +19,26 @@ gi.require_version('GstSdp', '1.0')
 from gi.repository import Gst, GstWebRTC, GstSdp, GLib
 
 
-SIGNALING_URL = "ws://172.26.38.226:6767"
 STUN_SERVER = "stun://stun.l.google.com:19302"
-TOPIC_NAME = "/camera/image_raw"
-IMAGE_WIDTH = 640
-IMAGE_HEIGHT = 480
 FRAMERATE = 30
 
 class WebRTCNode(Node):
     def __init__(self):
         super().__init__('webrtc_node')
+
+        # Declare Parameters
+        self.declare_parameter('signaling_url')
+        self.declare_parameter('video_topic', '/camera/image_raw')
+        self.declare_parameter('bitrate', 1800000)
+        self.declare_parameter('stream_height', 480)
+        self.declare_parameter('stream_width', 640)
+
+        # Get Parameter Values
+        self.signaling_url = self.get_parameter('signaling_url').get_parameter_value().string_value()
+        self.video_topic = self.get_parameter('video_topic').get_parameter_value().string_value()
+        self.bitrate = self.get_parameter('bitrate').get_parameter_value().value()
+        self.stream_height = self.get_parameter('stream_height').get_parameter_value().value()
+        self.stream_width = self.get_parameter('stream_width').get_parameter_value().value()
         
         # Initialize GStreamer
         Gst.init(None)
@@ -46,9 +56,9 @@ class WebRTCNode(Node):
         # Setup Pipeline
         self.pipeline_desc = f"""
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
-            caps=video/x-raw,format=BGR,width={IMAGE_WIDTH},height={IMAGE_HEIGHT},framerate={FRAMERATE}/1 ! 
+            caps=video/x-raw,format=BGR,width={self.image_width},height={self.image_height},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue max-size-buffers=1 leaky=downstream ! 
-            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate=2000000 ! 
+            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
             rtpvp8pay ! 
             application/x-rtp,media=video,encoding-name=VP8,payload=96 ! 
             webrtcbin name=sendrecv bundle-policy=max-bundle stun-server={STUN_SERVER}
@@ -73,13 +83,13 @@ class WebRTCNode(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
-        self.create_subscription(Image, TOPIC_NAME, self.image_callback, qos_profile)
+        self.create_subscription(Image, self.video_topic, self.image_callback, qos_profile)
         
         # Start Signaling Thread
         self.thread = threading.Thread(target=self.start_async_loop, daemon=True)
         self.thread.start()
         
-        self.get_logger().info(f"WebRTC Node listening on {TOPIC_NAME}...")
+        self.get_logger().info(f"WebRTC Node listening on {self.video_topic}...")
 
     def image_callback(self, msg):
         if self.appsrc is None:
@@ -87,8 +97,8 @@ class WebRTCNode(Node):
 
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            if cv_image.shape[1] != IMAGE_WIDTH or cv_image.shape[0] != IMAGE_HEIGHT:
-                cv_image = cv2.resize(cv_image, (IMAGE_WIDTH, IMAGE_HEIGHT))
+            if cv_image.shape[1] != self.image_width or cv_image.shape[0] != self.image_height:
+                cv_image = cv2.resize(cv_image, (self.image_width, self.image_height))
             
             data = cv_image.tobytes()
             buf = Gst.Buffer.new_allocate(None, len(data), None)
@@ -108,7 +118,7 @@ class WebRTCNode(Node):
     async def connect_signaling(self):
         while True:
             try:
-                self.conn = await websockets.connect(SIGNALING_URL)
+                self.conn = await websockets.connect(self.signaling_url)
                 self.get_logger().info("Connected to Signaling Server.")
                 await self.conn.send(json.dumps({'cmd': 'HELLO_FROM_STREAMER'}))
                 
