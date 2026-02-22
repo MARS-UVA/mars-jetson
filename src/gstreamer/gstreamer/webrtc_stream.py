@@ -15,7 +15,6 @@ import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('GstWebRTC', '1.0')
 gi.require_version('GstSdp', '1.0')
-# CRITICAL: Import GLib
 from gi.repository import Gst, GstWebRTC, GstSdp, GLib
 
 
