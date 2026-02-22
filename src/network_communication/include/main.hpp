@@ -1,3 +1,4 @@
+#pragma once
 #include <string.h>
 #include <iostream>
 #include <unistd.h>
@@ -41,4 +42,4 @@ enum FeedbackByteIndices {
     BACK_DRUM_TEMPERATURE = 60,
     FRONT_ACTUATOR_POSITION = 64,
     BACK_ACTUATOR_POSITION = 68
-}
+};

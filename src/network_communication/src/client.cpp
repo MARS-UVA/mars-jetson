@@ -4,14 +4,15 @@
 #include <cstdlib>
 
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
-if (CONTROL_STATION_IP_FOR_CLIENT == nullptr) {
-    std::cerr << "Error: CONTROL_STATION_IP environment variable not set" << std::endl;
-    std::exit(EXIT_FAILURE);
-}
+
 //const char* CONTROL_STATION_IP_FOR_CLIENT = "192.168.0.100";
 //const char* CONTROL_STATION_IP = "192.168.0.200";
 ConnectionHeaders create_connection_headers(int port)
 {
+    if (CONTROL_STATION_IP_FOR_CLIENT == nullptr) {
+        std::cerr << "Error: CONTROL_STATION_IP environment variable not set" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
     /* Create new client socket to send frame: */
     int client_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 

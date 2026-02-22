@@ -84,7 +84,7 @@ public:
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
     // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
     //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
-    serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this, buffer, buffer_size));
+    serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this));
     currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
         "current_bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
     );
@@ -164,7 +164,7 @@ private:
     std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
   }
 
-  void serial_timer_callback(unsigned char *buffer, size_t buffer_size)
+  void serial_timer_callback()
   {
       client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
@@ -277,6 +277,7 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr serialTimer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
   rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
