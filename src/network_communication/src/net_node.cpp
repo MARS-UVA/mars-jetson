@@ -84,6 +84,7 @@ public:
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
     // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
     //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this, buffer, buffer_size));
     currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
         "current_bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
     );
@@ -140,8 +141,6 @@ private:
     std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_CURRENT], &msg->back_actuator_current, 4);
     std::memcpy(&buffer[FeedbackByteIndices::MAIN_BATTERY_VOLTAGE], &msg->main_battery_voltage, 4);
     std::memcpy(&buffer[FeedbackByteIndices::AUX_BATTERY_VOLTAGE], &msg->aux_battery_voltage, 4);
-
-    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
 
@@ -156,8 +155,6 @@ private:
     std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_TEMPERATURE], &msg->back_right_wheel_temperature, 4);
     std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_TEMPERATURE], &msg->front_drum_temperature, 4);
     std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_TEMPERATURE], &msg->back_drum_temperature, 4);
-
-    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void position_callback(const serial_msgs::msg::Position::SharedPtr msg)
@@ -165,9 +162,11 @@ private:
     RCLCPP_INFO(this->get_logger(), "Received position feedback packet");
     std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_POSITION], &msg->front_actuator_position, 4);
     std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
-    RCLCPP_INFO(this->get_logger(), "Updated feedback_data");
-    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
-    RCLCPP_INFO(this->get_logger(), "send feedback_data");
+  }
+
+  void serial_timer_callback(unsigned char *buffer, size_t buffer_size)
+  {
+      client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
