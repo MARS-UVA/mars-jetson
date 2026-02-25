@@ -176,7 +176,7 @@ class AutonomousActionServer(Node):
                 self.teleop_state_publisher.publish(msg)
                 # Dig Autonomy
                 drum_speed = int(self.get_parameter(self.dig_spin_drums_speed_param_descriptor.name).value * 127 + 127)
-                actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127)
+                actuator_speed = int(self.get_parameter(self.dig_drum_arm_magnitude_param_descriptor.name).value * 127 + 127)
                 wheel_speed = WheelSpeeds(
                     self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
                     self.get_parameter(self.dig_wheel_speed_param_descriptor.name).value,
@@ -198,7 +198,8 @@ class AutonomousActionServer(Node):
                 # Sleep while drums lower
                 time.sleep(drum_lowering_delay)
                 # Start Driving Forward (Shouldn't do this but we're gonna fix this later) (probably try `msg = MotorChanges(changes=[], adds=[])`)
-                msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                #msg = motor_queries.wheel_speed_to_motor_queries(wheel_speed)
+                MotorChanges(changes=[], adds=[])
                 # Stop drum lowering
                 motor_queries.move_arms(127, True, True, False, msg)
                 # Send message to drive and dig
@@ -217,6 +218,10 @@ class AutonomousActionServer(Node):
                 msg = MotorChanges(changes=[], adds=[])
                 motor_queries.move_arms(127, True, True, False, msg)
                 self.serial_publisher.publish(msg)
+
+                # debug
+                time.sleep(1)
+                self.serial_publisher.publish(motor_queries.stop_motors())
 
                 # if action = move+dig
                 # set the 4 wheel motors and also the drums
