@@ -2,13 +2,15 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
-#include <serial_msgs/msg/feedback.hpp>
+#include <serial_msgs/msg/current_bus_voltage.hpp>
+#include <serial_msgs/msg/position.hpp>
+#include <serial_msgs/msg/temperature.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -29,7 +31,9 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using serial_msgs::msg::Feedback;
+using serial_msgs::msg::CurrentBusVoltage;
+using serial_msgs::msg::Position;
+using serial_msgs::msg::Temperature;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -47,6 +51,10 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
+
+size_t buffer_size = 72;
+unsigned char* buffer = new unsigned char[buffer_size];
+
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
@@ -74,14 +82,25 @@ public:
   {
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
-        "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
+    //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this));
+    currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
+        "current_bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
+    );
+    temperatureSubscription_ = this->create_subscription<serial_msgs::msg::Temperature>(
+        "temperature", 10, std::bind(&NetNode::temperature_callback, this, _1)
+    );
+    positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
+        "position", 10, std::bind(&NetNode::position_callback, this, _1)
+    );
   }
 
 private:
+/*
   void topic_callback(const serial_msgs::msg::Feedback::SharedPtr msg)
   {
-    RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
+    RCLCPP_INFO(this->get_logger(), "Received motor feedback packet");
     float front_left = msg->front_left;
     float front_right = msg->front_right;
     float back_left = msg->back_left;
@@ -106,6 +125,48 @@ private:
 
     // RCLCPP_WARN(this->get_logger(), "Sending now...");
     client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
+  }*/
+
+  void current_bus_voltage_callback(const serial_msgs::msg::CurrentBusVoltage::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Received current bus voltage feedback packet");
+
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_CURRENT], &msg->front_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_CURRENT], &msg->back_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_CURRENT], &msg->front_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_CURRENT], &msg->back_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_CURRENT], &msg->front_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_CURRENT], &msg->back_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_CURRENT], &msg->front_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_CURRENT], &msg->back_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::MAIN_BATTERY_VOLTAGE], &msg->main_battery_voltage, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::AUX_BATTERY_VOLTAGE], &msg->aux_battery_voltage, 4);
+  }
+
+
+
+  void temperature_callback(const serial_msgs::msg::Temperature::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Received temperature feedback packet");
+
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_TEMPERATURE], &msg->front_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_TEMPERATURE], &msg->back_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_TEMPERATURE], &msg->front_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_TEMPERATURE], &msg->back_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_TEMPERATURE], &msg->front_drum_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_TEMPERATURE], &msg->back_drum_temperature, 4);
+  }
+
+  void position_callback(const serial_msgs::msg::Position::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Received position feedback packet");
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_POSITION], &msg->front_actuator_position, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
+  }
+
+  void serial_timer_callback()
+  {
+      client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
@@ -216,8 +277,11 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr serialTimer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Subscription<serial_msgs::msg::Feedback>::SharedPtr subscription_;
+  rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
   size_t count_;
 };
 

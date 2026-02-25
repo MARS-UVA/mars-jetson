@@ -4,10 +4,15 @@
 #include <cstdlib>
 
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
+
 //const char* CONTROL_STATION_IP_FOR_CLIENT = "192.168.0.100";
 //const char* CONTROL_STATION_IP = "192.168.0.200";
 ConnectionHeaders create_connection_headers(int port)
 {
+    if (CONTROL_STATION_IP_FOR_CLIENT == nullptr) {
+        std::cerr << "Error: CONTROL_STATION_IP environment variable not set" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
     /* Create new client socket to send frame: */
     int client_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -66,9 +71,9 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
         size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
         DataHeader header_struct;
         DataHeader *header = &header_struct;
-        header->packetNum = seqNo;
-        header->totalPackets = totalChunks;
-        header->fragment_size = (uint16_t)bytes_to_send;
+        header->packetToSend = seqNo;
+        header->totalPacketsToSend = totalChunks;
+        header->fragmentSize = (uint16_t)bytes_to_send;
         header->crc = crc32bit((char *)(data + sent_bytes), bytes_to_send);
         memcpy(sendBuffer, header, HEADER_SIZE);
         memcpy(sendBuffer + HEADER_SIZE, data + sent_bytes, bytes_to_send);
