@@ -1,5 +1,10 @@
 from teleop_msgs.msg import MotorChanges, SetMotor, AddMotor, HumanInputState
 from .control import WheelSpeeds
+
+# util for getting "negative speed"
+def get_negative_command(motor_value: int):
+    return 254 - motor_value
+
 #function converting wheel speeds to motor queries
 def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
     left_wheel_speeds = round(wheel_speeds.left*127) +127
@@ -27,7 +32,7 @@ def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
 def move_arms(velocity, front_arm: bool, back_arm: bool, up: bool, msg: MotorChanges) -> None:
     arm_velocity = velocity
     if up:
-        arm_velocity = 255 - velocity
+        arm_velocity = get_negative_command(velocity)
     if front_arm:
         msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
     if back_arm:

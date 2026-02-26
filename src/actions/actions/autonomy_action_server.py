@@ -8,7 +8,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import SetMotor, MotorChanges
 from teleop.motor_queries import wheel_speed_to_motor_queries
 from teleop.control.base import WheelSpeeds
-from teleop import motor_queries
+from teleop, get_negative_command import motor_queries
 
 from autonomy_msgs.action import AutonomousActions
 from std_msgs.msg import UInt8
@@ -190,9 +190,10 @@ class AutonomousActionServer(Node):
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start digging
                 msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
-                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=get_negative_command(drum_speed)))
                 # Start Lowering of Drums
                 motor_queries.move_arms(actuator_speed, True, True, False, msg)
+                motor_queries.move_arms(actuator_speed, True, False, False, msg)
                 # Send initial msg to serial node
                 self.serial_publisher.publish(msg)
                 # Sleep while drums lower
@@ -202,6 +203,7 @@ class AutonomousActionServer(Node):
                 MotorChanges(changes=[], adds=[])
                 # Stop drum lowering
                 motor_queries.move_arms(127, True, True, False, msg)
+                motor_queries.move_arms(127, True, False, False, msg)
                 # Send message to drive and dig
                 self.serial_publisher.publish(msg)
                 # Sleep while digging and driving forward
@@ -211,6 +213,7 @@ class AutonomousActionServer(Node):
                 # raise drums
                 msg = MotorChanges(changes=[], adds=[])
                 motor_queries.move_arms(actuator_speed, True, True, True, msg)
+                motor_queries.move_arms(actuator_speed, True, False, True, msg)
                 self.serial_publisher.publish(msg)
                 # Sleep while drums raise
                 time.sleep(drum_raising_delay)
@@ -270,6 +273,7 @@ class AutonomousActionServer(Node):
                 # Lower Drums
                 msg = MotorChanges(changes=[], adds=[])
                 motor_queries.move_arms(actuator_speed, True, True, False, msg)
+                motor_queries.move_arms(actuator_speed, True, False, False, msg)
 
                 self.serial_publisher.publish(msg)
 
@@ -279,9 +283,10 @@ class AutonomousActionServer(Node):
                 # Create msg to send initial state
                 msg = MotorChanges(changes=[], adds=[])
                 # Set Drums to start dumping
-                msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=drum_speed))
-                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=drum_speed))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=get_negative_command(drum_speed)))
+                msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=get_negative_command(drum_speed)))
                 motor_queries.move_arms(127, True, True, False, msg)
+                motor_queries.move_arms(127, True, False, False, msg)
                 self.serial_publisher.publish(msg)
                 # sleep(some time)
                 time.sleep(dump_time)
