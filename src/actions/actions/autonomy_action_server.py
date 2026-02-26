@@ -8,7 +8,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPoint
 from teleop_msgs.msg import SetMotor, MotorChanges
 from teleop.motor_queries import wheel_speed_to_motor_queries
 from teleop.control.base import WheelSpeeds
-from teleop, get_negative_command import motor_queries
+from teleop import motor_queries, get_negative_command
 
 from autonomy_msgs.action import AutonomousActions
 from std_msgs.msg import UInt8
