@@ -153,6 +153,7 @@ class TeleopNode(Node):
             self.prev_gamepad_state = gamepad_state
             self.get_logger().info("SOFT STOP")
             self._motor_publisher.publish(stop_motors())
+            self.cruise_control = False
             return
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
