@@ -60,10 +60,15 @@ public:
 
 // duplicates outside of class (not sure whether we want the server class
 // (the python file uses it, but don't know if there was a reason for not implementing it in the boilerplate code))
+
+std::shared_ptr<DigDumpGoalHandle> current_action;
 rclcpp_action::GoalResponse handle_goal(
   const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
 {
   (void)uuid;
+  if (current_action) {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -74,7 +79,6 @@ rclcpp_action::CancelResponse handle_cancel(
   (void)goal_handle;
   return rclcpp_action::CancelResponse::ACCEPT;
 }
-
 
 void execute(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
@@ -166,6 +170,7 @@ void execute(
       // some kind of error
     }
   }
+
 
   // Check if goal is done
   if (rclcpp::ok()) {
