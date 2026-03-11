@@ -174,11 +174,13 @@ private:
     /* Receive Control messages */
     counter++;
     std::string message;
+    uint8_t robot_action_state;
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
+      robot_action_state = info.client_message[0];
       message = std::string(info.client_message);
 
       const char delimiter[] = ",";
@@ -257,10 +259,21 @@ private:
           gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
           gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
 
+      if (robot_action_state == 1 || robot_action_state == 2 || robot_action_state == 3) {
+        human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+      } 
+      else {
+        human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+      }
+      if (robot_action_state == 3) {
+        human_input_msg->e_stop = true;
+      }  
+      else {
+        human_input_msg->e_stop = false;
+      }
       human_input_msg->gamepad_state = *gamepad_msg;
-      human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
       human_input_msg->a_stop = false;
-      human_input_msg->e_stop = false;
+      
 
       RCLCPP_INFO(this->get_logger(), "Publishing HumanInputState: drive_mode = %d", human_input_msg->drive_mode);
 
