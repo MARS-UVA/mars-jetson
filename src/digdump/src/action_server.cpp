@@ -1,9 +1,14 @@
 #include "digdump/action_server.hpp"
 
+std::shared_ptr<DigDumpGoalHandle> current_action;
+
 rclcpp_action::GoalResponse handle_goal(
   const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
 {
   (void)uuid;
+  if (current_action) {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -13,6 +18,12 @@ rclcpp_action::CancelResponse handle_cancel(
   RCLCPP_INFO(rclcpp::get_logger("server"), "Got request to cancel goal");
   (void)goal_handle;
   return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle)
+{
+  // this needs to return quickly to avoid blocking the executor, so spin up a new thread
+  std::thread{execute, goal_handle}.detach();
 }
 
 void execute(
@@ -29,17 +40,12 @@ void execute(
 
     loop_rate.sleep();
 
+
   // Check if goal is done
   if (rclcpp::ok()) {
     goal_handle->succeed(result);
     RCLCPP_INFO(rclcpp::get_logger("server"), "Goal Succeeded");
   }
-}
-
-void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle)
-{
-  // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-  std::thread{execute, goal_handle}.detach();
 }
 
 int main(int argc, char ** argv)
