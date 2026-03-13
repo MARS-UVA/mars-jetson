@@ -67,10 +67,7 @@ public:
         get_parameter<std::string>("field", field_path);
         std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::ifstream(field_path));
         _localizer = std::make_unique<apriltag::CameraLocalizer>(field, apriltag::PnPMethod::SQPNP);
-
-        const auto family = apriltag::AprilTagFamily::get(tagStandard41h12_create(), tagStandard41h12_destroy);
         _localizer->detector().nthreads() = 8;
-        _localizer->detector().add_family(family);
 
         _camera_subscriber = image_transport::create_camera_subscription(
             this,
