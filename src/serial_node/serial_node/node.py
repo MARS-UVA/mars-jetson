@@ -28,7 +28,7 @@ class SerialNode(Node):
         super().__init__('serial_mux')
         self.teleop_sub_ = self.create_subscription(
             msg_type = MotorChanges,
-            topic =' teleop',
+            topic = 'teleop',
             callback = self.update_buffer,
             qos_profile = qos) #1 queued message
         self.digdump_sub_ = self.create_subscription(
@@ -39,7 +39,7 @@ class SerialNode(Node):
         self.robot_state_sub_ = self.create_subscription(
             msg_type = Int8,
             topic = 'robot_state',
-            callback = self.hange_robot_state,
+            callback = self.change_robot_state,
             qos_profile = qos
         )
         
@@ -77,7 +77,7 @@ class SerialNode(Node):
         
     def sendCurrents(self):
         buffer = self.get_buffer()
-        self.get_logger().warn(f"Sending currents: {self.buffer}")
+        self.get_logger().warn(f"Sending currents: {buffer}")
         self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
         
     def readFromNucleo(self):
