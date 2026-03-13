@@ -2,17 +2,31 @@
 #include "autonomy_msgs/action/autonomous_actions.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "std_msgs/msg/u_int8.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "teleop_msgs/msg/add_motor.hpp"
+#include "teleop_msgs/msg/set_motor.hpp"
+#include "teleop_msgs/msg/motor_changes.hpp"
 
-using DigDump = autonomy_msgs::action::AutonomousActions;
-using DigDumpGoalHandle = rclcpp_action::ServerGoalHandle<DigDump>;
+class DigDumpActionServer : public rclcpp::Node
+{
+  using DigDump = autonomy_msgs::action::AutonomousActions;
+  using DigDumpGoalHandle = rclcpp_action::ServerGoalHandle<DigDump>;
+  public:
+    explicit DigDumpActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-rclcpp_action::GoalResponse handle_goal(
-  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
+  private:
+    rclcpp_action::Server<DigDump>::SharedPtr action_server_;
+    rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
 
-rclcpp_action::CancelResponse handle_cancel(
-  const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+    rclcpp_action::GoalResponse handle_goal(
+      const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 
-void execute(
-  const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+    rclcpp_action::CancelResponse handle_cancel(
+      const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 
-void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+    void execute(
+      const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+
+    void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+};

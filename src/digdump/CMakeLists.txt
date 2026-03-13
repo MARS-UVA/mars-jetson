@@ -13,14 +13,18 @@ find_package(ament_cmake REQUIRED)
 find_package(autonomy_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(teleop_msgs REQUIRED)
 
 include_directories(include)
 
 add_executable(action_server src/action_server.cpp)
 ament_target_dependencies(action_server
-  "rclcpp"
-  "rclcpp_action"
-  "autonomy_msgs")
+  rclcpp
+  std_msgs
+  teleop_msgs
+  rclcpp_action
+  autonomy_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
