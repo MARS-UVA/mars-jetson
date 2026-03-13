@@ -31,7 +31,7 @@ include_directories(
   vendor/mars-apriltag-localizer/include/marslocalizer
 )
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
   src/node.cpp
 )
 add_dependencies(${PROJECT_NAME}
@@ -89,7 +89,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
 
 install(
   TARGETS ${PROJECT_NAME}
-  DESTINATION lib/${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 ament_package()
