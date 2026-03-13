@@ -1,4 +1,3 @@
-#include <teleop_msgs/msg/detail/motor_changes__struct.hpp>
 #include <thread>
 #include "autonomy_msgs/action/autonomous_actions.hpp"
 #include "rclcpp/rclcpp.hpp"

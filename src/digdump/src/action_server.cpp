@@ -110,12 +110,10 @@ void DigDumpActionServer::execute(
     default: {
       // some kind of error
     }
-
-    state.data = 0;
-    state_publisher_->publish(state);
   }
 
-
+  state.data = 0;
+  state_publisher_->publish(state);
   // Check if goal is done
   if (rclcpp::ok()) {
     goal_handle->succeed(result);
@@ -128,21 +126,6 @@ void DigDumpActionServer::handle_accepted(const std::shared_ptr<DigDumpGoalHandl
   // this needs to return quickly to avoid blocking the executor, so spin up a new thread
   std::thread{std::bind(&DigDumpActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
 }
-
-
-// [all wheels' velocity, both arms' velocity, both drums' velocity]
-// interface that publishes to a topic with the above info
-
-// void send_msg(double all_velocity, double front_arm_velocity, double back_arm_velocity, double front_drum_velocity, double back_drum_velocity) {
-//   pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("motor", 10);
-//   std_msgs::msg::Float64MultiArray msg;
-//   msg.data = {all_velocity, front_arm_velocity, back_arm_velocity, front_drum_velocity, back_drum_velocity};
-// }
-
-// dummy function, will be replaced with actual arm movement code
-// void move_arms(int velocity, boolean front_arm, boolean back_arm, boolean up) {
-
-// }
 
 int main(int argc, char ** argv)
 {
