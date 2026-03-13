@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -9,7 +10,6 @@
 #include <tagStandard41h12.h>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <rclcpp_components/register_node_macro.hpp>
 #include <opencv2/opencv.hpp>
 #ifdef LEGACY_CV_BRIDGE
 #include <cv_bridge/cv_bridge.h>
@@ -59,8 +59,7 @@ class AprilTagLocalizationNode : public rclcpp::Node {
     std::condition_variable _taring_cv;
 
 public:
-    explicit AprilTagLocalizationNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions())
-    : rclcpp::Node("apriltag_localization", options) {
+    AprilTagLocalizationNode() : rclcpp::Node("apriltag_localization") {
         using std::placeholders::_1, std::placeholders::_2;
         declare_parameter<std::string>("field");
 
@@ -97,6 +96,7 @@ public:
     rclcpp_action::GoalResponse on_tare_receive(const rclcpp_action::GoalUUID& uuid, std::shared_ptr<const TareAction::Goal> goal) {
         (void)uuid;
         (void)goal;
+        RCLCPP_INFO(get_logger(), "Received taring request");
         return _taring ? rclcpp_action::GoalResponse::REJECT : rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
@@ -106,6 +106,7 @@ public:
 
     rclcpp_action::CancelResponse cancel_tare_request(const std::shared_ptr<TareGoalHandle> goal_handle) {
         (void)goal_handle;
+        _taring_cv.notify_one();
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
@@ -166,9 +167,10 @@ public:
     }
 
     void tare(const std::shared_ptr<TareGoalHandle> goal_handle) {
-        while (!_taring.exchange(true));
+        using namespace std::chrono_literals;
 
-        rclcpp::Rate loop_rate(1);
+        while (!_taring.exchange(true));
+        RCLCPP_INFO(get_logger(), "Taring...");
 
         TareAction::Feedback::SharedPtr feedback = std::make_shared<TareAction::Feedback>();
         TareAction::Result::SharedPtr result = std::make_shared<TareAction::Result>();
@@ -180,14 +182,23 @@ public:
             if (goal_handle->is_canceling()) {
                 goal_handle->canceled(result);
                 while (_taring.exchange(false));
+                RCLCPP_INFO(get_logger(), "Taring cancelled");
                 return;
             }
-            _taring_cv.wait(lock, [this, feedback]{ return _tare_points.size() > feedback->points_considered; });
+            while (_tare_points.size() <= feedback->points_considered) {
+                _taring_cv.wait(lock);
+                if (goal_handle->is_canceling()) {
+                    goal_handle->canceled(result);
+                    while (_taring.exchange(false));
+                    RCLCPP_INFO(get_logger(), "Taring cancelled");
+                    return;
+                }
+            }
             feedback->points_considered = _tare_points.size();
 
             lock.unlock();
             goal_handle->publish_feedback(feedback);
-            loop_rate.sleep();
+            std::this_thread::sleep_for(200ms);
             lock.lock();
         }
 
@@ -197,8 +208,10 @@ public:
                 _tare_transform = tare_transform.value();
                 result->zero_pose = tf2::toMsg(tare_transform.value());
                 goal_handle->succeed(result);
+                RCLCPP_INFO(get_logger(), "Taring success!");
             } else {
                 goal_handle->abort(result);
+                RCLCPP_ERROR(get_logger(), "Failed to compute tare transform");
             }
         }
         while (_taring.exchange(false));
@@ -278,4 +291,9 @@ public:
 
 }
 
-RCLCPP_COMPONENTS_REGISTER_NODE(apriltag_localization::AprilTagLocalizationNode)
+int main(int argc, const char *argv[]) {
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<apriltag_localization::AprilTagLocalizationNode>());
+    rclcpp::shutdown();
+    return 0;
+}
