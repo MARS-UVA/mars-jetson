@@ -1,3 +1,4 @@
+#include <teleop_msgs/msg/detail/motor_changes__struct.hpp>
 #include <thread>
 #include "autonomy_msgs/action/autonomous_actions.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -18,6 +19,12 @@ class DigDumpActionServer : public rclcpp::Node
   private:
     rclcpp_action::Server<DigDump>::SharedPtr action_server_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
+    rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
+
+    teleop_msgs::msg::MotorChanges lower_msg;
+    teleop_msgs::msg::MotorChanges raise_msg;
+    teleop_msgs::msg::MotorChanges dig_msg;
+    teleop_msgs::msg::MotorChanges dump_msg;
 
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);

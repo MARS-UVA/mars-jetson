@@ -1,66 +1,5 @@
 #include "digdump/action_server.hpp"
-#include <std_msgs/msg/detail/u_int8__struct.hpp>
 
-/*class DigDumpActionServer : public rclcpp::Node
-{
-public:
-
-  explicit DigDumpActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
-  : Node("digdump_action_server") {
-
-  }
-
-  rclcpp_action::GoalResponse handle_goal(
-    const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
-  {
-    (void)uuid;
-    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-  }
-
-  rclcpp_action::CancelResponse handle_cancel(
-    const std::shared_ptr<DigDumpGoalHandle> goal_handle)
-  {
-    RCLCPP_INFO(rclcpp::get_logger("server"), "Got request to cancel goal");
-    (void)goal_handle;
-    return rclcpp_action::CancelResponse::ACCEPT;
-  }
-
-
-  void execute(
-    const std::shared_ptr<DigDumpGoalHandle> goal_handle)
-  {
-    RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
-    rclcpp::Rate loop_rate(1);
-    const auto goal = goal_handle->get_goal();
-    auto feedback = std::make_shared<DigDump::Feedback>();
-    auto result = std::make_shared<DigDump::Result>();
-      // Publish feedback
-      // goal_handle->publish_feedback(feedback);
-      // RCLCPP_INFO(rclcpp::get_logger("server"), "Publish Feedback");
-
-      loop_rate.sleep();
-
-    // Check if goal is done
-    if (rclcpp::ok()) {
-      goal_handle->succeed(result);
-      RCLCPP_INFO(rclcpp::get_logger("server"), "Goal Succeeded");
-    }
-  }
-
-  void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle)
-  {
-    // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-    std::thread{execute, goal_handle}.detach();
-
-    //  might have to change to this, but don't know
-    // auto execute_in_thread = [this, goal_handle](){return this->execute(goal_handle);};
-    // std::thread{execute_in_thread}.detach();
-  }
-
-}*/
-
-// duplicates outside of class (not sure whether we want the server class
-// (the python file uses it, but don't know if there was a reason for not implementing it in the boilerplate code))
 DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : rclcpp::Node("action_server", options){
   action_server_ = rclcpp_action::create_server<DigDump>(
     this,
@@ -73,6 +12,32 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
               std::placeholders::_1));
 
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 1);
+  motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
+
+  teleop_msgs::msg::MotorChanges lower_msg;
+  teleop_msgs::msg::MotorChanges raise_msg;
+  teleop_msgs::msg::MotorChanges dig_msg;
+  teleop_msgs::msg::MotorChanges dump_msg;
+  
+  const int lower_speed = 112;  //TODO: parameterize
+  const int raise_speed = 142;
+  const int dig_speed = 157;
+  const int dump_speed = 97;
+
+  teleop_msgs::msg::SetMotor msg;
+
+  for (int i=0; i<8; i++) {
+    msg.index = i;
+    lower_msg.changes.push_back(msg);
+    raise_msg.changes.push_back(msg);
+    dig_msg.changes.push_back(msg);
+    dump_msg.changes.push_back(msg);
+  }
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = lower_speed;
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = raise_speed;
+  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed;
+  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed;
+
 }
 
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
@@ -121,11 +86,20 @@ void DigDumpActionServer::execute(
     }
     case 1: {
       // Dig Autonomy
-      int drum_speed = 112; 
-      int actuator_speed = 150;
       
+      double elapsed_time = 0.0;
+      while (elapsed_time < arm_movement_time) {
+        motor_publisher_->publish(lower_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
 
-      
+      elapsed_time = 0.0;
+      while (elapsed_time < dig_time) {
+        motor_publisher_->publish(dig_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
 
       break;
     }
