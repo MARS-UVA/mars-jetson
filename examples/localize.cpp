@@ -8,7 +8,7 @@
 
 #include "localizer.hpp"
 #include "overlays.hpp"
-#include "wrapper.hpp"
+#include "common.hpp"
 
 constexpr apriltag::CameraInfo info {
     apriltag::CameraIntrinsics {
@@ -62,7 +62,7 @@ int main(const int argc, const char* argv[]) {
 
     std::ifstream field_file { argv[1], field_file.in };
 
-    std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(field_file);
+    std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::move(field_file));
 
     apriltag::CameraLocalizer localizer { field };
 
@@ -88,7 +88,7 @@ int main(const int argc, const char* argv[]) {
                 std::cout << "pose:\ntranslation:\n"
                           << result.value().estimate.pose.translation()
                           << "\nrotation:\n"
-                          << result.value().estimate.pose.rotation().canonicalEulerAngles(2, 1, 0)
+                          << result.value().estimate.pose.rotation().eulerAngles(2, 1, 0)
                           << "\n\nreprojection error: "
                           << result.value().estimate.reprojection_error
                           << "\n-----\n";

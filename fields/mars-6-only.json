@@ -1,0 +1,20 @@
+{
+    "name": "MARS 6-7 test field, excluding 7",
+    "fiducials": [
+        {
+            "id": 6,
+            "translation": [
+                -0.013,
+                0.525,
+                -1.264
+            ],
+            "rotation": [
+                -90,
+                0,
+                -91.4
+            ],
+            "size": 0.135
+        }
+    ],
+    "tag_family": "tagStandard41h12"
+}

@@ -7,10 +7,11 @@
 #include <opencv2/opencv.hpp>
 
 #include "overlays.hpp"
-#include "wrapper.hpp"
+#include "common.hpp"
+#include "detector.hpp"
 
 int main(const int argc, const char* argv[]) {
-    int camera_index;
+    int camera_index = 0;
     if (argc < 2) {
         std::cerr << "Camera index not specified; defaulting to 0" << std::endl;
         camera_index = 0;
@@ -31,6 +32,7 @@ int main(const int argc, const char* argv[]) {
 
     cv::Mat frame;
     cv::Mat gray_frame;
+    // ReSharper disable once CppDFAEndlessLoop
     while (true) {
         if (capture.read(frame)) {
             cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
@@ -51,6 +53,4 @@ int main(const int argc, const char* argv[]) {
             }
         }
     }
-    cv::destroyAllWindows();
-    return 0;
 }

@@ -40,9 +40,9 @@ add_library(${PROJECT_NAME}
         src/marslocalizer/localizer.cpp
         src/marslocalizer/overlays.cpp
         src/marslocalizer/pnp.cpp
+        src/marslocalizer/common_functions.cpp
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES
-        PUBLIC_HEADER include/marslocalizer/wrapper.hpp
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
 )
