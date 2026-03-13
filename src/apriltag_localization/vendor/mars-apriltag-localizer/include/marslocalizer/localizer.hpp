@@ -11,10 +11,11 @@
 #include <opencv2/opencv.hpp>
 
 #include "camera.hpp"
+#include "common.hpp"
 #include "data.hpp"
+#include "detector.hpp"
 #include "field.hpp"
 #include "pnp.hpp"
-#include "wrapper.hpp"
 
 namespace apriltag {
 
@@ -27,14 +28,13 @@ class CameraLocalizer {
 
     AprilTagDetector _detector;
     std::shared_ptr<const AprilTagField> _field;
-    PnPMethod _method;
+    PnPMethod _many_tags_method;
+    PnPMethod _one_tag_method;
 
 public:
-
-    CameraLocalizer(const std::shared_ptr<const AprilTagField>& field,
-                    const PnPMethod method = PnPMethod::ITERATIVE)
-        : _field(field), _method(method) {
-    }
+    explicit CameraLocalizer(const std::shared_ptr<const AprilTagField>& field,
+                             PnPMethod many_tags_method = PnPMethod::ITERATIVE,
+                             PnPMethod one_tag_method = PnPMethod::IPPE_SQUARE);
 
     [[nodiscard]] const AprilTagDetector& detector() const;
 
@@ -42,7 +42,8 @@ public:
 
     [[nodiscard]] std::shared_ptr<const AprilTagField> field() const;
 
-    [[nodiscard]] std::optional<CameraLocalizationResult> localize(const cv::Mat& image, const CameraInfo& camera_info) const;
+    [[nodiscard]] std::optional<CameraLocalizationResult> localize(const cv::Mat& image,
+                                                                   const CameraInfo& camera_info) const;
 
     [[nodiscard]] std::optional<CameraLocalizationResult> localize(const cv::Mat& image,
                                                                    cv::InputArray camera_matrix,

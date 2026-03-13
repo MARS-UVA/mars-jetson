@@ -6,11 +6,12 @@
 #include <tagStandard41h12.h>
 #include <opencv2/opencv.hpp>
 
+#include "common.hpp"
+#include "detector.hpp"
 #include "overlays.hpp"
-#include "wrapper.hpp"
 
 int main(const int argc, const char* argv[]) {
-    int camera_index;
+    int camera_index = 0;
     if (argc < 2) {
         std::cerr << "Camera index not specified; defaulting to 0" << std::endl;
         camera_index = 0;
@@ -23,7 +24,7 @@ int main(const int argc, const char* argv[]) {
     detector.nthreads() = 8;
     detector.add_family(family);
 
-    cv::VideoCapture capture { "/Users/ivan/Downloads/apriltag_tests/H 145cm A 0°/1.mp4" };
+    cv::VideoCapture capture { camera_index };
     if (!capture.isOpened()) {
         std::cerr << "Could not open camera at index " << camera_index << std::endl;
         return 1;

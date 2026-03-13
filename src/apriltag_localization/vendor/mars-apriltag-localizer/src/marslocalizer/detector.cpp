@@ -1,11 +1,13 @@
-#include "wrapper.hpp"
+#include "detector.hpp"
 
 #include <apriltag.h>
-#include <cstdint>
+#include <algorithm>
 #include <exception>
 #include <memory>
 #include <vector>
 #include <opencv2/core/mat.hpp>
+
+#include "common.hpp"
 
 // Accessors
 
@@ -73,6 +75,9 @@ void apriltag::AprilTagDetector::clear_families() {
 }
 
 std::vector<apriltag::AprilTagDetection> apriltag::AprilTagDetector::detect(const cv::Mat& image) const {
+    if (_families.empty()) {
+        throw std::runtime_error("detect() called with no families added");
+    }
     image_u8_t cimage = cv2cimage(image);
     zarray_t* result_zarr = apriltag_detector_detect(raw(), &cimage);
     if (result_zarr == nullptr) {
@@ -83,7 +88,7 @@ std::vector<apriltag::AprilTagDetection> apriltag::AprilTagDetector::detect(cons
     apriltag_detection_t* detection = nullptr; // NOLINT(*-const-correctness)
     std::vector<AprilTagDetection> detections;
     for (int i = 0; i < zarray_size(result.get()); i += 1) {
-        zarray_get(result.get(), i, &detection);  // this performs a copy NOLINT(*-multi-level-implicit-pointer-conversion)
+        zarray_get(result.get(), i, &detection);  // this performs a copy
         detections.emplace_back(detection, AprilTagFamily::get_existing(detection->family));
     }
     return detections;
@@ -91,19 +96,4 @@ std::vector<apriltag::AprilTagDetection> apriltag::AprilTagDetector::detect(cons
 
 apriltag_detector_t* apriltag::AprilTagDetector::raw() const {
     return _detector.get();
-}
-
-image_u8_t apriltag::cv2cimage(const cv::Mat& image) {
-    if (image.dims != 2) {
-        throw std::invalid_argument("Invalid image dimensions");
-    }
-    if (image.type() != CV_8U) {
-        throw std::invalid_argument("Invalid image type");
-    }
-    return {
-        image.cols,  // width
-        image.rows,  // height
-        static_cast<std::int32_t>(image.step[0]), // step NOLINT(*-pro-bounds-avoid-unchecked-container-access)
-        image.data  // buffer
-    };
 }

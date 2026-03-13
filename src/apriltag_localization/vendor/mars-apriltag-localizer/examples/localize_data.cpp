@@ -42,7 +42,7 @@ int main(const int argc, const char* argv[]) {
 
     std::ifstream field_file { argv[1], field_file.in };
 
-    std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(field_file);
+    std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::move(field_file));
 
     apriltag::CameraLocalizer localizer { field, apriltag::PnPMethod::SQPNP };
 
