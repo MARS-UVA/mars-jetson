@@ -8,6 +8,8 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
@@ -17,6 +19,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(apriltag_msgs REQUIRED)
 
 set(BUILD_EXAMPLES OFF)
 set(INSTALL_PKG_CONFIG OFF)
@@ -28,12 +31,20 @@ include_directories(
   vendor/mars-apriltag-localizer/include/marslocalizer
 )
 
-add_executable(${PROJECT_NAME}
+add_library(${PROJECT_NAME}
   src/node.cpp
 )
 add_dependencies(${PROJECT_NAME}
   marslocalizer
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_compile_definitions(${PROJECT_NAME}
+  PRIVATE APRILTAG_LOCALIZATION_BUILDING_DLL)
 
 if ($ENV{ROS_DISTRO} STREQUAL "humble")
 target_compile_definitions(${PROJECT_NAME} PRIVATE LEGACY_CV_BRIDGE)
@@ -51,18 +62,29 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_target_dependencies(${PROJECT_NAME}
+  "rclcpp"
+  "rclcpp_action"
+  "rclcpp_components"
+  "image_transport"
+  "cv_bridge"
+  "tf2_eigen"
+  "tf2_ros"
+  "tf2_geometry_msgs"
+  "sensor_msgs"
+  "geometry_msgs"
+  "apriltag_msgs"
+)
+
 target_link_libraries(${PROJECT_NAME}
   marslocalizer
   apriltag
-  rclcpp::rclcpp
-  image_transport::image_transport
-  cv_bridge::cv_bridge
-  tf2_eigen::tf2_eigen
-  tf2_ros::tf2_ros
-  tf2_geometry_msgs::tf2_geometry_msgs
   gtsam
-  ${sensor_msgs_TARGETS}
-  ${geometry_msgs_TARGETS}
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "apriltag_localization::AprilTagLocalizationNode"
+  EXECUTABLE localization_node
 )
 
 install(
