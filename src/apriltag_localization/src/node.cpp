@@ -107,6 +107,7 @@ public:
             geometry_msgs::msg::PoseStamped camera_pose_msg;
             camera_pose_msg.pose = tf2::toMsg(camera_to_world);
             camera_pose_msg.header = image->header;
+            camera_pose_msg.header.frame_id = "odom";
             _camera_pose_publisher->publish(camera_pose_msg);
 
             Eigen::Affine3d robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform(
@@ -124,7 +125,7 @@ public:
             robot_pose_msg.pose.covariance = compute_robot_pose_covariance(
                 camera_pose_covariance, robot_to_world);
             robot_pose_msg.header = image->header;
-            robot_pose_msg.header.frame_id = "base_link";
+            robot_pose_msg.header.frame_id = "odom";
             _pose_publisher->publish(robot_pose_msg);
         }
     }
