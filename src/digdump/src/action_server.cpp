@@ -14,11 +14,6 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
 
-  teleop_msgs::msg::MotorChanges lower_msg;
-  teleop_msgs::msg::MotorChanges raise_msg;
-  teleop_msgs::msg::MotorChanges dig_msg;
-  teleop_msgs::msg::MotorChanges dump_msg;
-  
   const int lower_speed = 112;  //TODO: parameterize
   const int raise_speed = 142;
   const int dig_speed = 157;
@@ -68,6 +63,8 @@ void DigDumpActionServer::execute(
   double dump_time = 5.0;
   double move_time = 5.0;
 
+
+  std::cout<<lower_msg.changes.size()<<std::endl;
   rclcpp::Rate loop_rate(10);
   const int action_type = goal_handle->get_goal()->index;
   auto feedback = std::make_shared<DigDump::Feedback>();
