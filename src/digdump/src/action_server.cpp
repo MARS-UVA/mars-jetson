@@ -18,6 +18,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   const int raise_speed = 142;
   const int dig_speed = 157;
   const int dump_speed = 97;
+  const int drive_speed = 127;
 
   teleop_msgs::msg::SetMotor msg;
 
@@ -27,11 +28,16 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     raise_msg.changes.push_back(msg);
     dig_msg.changes.push_back(msg);
     dump_msg.changes.push_back(msg);
+    drive_msg.changes.push_back(msg);
   }
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = lower_speed;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = raise_speed;
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed;
   dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed;
+  drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed;
+  drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed;
+  drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed;
+  drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed;
 
 }
 
@@ -58,7 +64,8 @@ void DigDumpActionServer::execute(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
-  double arm_movement_time = 5.0; //TODO: parameterize later
+  double dig_arm_movement_time = 5.0; //TODO: parameterize later
+  double dump_arm_movement_time = 5.0;
   double dig_time = 5.0;
   double dump_time = 5.0;
   double move_time = 5.0;
@@ -85,7 +92,7 @@ void DigDumpActionServer::execute(
       // Dig Autonomy
       
       double elapsed_time = 0.0;
-      while (elapsed_time < arm_movement_time) {
+      while (elapsed_time < dig_arm_movement_time) {
         motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -103,6 +110,31 @@ void DigDumpActionServer::execute(
     case 2: {
       // dump
 
+      // Drive forward
+      double elapsed_time = 0.0;
+      while (elapsed_time < move_time) {
+        motor_publisher_->publish(drive_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
+
+      // Lower arms slightly
+      elapsed_time = 0.0;
+      while (elapsed_time < dump_arm_movement_time) {
+        motor_publisher_->publish(lower_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
+
+      // Spin drums in reverse
+      elapsed_time = 0.0;
+      while (elapsed_time < dump_time) {
+        motor_publisher_->publish(dump_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
+
+      break;
     }
     default: {
       // some kind of error
