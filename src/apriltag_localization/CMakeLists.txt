@@ -76,6 +76,7 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(taring_server
   rclcpp::rclcpp
   rclcpp_action::rclcpp_action
+  message_filters::message_filters
   tf2_eigen::tf2_eigen
   ${sensor_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
