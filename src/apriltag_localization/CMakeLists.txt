@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
@@ -33,6 +34,10 @@ include_directories(
 add_executable(${PROJECT_NAME}
   src/node.cpp
 )
+add_executable(taring_server
+  src/taring_server.cpp
+)
+
 add_dependencies(${PROJECT_NAME}
   marslocalizer
 )
@@ -66,17 +71,19 @@ target_link_libraries(${PROJECT_NAME}
   gtsam
   ${sensor_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
+)
+
+target_link_libraries(taring_server
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  tf2_eigen::tf2_eigen
+  ${sensor_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
   ${apriltag_msgs_TARGETS}
 )
 
-target_link_libraries(${PROJECT_NAME}
-  marslocalizer
-  apriltag
-  gtsam
-)
-
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} taring_server
   DESTINATION lib/${PROJECT_NAME}
 )
 

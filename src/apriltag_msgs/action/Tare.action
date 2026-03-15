@@ -1,5 +1,5 @@
 std_msgs/Empty empty
 ---
-geometry_msgs/Pose zero_pose
+geometry_msgs/Pose tared_pose
 ---
 uint32 points_considered
