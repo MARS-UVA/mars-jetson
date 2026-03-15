@@ -14,36 +14,26 @@
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
-#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <apriltag_msgs/action/tare.hpp>
 
 namespace {
 
-std::optional<Eigen::Affine3d> compute_average_pose(std::vector<Eigen::Affine3d> poses) {
-    Eigen::Matrix<double, 3, 100> translations;
-    std::transform(
-        poses.cbegin(),
-        poses.cend(),
-        translations.colwise().begin(),
-        [](const Eigen::Affine3d& transform) { return transform.translation(); });
+std::optional<Eigen::Quaterniond> compute_average_rotation(std::vector<Eigen::Quaterniond> quats) {
     Eigen::Matrix<double, 4, 100> rotations;
     std::transform(
-        poses.cbegin(),
-        poses.cend(),
+        quats.cbegin(),
+        quats.cend(),
         rotations.colwise().begin(),
-        [](const Eigen::Affine3d& transform) { return Eigen::Quaterniond(transform.linear()).coeffs(); });
-
-    Eigen::Affine3d average_pose;
-    average_pose.translation() = translations.rowwise().mean();
+        [](const Eigen::Quaterniond& quat) { return quat.coeffs(); });
     Eigen::JacobiSVD<typeof(rotations)> svd;
     svd.compute(rotations, Eigen::ComputeFullU);
     if (svd.info() != Eigen::Success) {
         return std::nullopt;
     }
-    average_pose.linear() = Eigen::Quaterniond(svd.matrixU().col(0)).matrix();
-    return average_pose;
+    return Eigen::Quaterniond(svd.matrixU().col(0));
 }
 
 }
@@ -64,10 +54,10 @@ class TaringServerNode : public rclcpp::Node {
     message_filters::Subscriber<sensor_msgs::msg::Imu> _imu_subscriber;
     std::shared_ptr<Synchronizer> _synchronizer;
 
-    rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr _tared_pose_publisher;
+    rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr _set_rotation_publisher;
 
     rclcpp_action::Server<TareAction>::SharedPtr _tare_action_server;
-    std::vector<Eigen::Affine3d> _tare_samples;
+    std::vector<Eigen::Quaterniond> _tare_samples;
     std::size_t _max_samples = 100;
     std::mutex _tare_samples_mutex;
     std::atomic_bool _taring;
@@ -101,8 +91,8 @@ public:
             std::bind(&TaringServerNode::on_pose_receive, this, _1, _2)
         );
 
-        _tared_pose_publisher = create_publisher<geometry_msgs::msg::Pose>(
-            "set_transform",
+        _set_rotation_publisher = create_publisher<geometry_msgs::msg::Quaternion>(
+            "set_rotation",
             rclcpp::QoS{10}.reliable()
         );
 
@@ -152,7 +142,7 @@ public:
                 tf2::fromMsg(camera_pose_msg->pose.pose, camera_pose);
                 Eigen::Quaterniond imu_rotation;
                 tf2::fromMsg(imu_msg->orientation, imu_rotation);
-                _tare_samples.push_back(imu_rotation * camera_pose.inverse());
+                _tare_samples.push_back(imu_rotation * Eigen::Quaterniond(camera_pose.linear()).inverse());
                 if (_tare_samples.size() > _max_samples) {
                     lock.unlock();
                     _taring_cv.notify_one();
@@ -164,7 +154,7 @@ public:
     void tare(const std::shared_ptr<TareGoalHandle> goal_handle) {
         using namespace std::chrono_literals;
 
-        _tared_pose_publisher->publish(tf2::toMsg(Eigen::Affine3d::Identity()));
+        _set_rotation_publisher->publish(tf2::toMsg(Eigen::Quaterniond::Identity()));
 
         while (!_taring.exchange(true));
         RCLCPP_INFO(get_logger(), "Taring...");
@@ -199,15 +189,15 @@ public:
         }
 
         if (rclcpp::ok()) {
-            std::optional<Eigen::Affine3d> tare_transform = compute_average_pose(_tare_samples);
-            if (tare_transform.has_value()) {
-                result->tared_pose = tf2::toMsg(tare_transform.value());
+            std::optional<Eigen::Quaterniond> tare_rotation = compute_average_rotation(_tare_samples);
+            if (tare_rotation.has_value()) {
+                result->tared_rotation = tf2::toMsg(tare_rotation.value());
                 goal_handle->succeed(result);
-                _tared_pose_publisher->publish(result->tared_pose);
+                _set_rotation_publisher->publish(result->tared_rotation);
                 RCLCPP_INFO(get_logger(), "Taring success!");
             } else {
                 goal_handle->abort(result);
-                RCLCPP_ERROR(get_logger(), "Failed to compute tare transform");
+                RCLCPP_ERROR(get_logger(), "Failed to compute tare rotation");
             }
         }
         while (_taring.exchange(false));

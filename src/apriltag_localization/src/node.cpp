@@ -21,7 +21,7 @@
 #include <gtsam/base/Matrix.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
@@ -43,8 +43,8 @@ class AprilTagLocalizationNode : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _camera_pose_publisher;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr _pose_publisher;
 
-    rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr _set_transform_subscription;
-    Eigen::Affine3d _post_transform = Eigen::Affine3d::Identity();
+    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr _set_rotation_subscription;
+    Eigen::Quaterniond _post_rotation = Eigen::Quaterniond::Identity();
 
 public:
     AprilTagLocalizationNode() : rclcpp::Node("apriltag_localization") {
@@ -76,10 +76,10 @@ public:
             rclcpp::SensorDataQoS{}
         );
 
-        _set_transform_subscription = create_subscription<geometry_msgs::msg::Pose>(
-            "set_transform",
+        _set_rotation_subscription = create_subscription<geometry_msgs::msg::Quaternion>(
+            "set_rotation",
             rclcpp::QoS{10}.reliable(),
-            std::bind(&AprilTagLocalizationNode::on_set_transform, this, _1)
+            std::bind(&AprilTagLocalizationNode::on_set_rotation, this, _1)
         );
     }
 
@@ -117,7 +117,7 @@ public:
                 RCLCPP_WARN(get_logger(), "Could not find pose of the camera in the robot frame");
                 return;
             }
-            Eigen::Affine3d robot_to_world = _post_transform * camera_to_world * robot_to_camera;
+            Eigen::Affine3d robot_to_world = _post_rotation * camera_to_world * robot_to_camera;
             gtsam::Matrix6 camera_pose_covariance;
             camera_pose_covariance << 0.0625, 0, 0, 0, 0, 0,
                                     0, 0.0625, 0, 0, 0, 0,
@@ -135,8 +135,8 @@ public:
         }
     }
 
-    void on_set_transform(const geometry_msgs::msg::Pose& pose) {
-        tf2::fromMsg(pose, _post_transform);
+    void on_set_rotation(const geometry_msgs::msg::Quaternion& rotation) {
+        tf2::fromMsg(rotation, _post_rotation);
     }
 
     geometry_msgs::msg::PoseWithCovariance::_covariance_type compute_robot_pose_covariance(const gtsam::Matrix6& camera_pose_covariance, const Eigen::Affine3d robot_to_world) {
