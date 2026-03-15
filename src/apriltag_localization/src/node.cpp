@@ -110,8 +110,13 @@ public:
             camera_pose_msg.header.frame_id = "odom";
             _camera_pose_publisher->publish(camera_pose_msg);
 
-            Eigen::Affine3d robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform(
-                "arducam1_optical", "base_link", image->header.stamp).transform);
+            Eigen::Affine3d robot_to_camera;
+            try {
+                robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform("arducam1_optical", "base_link", image->header.stamp).transform);
+            } catch (const tf2::LookupException& e) {
+                RCLCPP_WARN(get_logger(), "Could not find pose of the camera in the robot frame");
+                return;
+            }
             Eigen::Affine3d robot_to_world = _post_transform * camera_to_world * robot_to_camera;
             gtsam::Matrix6 camera_pose_covariance;
             camera_pose_covariance << 0.0625, 0, 0, 0, 0, 0,

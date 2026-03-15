@@ -38,7 +38,7 @@ std::optional<Eigen::Affine3d> compute_average_pose(std::vector<Eigen::Affine3d>
     Eigen::Affine3d average_pose;
     average_pose.translation() = translations.rowwise().mean();
     Eigen::JacobiSVD<typeof(rotations)> svd;
-    svd.compute(rotations, Eigen::ComputeThinU);
+    svd.compute(rotations, Eigen::ComputeFullU);
     if (svd.info() != Eigen::Success) {
         return std::nullopt;
     }
@@ -86,8 +86,8 @@ public:
         );
         _imu_subscriber.subscribe(
             this,
-            "imu",
-            rclcpp::SensorDataQoS{}.get_rmw_qos_profile()
+            "/zed2i/zed_node/imu/data",
+            rclcpp::QoS{10}.get_rmw_qos_profile()
         );
 
         _synchronizer = std::make_shared<Synchronizer>(
@@ -95,6 +95,7 @@ public:
             _camera_world_pose_subscriber,
             _imu_subscriber
         );
+        _synchronizer->setAgePenalty(0.5);
         _synchronizer->setMaxIntervalDuration(250ms);
         _synchronizer->registerCallback(
             std::bind(&TaringServerNode::on_pose_receive, this, _1, _2)
@@ -142,6 +143,7 @@ public:
         const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& camera_pose_msg,
         const sensor_msgs::msg::Imu::ConstSharedPtr& imu_msg
     ) {
+        RCLCPP_INFO(get_logger(), "Entered on_pose_receive");
         if (_taring) {
             std::unique_lock<std::mutex> lock(_tare_samples_mutex, std::try_to_lock);
             if (lock.owns_lock()) {
@@ -161,6 +163,8 @@ public:
 
     void tare(const std::shared_ptr<TareGoalHandle> goal_handle) {
         using namespace std::chrono_literals;
+
+        _tared_pose_publisher->publish(tf2::toMsg(Eigen::Affine3d::Identity()));
 
         while (!_taring.exchange(true));
         RCLCPP_INFO(get_logger(), "Taring...");

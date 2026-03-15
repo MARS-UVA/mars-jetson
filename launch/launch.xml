@@ -3,13 +3,13 @@
     <node pkg="apriltag_localization"
           exec="apriltag_localization"
           name="apriltag_localization"
-          namespace="awareness/arducam1">
+          namespace="awareness/arducam1"
+          args="--ros-args --disable-stdout-logs">
         <param name="field" value="fields/mars-67.json"/>
     </node>
     <node pkg="apriltag_localization"
           exec="taring_server"
           name="taring_server"
           namespace="awareness/arducam1">
-        <remap from="/zed2i/zed_node/imu/data" to="imu"/>
     </node>
 </launch>
