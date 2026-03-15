@@ -14,11 +14,22 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
 
-  const int lower_speed = 112;  //TODO: parameterize
-  const int raise_speed = 142;
-  const int dig_speed = 157;
-  const int dump_speed = 97;
-  const int drive_speed = 127;
+  auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
+    rcl_interfaces::msg::ParameterDescriptor desc;
+    desc.description = description;
+    return this->declare_parameter(name, default_val, desc);
+  };
+
+  lower_speed = declare_with_desc("lower_speed", 112, "The speed at which the front arms lower during the dig autonomy routine");
+  raise_speed = declare_with_desc("raise_speed", 142, "The speed at which the front arms raise during the dump autonomy routine");
+  dig_speed = declare_with_desc("dig_speed", 157, "The speed at which the front drums spin during the dig autonomy routine");
+  dump_speed = declare_with_desc("dump_speed", 97, "The speed at which the front drums spin during the dump autonomy routine");
+  drive_speed = declare_with_desc("drive_speed", 127, "The speed at which the robot drives during the dump autonomy routine");
+  dig_arm_movement_time = declare_with_desc("dig_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dig autonomy routine");
+  dump_arm_movement_time = declare_with_desc("dump_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dump autonomy routine");
+  dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
+  dump_time = declare_with_desc("dump_time", 5.0, "The amount of time the front drums spend spinning during the dump autonomy routine");
+  move_time = declare_with_desc("move_time", 5.0, "The amount of time the robot spends driving during the dump autonomy routine");
 
   teleop_msgs::msg::SetMotor msg;
 
@@ -64,11 +75,11 @@ void DigDumpActionServer::execute(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
-  double dig_arm_movement_time = 5.0; //TODO: parameterize later
-  double dump_arm_movement_time = 5.0;
-  double dig_time = 5.0;
-  double dump_time = 5.0;
-  double move_time = 5.0;
+  double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
+  double dump_arm_movement_time = this->get_parameter("dump_arm_movement_time").as_double();
+  double dig_time = this->get_parameter("dig_time").as_double();
+  double dump_time = this->get_parameter("dump_time").as_double();
+  double move_time = this->get_parameter("move_time").as_double();
 
 
   std::cout<<lower_msg.changes.size()<<std::endl;
