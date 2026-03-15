@@ -181,6 +181,7 @@ private:
     if (info.flag == true)
     {
       // subtract by '0' to convert char digit to integer value
+      RCLCPP_INFO(this->get_logger(), "Robot Action State before conversion:%d", info.client_message[0]);
       robot_action_state = info.client_message[0] - '0';
       RCLCPP_INFO(this->get_logger(), "Robot Action State:%d", robot_action_state);
 
