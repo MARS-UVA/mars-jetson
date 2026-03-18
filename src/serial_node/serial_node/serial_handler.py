@@ -20,12 +20,12 @@ class SerialHandler:
 	def setBytes(self, b):
 		self.totalDataBytes = b
 		
-	def setPort(self,port,baud):
+	def setPort(self, port, baud):
 		self.SER.close()
 		self.SER = serial.Serial(port,baud,timeout = None)
 
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
-	def send(self,header,data, logger = None): #messageType can be anything
+	def send(self, header, data, logger = None): #messageType can be anything
 		# print("sending")
 		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum

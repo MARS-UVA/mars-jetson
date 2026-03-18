@@ -17,6 +17,12 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
+            package='digdump',
+            executable='action_server',
+            name='digdump',
+            output='screen'
+        ),
+        Node(
             package='network_communication',
             executable='net_node',
             name='network_communication',

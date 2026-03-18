@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node, QoSProfile
 from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
 from serial_node.serial_handler import SerialHandler
-from std_msgs.msg import String
+from std_msgs.msg import String, Int8
 from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
@@ -14,54 +14,82 @@ SEND_DELAY_SEC = 0.02
 RECV_DELAY_SEC = 0.03
 MOTOR_STILL = 127
 
+TELEOP_MODE = 0
+DIGDUMP_MODE = 1
+
+INT2MODE = ["TELEOP", "DIG/DUMP AUTONOMY"]
+
 class SerialNode(Node):
 
     def __init__(self):
-        self.data = [MOTOR_STILL]*NUM_MOTORS
-        super().__init__('read_from_teleop')
-        self.subscription = self.create_subscription(
-            msg_type=MotorChanges,
-            topic='teleop',
-            callback=self.listener_callback,
-            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)) #1 queued message
+        qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
+        self.mode = TELEOP_MODE
+        self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+        self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+
+        super().__init__('serial_mux')
+        self.teleop_sub_ = self.create_subscription(
+            msg_type = MotorChanges,
+            topic = 'teleop',
+            callback = self.update_buffer,
+            qos_profile = qos) #1 queued message
+        self.digdump_sub_ = self.create_subscription(
+            msg_type = MotorChanges, 
+            topic = 'digdump_autonomy',
+            callback = self.update_buffer,
+            qos_profile = qos)
+        self.robot_state_sub_ = self.create_subscription(
+            msg_type = Int8,
+            topic = 'robot_state',
+            callback = self.change_robot_state,
+            qos_profile = qos
+        )
         self.current_bus_voltage_publisher = self.create_publisher(
             msg_type=CurrentBusVoltage,
             topic='current_bus_voltage',
-            qos_profile=1
+            qos_profile=qos
         )
         self.position_publisher = self.create_publisher(
             msg_type=Position,
             topic='position',
-            qos_profile=1
+            qos_profile=qos
         )
         self.temperature_publisher = self.create_publisher(
             msg_type=Temperature,
             topic='temperature',
-            qos_profile=1
+            qos_profile=qos
         )
-
-        self.subscription  # prevent unused variable warning
+        self.teleop_sub_  # prevent unused variable warning
         self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
         self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFeedback)
         self.serial_handler = SerialHandler()
+    
+    def change_robot_state(self, robot_state_msg):
+        self.mode = robot_state_msg.data
+        self.get_logger().log(f"CHANGING MODE: {INT2MODE[self.mode]}")
 
-    def listener_callback(self, msg):
-        # self.get_logger().warn("Received motor query")
-        for change in msg.changes:
-            self.data[change.index] = change.velocity
-
-        for add in msg.adds:
-            newVel = self.data[add.index] + add.vel_increment
+    def get_buffer(self):
+        if self.mode == TELEOP_MODE:
+            return self.teleop_buffer_
+        elif self.mode == DIGDUMP_MODE:
+            return self.digdump_buffer_
+    
+    def update_buffer(self, motor_updates):
+        buffer = self.get_buffer()
+        
+        for change in motor_updates.changes:
+            buffer[change.index] = change.velocity
+        for add in motor_updates.adds:
+            newVel = buffer[add.index] + add.vel_increment
             self.get_logger().info(f"{add.index}: {'+' if add.vel_increment>0 else ''}{add.vel_increment}")
             newVel = max(0, newVel)
             newVel = min(254, newVel)
-            self.data[add.index] = newVel
-        
+            buffer[add.index] = newVel
         
     def sendCurrents(self):
-        #print(ok)
-        self.get_logger().warn(f"Sending currents: {self.data}")
-        self.serial_handler.send(MOTOR_CURRENT_MSG, self.data, self.get_logger())
+        buffer = self.get_buffer()
+        self.get_logger().warn(f"Sending currents: {buffer}")
+        self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
         
     def readFeedback(self):
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
