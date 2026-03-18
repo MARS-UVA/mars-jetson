@@ -8,6 +8,7 @@
 struct ThreadInfo {
     char client_message[100000];
     bool flag;
+    int8_t robot_action_state;
 };
 
 int create_server(ThreadInfo* info);

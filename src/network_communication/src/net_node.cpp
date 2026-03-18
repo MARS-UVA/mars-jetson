@@ -180,9 +180,8 @@ private:
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
-      // subtract by '0' to convert char digit to integer value
       RCLCPP_INFO(this->get_logger(), "Robot Action State before conversion:%d", info.client_message[0]);
-      robot_action_state = info.client_message[0] - '0';
+      robot_action_state = info.robot_action_state;
       RCLCPP_INFO(this->get_logger(), "Robot Action State:%d", robot_action_state);
 
       message = std::string(info.client_message);

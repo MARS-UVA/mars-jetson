@@ -120,8 +120,11 @@ int create_server(ThreadInfo *info)
         received_data.push_back('\0');
         memset(info->client_message, '\0', 100000);
         memcpy(info->client_message, received_data.data(), received_data.size());
+        // set robot_action_state to the first byte of the buffer header
+        info->robot_action_state = *buffer;
         //printf("after seting data");
         info->flag = true;
+        
 
         // std::cout << buffer << std::endl;
     }
