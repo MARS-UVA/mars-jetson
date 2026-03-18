@@ -50,6 +50,7 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges dig_msg;
     teleop_msgs::msg::MotorChanges dump_msg;
     teleop_msgs::msg::MotorChanges drive_msg;
+    teleop_msgs::msg::MotorChanges stop_msg;
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 

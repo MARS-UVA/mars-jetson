@@ -20,11 +20,13 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     return this->declare_parameter(name, default_val, desc);
   };
 
-  lower_speed = declare_with_desc("lower_speed", 112, "The speed at which the front arms lower during the dig autonomy routine");
-  raise_speed = declare_with_desc("raise_speed", 142, "The speed at which the front arms raise during the dump autonomy routine");
-  dig_speed = declare_with_desc("dig_speed", 157, "The speed at which the front drums spin during the dig autonomy routine");
-  dump_speed = declare_with_desc("dump_speed", 97, "The speed at which the front drums spin during the dump autonomy routine");
-  drive_speed = declare_with_desc("drive_speed", 127, "The speed at which the robot drives during the dump autonomy routine");
+  // Speed is from 0-127 where 0 is stopped and 127 is maximum speed
+  actuator_speed = declare_with_desc("actuator_speed", 1, "The speed at which the arms lower/raise during dig/dump autonomy routine from 0-127");
+  dig_speed = declare_with_desc("dig_speed", 1, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
+  dump_speed = declare_with_desc("dump_speed", 1, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
+  drive_speed = declare_with_desc("drive_speed", 1, "The speed at which the robot drives during the dump autonomy routine from 0-127");
+
+  // Time parameters are in seconds
   dig_arm_movement_time = declare_with_desc("dig_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dig autonomy routine");
   dump_arm_movement_time = declare_with_desc("dump_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dump autonomy routine");
   dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
@@ -41,14 +43,21 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     dump_msg.changes.push_back(msg);
     drive_msg.changes.push_back(msg);
   }
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = lower_speed;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = raise_speed;
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed;
-  drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed;
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed*-1;
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed;
+  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed + 127;
+  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed + 127;
+  drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed + 127;
+  drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed + 127;
+  drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed + 127;
+  drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed + 127;
+
+  stop_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127;
+  stop_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127;
+  stop_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = 127;
+  stop_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = 127;
+  stop_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127;
+  stop_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127;
 
 }
 
