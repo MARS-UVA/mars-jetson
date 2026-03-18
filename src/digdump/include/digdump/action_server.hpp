@@ -15,18 +15,16 @@ class DigDumpActionServer : public rclcpp::Node
   public:
     explicit DigDumpActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-    auto lower_speed;
-    auto raise_speed;
-    auto dig_speed;
-    auto dump_speed;
-    auto drive_speed;
-    auto dig_arm_movement_time;
-    auto dump_arm_movement_time;
-    auto dig_time;
-    auto dump_time;
-    auto move_time;
-    
-
+    rcl_interfaces::msg::ParameterDescriptor lower_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor raise_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_arm_movement_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dump_arm_movement_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dump_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
 
 
   private:
@@ -50,6 +48,7 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges dig_msg;
     teleop_msgs::msg::MotorChanges dump_msg;
     teleop_msgs::msg::MotorChanges drive_msg;
+    teleop_msgs::msg::MotorChanges stop_msg;   
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 

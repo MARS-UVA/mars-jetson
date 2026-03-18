@@ -41,6 +41,18 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     dump_msg.changes.push_back(msg);
     drive_msg.changes.push_back(msg);
   }
+
+  for (int i = 0; i < 8; i++) {
+    teleop_msgs::msg::SetMotor msg;
+    msg.index = i;
+    stop_msg.changes.push_back(msg);
+  }
+
+  // Stop all motors
+  for (auto & m : stop_msg.changes) {
+    m.velocity = 127;  // safe stop
+  }
+
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = lower_speed;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = raise_speed;
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed;
@@ -149,6 +161,17 @@ void DigDumpActionServer::execute(
     }
     default: {
       // some kind of error
+      RCLCPP_ERROR(rclcpp::get_logger("server"),
+               "Invalid action_type received: %d", action_type);
+
+      motor_publisher_->publish(stop_msg);
+
+      auto state = std_msgs::msg::UInt8();
+      state.data = 0;
+      state_publisher_->publish(state);
+
+      goal_handle->abort(result);
+      break;
     }
   }
 
