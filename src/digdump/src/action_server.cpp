@@ -117,6 +117,7 @@ void DigDumpActionServer::execute(
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
+      motor_publisher_->publish(stop_msg);
 
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
@@ -124,7 +125,7 @@ void DigDumpActionServer::execute(
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-
+      motor_publisher_->publish(stop_msg);
       break;
     }
     case 2: {
@@ -137,7 +138,7 @@ void DigDumpActionServer::execute(
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-
+      motor_publisher_->publish(stop_msg);
       // Lower arms slightly
       elapsed_time = 0.0;
       while (elapsed_time < dump_arm_movement_time) {
@@ -145,6 +146,7 @@ void DigDumpActionServer::execute(
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
+      motor_publisher_->publish(stop_msg);
 
       // Spin drums in reverse
       elapsed_time = 0.0;
@@ -153,7 +155,7 @@ void DigDumpActionServer::execute(
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-
+      motor_publisher_->publish(stop_msg);
       break;
     }
     default: {
