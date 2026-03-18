@@ -48,7 +48,11 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges dig_msg;
     teleop_msgs::msg::MotorChanges dump_msg;
     teleop_msgs::msg::MotorChanges drive_msg;
+<<<<<<< HEAD
     teleop_msgs::msg::MotorChanges stop_msg;   
+=======
+    teleop_msgs::msg::MotorChanges stop_msg;
+>>>>>>> refs/remotes/origin/mux-node
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 
@@ -59,4 +63,6 @@ class DigDumpActionServer : public rclcpp::Node
       const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 
     void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+
+    void cancel_current_goal(auto state, const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 };
