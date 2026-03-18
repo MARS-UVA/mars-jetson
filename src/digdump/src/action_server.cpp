@@ -61,6 +61,8 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
 
 }
 
+
+
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
   const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
 {
@@ -113,6 +115,10 @@ void DigDumpActionServer::execute(
       
       double elapsed_time = 0.0;
       while (elapsed_time < dig_arm_movement_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
         motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -121,6 +127,10 @@ void DigDumpActionServer::execute(
 
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
         motor_publisher_->publish(dig_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -134,6 +144,10 @@ void DigDumpActionServer::execute(
       // Drive forward
       double elapsed_time = 0.0;
       while (elapsed_time < move_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
         motor_publisher_->publish(drive_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -142,6 +156,10 @@ void DigDumpActionServer::execute(
       // Lower arms slightly
       elapsed_time = 0.0;
       while (elapsed_time < dump_arm_movement_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
         motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -151,6 +169,10 @@ void DigDumpActionServer::execute(
       // Spin drums in reverse
       elapsed_time = 0.0;
       while (elapsed_time < dump_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
         motor_publisher_->publish(dump_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
@@ -176,6 +198,14 @@ void DigDumpActionServer::handle_accepted(const std::shared_ptr<DigDumpGoalHandl
 {
   // this needs to return quickly to avoid blocking the executor, so spin up a new thread
   std::thread{std::bind(&DigDumpActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
+}
+
+void DigDumpActionServer::cancel_current_goal(auto state, const std::shared_ptr<DigDumpGoalHandle> goal_handle) {
+  state.data = 0;
+  motor_publisher_->publish(stop_msg);
+  state_publisher_->publish(state);
+  goal_handle->canceled(result);
+  RCLCPP_INFO(rclcpp::get_logger("server"), "Goal Canceled");
 }
 
 int main(int argc, char ** argv)

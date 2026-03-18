@@ -61,4 +61,6 @@ class DigDumpActionServer : public rclcpp::Node
       const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 
     void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+
+    void cancel_current_goal(auto state, const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 };
