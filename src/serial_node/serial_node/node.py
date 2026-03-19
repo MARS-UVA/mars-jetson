@@ -8,6 +8,8 @@ from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
 
+TESTING = False
+
 NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
 SEND_HZ = 20
@@ -77,7 +79,8 @@ class SerialNode(Node):
         self.serial_handler = SerialHandler()
 
     def publish_robot_state(self):
-        msg = UInt8(self.mode)
+        msg = UInt8()
+        msg.data = self.mode
         self.robot_state_pub_.publish(msg)
     
     def change_robot_state(self, robot_state_msg):
@@ -112,9 +115,11 @@ class SerialNode(Node):
             buffer = self.STOP_MSG
 
         self.get_logger().warn(f"Sending currents: {buffer}")
+        if TESTING: return
         self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
         
     def readFeedback(self):
+        if TESTING: return
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
         if header:
             if header[1] == 0x00:
