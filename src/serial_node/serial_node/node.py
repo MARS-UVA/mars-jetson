@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node, QoSProfile
 from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
 from serial_node.serial_handler import SerialHandler
-from std_msgs.msg import String, Int8
+from std_msgs.msg import String, UInt8
 from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
@@ -10,38 +10,49 @@ from serial_msgs.msg import Temperature
 
 NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
-SEND_DELAY_SEC = 0.02
-RECV_DELAY_SEC = 0.03
+SEND_HZ = 20
+READ_HZ = 20
+ROBOT_STATE_HZ = 10
 MOTOR_STILL = 127
 
 TELEOP_MODE = 0
 DIGDUMP_MODE = 1
+ESTOP = 2
 
-INT2MODE = ["TELEOP", "DIG/DUMP AUTONOMY"]
+INT2MODE = ["TELEOP", "DIG/DUMP AUTONOMY", "ESTOPPED"]
 
 class SerialNode(Node):
 
     def __init__(self):
+        super().__init__('serial_mux')
+
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
         self.mode = TELEOP_MODE
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+        self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
 
-        super().__init__('serial_mux')
         self.teleop_sub_ = self.create_subscription(
             msg_type = MotorChanges,
             topic = 'teleop',
-            callback = self.update_buffer,
+            callback = self.update_teleop_buffer,
             qos_profile = qos) #1 queued message
         self.digdump_sub_ = self.create_subscription(
             msg_type = MotorChanges, 
             topic = 'digdump_autonomy',
-            callback = self.update_buffer,
+            callback = self.update_digdump_buffer,
             qos_profile = qos)
         self.robot_state_sub_ = self.create_subscription(
-            msg_type = Int8,
-            topic = 'robot_state',
+            msg_type = UInt8,
+            topic = 'robot_state/toggle',
             callback = self.change_robot_state,
+            qos_profile = qos
+        )
+
+        # feedback
+        self.robot_state_pub_ = self.create_publisher(
+            msg_type = UInt8,
+            topic = 'robot_state',
             qos_profile = qos
         )
         self.current_bus_voltage_publisher = self.create_publisher(
@@ -60,23 +71,23 @@ class SerialNode(Node):
             qos_profile=qos
         )
         self.teleop_sub_  # prevent unused variable warning
-        self.send_timer = self.create_timer(SEND_DELAY_SEC, self.sendCurrents)
-        self.recv_timer = self.create_timer(RECV_DELAY_SEC, self.readFeedback)
+        self.send_timer = self.create_timer(1/SEND_HZ, self.sendCurrents)
+        self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
+        self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
+
+    def publish_robot_state(self):
+        msg = UInt8(self.mode)
+        self.robot_state_pub_.publish(msg)
     
     def change_robot_state(self, robot_state_msg):
+        
         self.mode = robot_state_msg.data
+        if self.mode == ESTOP and robot_state_msg.data == ESTOP: # estop toggle, probably better way to do this?
+            self.mode = TELEOP_MODE
         self.get_logger().log(f"CHANGING MODE: {INT2MODE[self.mode]}")
 
-    def get_buffer(self):
-        if self.mode == TELEOP_MODE:
-            return self.teleop_buffer_
-        elif self.mode == DIGDUMP_MODE:
-            return self.digdump_buffer_
-    
-    def update_buffer(self, motor_updates):
-        buffer = self.get_buffer()
-        
+    def update_buffer(self, buffer, motor_updates):
         for change in motor_updates.changes:
             buffer[change.index] = change.velocity
         for add in motor_updates.adds:
@@ -85,9 +96,21 @@ class SerialNode(Node):
             newVel = max(0, newVel)
             newVel = min(254, newVel)
             buffer[add.index] = newVel
+    
+    def update_teleop_buffer(self, motor_updates):
+        self.update_buffer(self.teleop_buffer_, motor_updates)
+        
+    def update_digdump_buffer(self, motor_updates):
+        self.update_buffer(self.digdump_buffer_, motor_updates)
         
     def sendCurrents(self):
-        buffer = self.get_buffer()
+        if self.mode == TELEOP_MODE:
+            buffer = self.teleop_buffer_
+        elif self.mode == DIGDUMP_MODE:
+            buffer = self.digdump_buffer_
+        elif self.mode == ESTOP:
+            buffer = self.STOP_MSG
+
         self.get_logger().warn(f"Sending currents: {buffer}")
         self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
         
@@ -126,18 +149,6 @@ class SerialNode(Node):
                     back_actuator_position = feedback[1]
                 )
                 self.position_publisher.publish(mf)
-            """ DEPRECATED FEEDBACK
-            mf = Feedback(front_left = data[0],
-                                front_right = data[1],
-                                back_left = data[2],
-                                back_right = data[3],
-                                l_drum = data[4],
-                                r_drum = data[5],
-                                l_actuator = data[6],
-                                r_actuator = data[7],
-                                actuator_height = data[8])
-            self.feedback_publisher.publish(mf)
-            """
         else:
             self.get_logger().warn("no data")
         
