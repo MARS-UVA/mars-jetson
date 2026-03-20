@@ -58,10 +58,22 @@ protected:
     struct ConstructorKey;
 
 public:
+
     /**
      * Type for AprilTag family deleter function pointers.
      */
     using Deleter = void(apriltag_family_t*);
+
+    /**
+     * Obtains a corresponding AprilTagFamily object for the given family name, or creates a new one if there isn't
+     * one yet.
+     *
+     * @param name The name of the AprilTag family. This must be one of the AprilTag families provided by default with
+     *             the AprilTag library.
+     * @return If an AprilTagFamily object already exists for the family data, then return a shared pointer to that
+     *         object. Otherwise, create a new AprilTagFamily object for the data and return a shared pointer to it.
+     */
+    static std::shared_ptr<AprilTagFamily> get(const std::string_view& name);
 
     /**
      * Obtains a corresponding AprilTagFamily object for the given family data, or creates a new one if there isn't
@@ -258,160 +270,6 @@ private:
 
     detail::wrapping_ptr<apriltag_detection_t, apriltag_detection_destroy> _detection;
     std::shared_ptr<AprilTagFamily> _family;
-
-};
-
-struct AprilTagDetectorConfiguration {
-    int nthreads;
-    float quad_decimate;
-    float quad_sigma;
-    bool refine_edges;
-    double decode_sharpening;
-    bool debug;
-};
-
-/**
- * A detector for AprilTags.
- *
- * This wraps the @code apriltag_detector_t@endcode struct from the original AprilTag library.
- */
-class AprilTagDetector {
-public:
-    /**
-     * Creates a new AprilTagDetector object.
-     */
-    AprilTagDetector()
-        : _detector(apriltag_detector_create()) {
-    }
-
-    /**
-     * Const accessor to the number of threads the detector may use.
-     *
-     * @return The number of threads which the detector may use.
-     */
-    [[nodiscard]] int nthreads() const;
-
-    /**
-     * Non-const accessor to the number of threads the detector may use.
-     *
-     * @return The number of threads which the detector may use.
-     */
-    [[nodiscard]] int& nthreads();
-
-    /**
-     * Const accessor to the amount by which the detector decimates the image.
-     *
-     * @return The amount by which to decimate the image before performing quad detection.
-     */
-    [[nodiscard]] float quad_decimate() const;
-
-    /**
-     * Non-const accessor to the amount by which the detector decimates the image.
-     *
-     * @return The amount by which to decimate the image before performing quad detection.
-     */
-    [[nodiscard]] float& quad_decimate();
-
-    /**
-     * Const accessor to the amount of Gaussian blur to apply to the image before performing quad detection.
-     *
-     * @return The amount of Gaussian blur to apply to the image before performing quad detection.
-     */
-    [[nodiscard]] float quad_sigma() const;
-
-    /**
-     * Non-const accessor to the amount of Gaussian blur to apply to the image before performing quad detection.
-     *
-     * @return The amount of Gaussian blur to apply to the image before performing quad detection.
-     */
-    [[nodiscard]] float& quad_sigma();
-
-    /**
-     * Const accessor to whether to refine quad edges.
-     *
-     * @return Whether the detector will adjust quad edges to snap to areas of higher luminance gradients.
-     */
-    [[nodiscard]] bool refine_edges() const;
-
-    /**
-     * Non-const accessor to whether to refine quad edges.
-     *
-     * @return Whether the detector will adjust quad edges to snap to areas of higher luminance gradients.
-     */
-    [[nodiscard]] bool& refine_edges();
-
-    /**
-     * Const accessor to the amount of sharpening to apply.
-     *
-     * @return The amount of sharpening to apply to decoded images before quad detection is performed.
-     */
-    [[nodiscard]] double decode_sharpening() const;
-
-    /**
-     * Non-const accessor to the amount of sharpening to apply.
-     *
-     * @return The amount of sharpening to apply to decoded images before quad detection is performed.
-     */
-    [[nodiscard]] double& decode_sharpening();
-
-    /**
-     * Const accessor to whether to output additional debug information.
-     *
-     * @return Whether to output additional debug information.
-     */
-    [[nodiscard]] bool debug() const;
-
-    /**
-     * Non-const accessor to whether to output additional debug information.
-     *
-     * @return Whether to output additional debug information.
-     */
-    [[nodiscard]] bool& debug();
-
-    /**
-     * Adds an AprilTag family to the set of families which this detector will detect.
-     *
-     * @param family Shared pointer to the AprilTag family to add.
-     */
-    void add_family(const std::shared_ptr<AprilTagFamily>& family);
-
-    /**
-     * Removes an AprilTag family from the set of families which this detector will detect.
-     *
-     * @param family Shared pointer to the AprilTag family to remove.
-     */
-    void remove_family(const std::shared_ptr<AprilTagFamily>& family);
-
-    /**
-     * Removes all AprilTag families from the set of families which this detector will detect.
-     */
-    void clear_families();
-
-    /**
-     * Detects AprilTags in the provided image.
-     *
-     * @param image Image in which AprilTags will be detected.
-     * @return A std::vector of AprilTags that were detected. May be empty.
-     */
-    [[nodiscard]] std::vector<AprilTagDetection> detect(const cv::Mat& image) const;
-
-    /**
-     * Returns a raw pointer to the wrapped C value.
-     *
-     * @return A raw pointer to the underlying @code apriltag_detector_t@endcode value.
-     */
-    [[nodiscard]] apriltag_detector_t* raw() const;
-
-    AprilTagDetector(const AprilTagDetector&) = delete;
-    AprilTagDetector(AprilTagDetector&&) = default;
-
-    AprilTagDetector& operator=(const AprilTagDetector&) = delete;
-    AprilTagDetector& operator=(AprilTagDetector&&) = default;
-
-private:
-
-    detail::wrapping_ptr<apriltag_detector_t, apriltag_detector_destroy> _detector;
-    std::vector<std::shared_ptr<AprilTagFamily>> _families;
 
 };
 

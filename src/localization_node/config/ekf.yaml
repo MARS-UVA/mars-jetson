@@ -37,8 +37,8 @@ ekf_filter_node:
 #         estimation node from robot_localization! However, that instance should *not* fuse the global data.
         map_frame: map                   # Defaults to "map" if unspecified
         odom_frame: odom                 # Defaults to "odom" if unspecified
-        base_link_frame: zed_camera_link  # Defaults to "base_link" if unspecified
-        world_frame: map                # Defaults to the value of odom_frame if unspecified
+        base_link_frame: base_link  # Defaults to "base_link" if unspecified
+        world_frame: odom                # Defaults to the value of odom_frame if unspecified
 
 # The filter accepts an arbitrary number of inputs from each input message type (nav_msgs/Odometry,
 # geometry_msgs/PoseWithCovarianceStamped, geometry_msgs/TwistWithCovarianceStamped,
@@ -68,8 +68,8 @@ ekf_filter_node:
         #         x_accel , y_accel  , z_accel]
 
 
-        pose0: /localization/estimated_pose   #topic of positions from apriltag
-        pose0_config: [true, true, false,
+        pose1: /awareness/arducam1/robot_pose_estimate   #topic of positions from apriltag
+        pose1_config: [true, true, false,
                       false, false, true,
                       false, false, false,
                       false, false, false,

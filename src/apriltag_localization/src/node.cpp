@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -20,6 +21,8 @@
 #include <gtsam/base/Matrix.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 #include "field.hpp"
@@ -28,6 +31,8 @@
 template <typename T>
 using immutable_shared_ptr = const std::shared_ptr<const T>;
 
+namespace apriltag_localization {
+
 class AprilTagLocalizationNode : public rclcpp::Node {
 
     std::unique_ptr<apriltag::CameraLocalizer> _localizer;
@@ -35,7 +40,11 @@ class AprilTagLocalizationNode : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer> _tf2_buffer;
     std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _camera_pose_publisher;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr _pose_publisher;
+
+    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr _set_rotation_subscription;
+    Eigen::Quaterniond _post_rotation = Eigen::Quaterniond::Identity();
 
 public:
     AprilTagLocalizationNode() : rclcpp::Node("apriltag_localization") {
@@ -46,51 +55,88 @@ public:
         get_parameter<std::string>("field", field_path);
         std::shared_ptr<apriltag::AprilTagField> field = apriltag::AprilTagField::parse(std::ifstream(field_path));
         _localizer = std::make_unique<apriltag::CameraLocalizer>(field, apriltag::PnPMethod::SQPNP);
-
-        const auto family = apriltag::AprilTagFamily::get(tagStandard41h12_create(), tagStandard41h12_destroy);
         _localizer->detector().nthreads() = 8;
-        _localizer->detector().add_family(family);
 
         _camera_subscriber = image_transport::create_camera_subscription(
             this,
-            "arducam1/image_raw",
-            std::bind(&AprilTagLocalizationNode::image_callback, this, _1, _2),
+            "image_raw",
+            std::bind(&AprilTagLocalizationNode::on_image_receive, this, _1, _2),
             "raw",
             rclcpp::SensorDataQoS().get_rmw_qos_profile()
         );
         _tf2_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
         _tf2_listener = std::make_shared<tf2_ros::TransformListener>(*_tf2_buffer);
-        _pose_publisher = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("awareness", rclcpp::SensorDataQoS{});
+
+        _camera_pose_publisher = create_publisher<geometry_msgs::msg::PoseStamped>(
+            "camera_pose_estimate",
+            rclcpp::SensorDataQoS{}
+        );
+        _pose_publisher = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "robot_pose_estimate",
+            rclcpp::SensorDataQoS{}
+        );
+
+        _set_rotation_subscription = create_subscription<geometry_msgs::msg::Quaternion>(
+            "set_rotation",
+            rclcpp::QoS{10}.reliable(),
+            std::bind(&AprilTagLocalizationNode::on_set_rotation, this, _1)
+        );
     }
 
-    void image_callback(immutable_shared_ptr<sensor_msgs::msg::Image> image, immutable_shared_ptr<sensor_msgs::msg::CameraInfo> camera_info) {
+    void on_image_receive(immutable_shared_ptr<sensor_msgs::msg::Image> image, immutable_shared_ptr<sensor_msgs::msg::CameraInfo> camera_info) {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(image, sensor_msgs::image_encodings::MONO8);
-        cv::Mat camera_matrix { camera_info->r, false };
+        cv::Mat camera_matrix(3, 3, CV_64F);
+        camera_matrix.at<double>(0, 0) = camera_info->k.at(0);
+        camera_matrix.at<double>(0, 1) = camera_info->k.at(1);
+        camera_matrix.at<double>(0, 2) = camera_info->k.at(2);
+        camera_matrix.at<double>(1, 0) = camera_info->k.at(3);
+        camera_matrix.at<double>(1, 1) = camera_info->k.at(4);
+        camera_matrix.at<double>(1, 2) = camera_info->k.at(5);
+        camera_matrix.at<double>(2, 0) = camera_info->k.at(6);
+        camera_matrix.at<double>(2, 1) = camera_info->k.at(7);
+        camera_matrix.at<double>(2, 2) = camera_info->k.at(8);
         std::optional<apriltag::CameraLocalizationResult> result = _localizer->localize(
             cv_ptr->image,
             camera_matrix.reshape(1, {3, 3}),
             camera_info->d
         );
         if (result.has_value()) {
-            RCLCPP_INFO_STREAM(get_logger(), "Got pose " << result->estimate.pose.affine());
-            Eigen::Affine3d robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform(
-                "arducam1_optical", "base_link", image->header.stamp).transform);
-            Eigen::Affine3d robot_to_world = result->estimate.pose * robot_to_camera;
+            Eigen::Affine3d camera_to_world = result->estimate.pose;
+            RCLCPP_INFO_STREAM(get_logger(), "Got pose " << (camera_to_world).affine());
+
+            geometry_msgs::msg::PoseStamped camera_pose_msg;
+            camera_pose_msg.pose = tf2::toMsg(camera_to_world);
+            camera_pose_msg.header = image->header;
+            camera_pose_msg.header.frame_id = "odom";
+            _camera_pose_publisher->publish(camera_pose_msg);
+
+            Eigen::Affine3d robot_to_camera;
+            try {
+                robot_to_camera = tf2::transformToEigen(_tf2_buffer->lookupTransform("arducam1_optical", "base_link", image->header.stamp).transform);
+            } catch (const tf2::LookupException& e) {
+                RCLCPP_WARN(get_logger(), "Could not find pose of the camera in the robot frame");
+                return;
+            }
+            Eigen::Affine3d robot_to_world = _post_rotation * camera_to_world * robot_to_camera;
             gtsam::Matrix6 camera_pose_covariance;
             camera_pose_covariance << 0.0625, 0, 0, 0, 0, 0,
-                                      0, 0.0625, 0, 0, 0, 0,
-                                      0, 0, 0.0625, 0, 0, 0,
-                                      0, 0, 0, 0.0625, 0, 0,
-                                      0, 0, 0, 0, 0.0625, 0,
-                                      0, 0, 0, 0, 0, 0.0625;
+                                    0, 0.0625, 0, 0, 0, 0,
+                                    0, 0, 0.0625, 0, 0, 0,
+                                    0, 0, 0, 0.0625, 0, 0,
+                                    0, 0, 0, 0, 0.0625, 0,
+                                    0, 0, 0, 0, 0, 0.0625;
             geometry_msgs::msg::PoseWithCovarianceStamped robot_pose_msg;
             robot_pose_msg.pose.pose = tf2::toMsg(robot_to_world);
             robot_pose_msg.pose.covariance = compute_robot_pose_covariance(
                 camera_pose_covariance, robot_to_world);
             robot_pose_msg.header = image->header;
-            robot_pose_msg.header.frame_id = "base_link";
+            robot_pose_msg.header.frame_id = "odom";
             _pose_publisher->publish(robot_pose_msg);
         }
+    }
+
+    void on_set_rotation(const geometry_msgs::msg::Quaternion& rotation) {
+        tf2::fromMsg(rotation, _post_rotation);
     }
 
     geometry_msgs::msg::PoseWithCovariance::_covariance_type compute_robot_pose_covariance(const gtsam::Matrix6& camera_pose_covariance, const Eigen::Affine3d robot_to_world) {
@@ -140,9 +186,11 @@ public:
 
 };
 
+}
+
 int main(int argc, const char *argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<AprilTagLocalizationNode>());
+    rclcpp::spin(std::make_shared<apriltag_localization::AprilTagLocalizationNode>());
     rclcpp::shutdown();
     return 0;
 }

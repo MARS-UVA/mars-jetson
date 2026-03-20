@@ -5,7 +5,7 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include <opencv2/opencv.hpp>
 
-#include "wrapper.hpp"
+#include "common.hpp"
 
 namespace apriltag {
 
