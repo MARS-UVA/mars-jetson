@@ -18,10 +18,11 @@ ROBOT_STATE_HZ = 10
 MOTOR_STILL = 127
 
 TELEOP_MODE = 0
-DIGDUMP_MODE = 1
-ESTOP = 2
+DIG_MODE = 1
+DUMP_MODE = 2
+ESTOP = 3
 
-INT2MODE = ["TELEOP", "DIG/DUMP AUTONOMY", "ESTOPPED"]
+INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
 
 class SerialNode(Node):
 
@@ -31,7 +32,7 @@ class SerialNode(Node):
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
         self.mode = TELEOP_MODE
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
-        self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+        self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
 
         self.teleop_sub_ = self.create_subscription(
@@ -84,11 +85,16 @@ class SerialNode(Node):
         self.robot_state_pub_.publish(msg)
     
     def change_robot_state(self, robot_state_msg):
-        
         self.mode = robot_state_msg.data
-        if self.mode == ESTOP and robot_state_msg.data == ESTOP: # estop toggle, probably better way to do this?
-            self.mode = TELEOP_MODE
-        self.get_logger().log(f"CHANGING MODE: {INT2MODE[self.mode]}")
+        if robot_state_msg.data == ESTOP: # estop toggle, probably better way to do this?
+            if self.mode == ESTOP:
+                self.mode = TELEOP_MODE
+            else:
+                self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
+                self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+                self.mode = ESTOP
+            
+        self.get_logger().warn(f"CHANGING MODE: {INT2MODE[self.mode]}")
 
     def update_buffer(self, buffer, motor_updates):
         for change in motor_updates.changes:
@@ -109,7 +115,7 @@ class SerialNode(Node):
     def sendCurrents(self):
         if self.mode == TELEOP_MODE:
             buffer = self.teleop_buffer_
-        elif self.mode == DIGDUMP_MODE:
+        elif self.mode == DIG_MODE or self.mode == DUMP_MODE:
             buffer = self.digdump_buffer_
         elif self.mode == ESTOP:
             buffer = self.STOP_MSG

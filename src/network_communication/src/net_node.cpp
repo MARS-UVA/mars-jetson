@@ -28,6 +28,9 @@
 
 #define NUM_GAMEPAD_BTNS 14
 #define NUM_GAMEPAGE_STICKS 2
+#define DIG_AUTO 1
+#define DUMP_AUTO 2
+#define ESTOP 3
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -80,9 +83,9 @@ class NetNode : public rclcpp::Node
 {
 public:
   NetNode()
-      : Node("NetNode"), count_(0)
+      : Node("NetNode")
   {
-    robot_state_change_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
+    robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
@@ -151,13 +154,13 @@ private:
     /* Receive Control messages */
     counter++;
     std::string message;
-    uint8_t robot_action_state;
+    uint8_t robot_action;
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
-      robot_action_state = info.robot_action_state;
+      robot_action = info.robot_action;
       //RCLCPP_INFO(this->get_logger(), "Robot Action State:%d", robot_action_state);
 
       message = std::string(info.client_message);
@@ -237,21 +240,27 @@ private:
           gamepad_msg->start_pressed ? "true" : "false",
           gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
           gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
-
-      if (robot_action_state == 1 || robot_action_state == 2 || robot_action_state == 3) {
-        human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
-      } 
-      else {
-        human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
-      }
-      if (robot_action_state == 3) {
-        human_input_msg->e_stop = true;
-      }  
-      else {
-        human_input_msg->e_stop = false;
+      
+      switch (robot_action) {
+        case 0: //default, do nothing
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+          break;
+        case DIG_AUTO: //TODO: make client and send goal to action server
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          break;
+        case DUMP_AUTO:
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          break;
+        case ESTOP:
+          std_msgs::msg::UInt8 msg;
+          msg.data = ESTOP;
+          robot_state_toggle_publisher_->publish(msg); //everything else is handled
       }
       human_input_msg->gamepad_state = *gamepad_msg;
+
+      //UNUSED 
       human_input_msg->a_stop = false;
+      human_input_msg->e_stop = false;
 
       RCLCPP_INFO(this->get_logger(), "Publishing HumanInputState: drive_mode = %d", human_input_msg->drive_mode);
 
@@ -262,12 +271,11 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::TimerBase::SharedPtr serialTimer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_change_publisher_;
+  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr robot_state_subscriber_;
   rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
-  size_t count_;
 };
 
 int main(int argc, char *argv[])

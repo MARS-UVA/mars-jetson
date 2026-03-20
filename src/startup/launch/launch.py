@@ -36,12 +36,5 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
-        # Node(
-        #     package='webcam',
-        #     executable='webcam',
-        #     name='webcam',
-        #     output='screen',
-        #     arguments=['--ros-args', '--log-level', 'INFO']
-        # )
     ])
 
