@@ -1,14 +1,18 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <std_msgs/msg/detail/u_int8__struct.hpp>
 #include <string>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/u_int8.hpp"
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
-#include <serial_msgs/msg/feedback.hpp>
+#include <serial_msgs/msg/current_bus_voltage.hpp>
+#include <serial_msgs/msg/position.hpp>
+#include <serial_msgs/msg/temperature.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -24,12 +28,17 @@
 
 #define NUM_GAMEPAD_BTNS 14
 #define NUM_GAMEPAGE_STICKS 2
+#define DIG_AUTO 1
+#define DUMP_AUTO 2
+#define ESTOP 3
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 using teleop_msgs::msg::GamepadState;
 using teleop_msgs::msg::StickPosition;
-using serial_msgs::msg::Feedback;
+using serial_msgs::msg::CurrentBusVoltage;
+using serial_msgs::msg::Position;
+using serial_msgs::msg::Temperature;
 
 using FieldPtr = bool teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, FieldPtr>> fields = {
@@ -47,6 +56,10 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"r3_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::r3_pressed},
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
+
+size_t buffer_size = 72;
+unsigned char* buffer = new unsigned char[buffer_size];
+
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
 std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
@@ -70,42 +83,70 @@ class NetNode : public rclcpp::Node
 {
 public:
   NetNode()
-      : Node("NetNode"), count_(0)
+      : Node("NetNode")
   {
+    robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
+    robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
-    subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
-        "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
+    //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
+    serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this));
+    currentBusVoltageSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
+        "current_bus_voltage", 10, std::bind(&NetNode::current_bus_voltage_callback, this, _1)
+    );
+    temperatureSubscription_ = this->create_subscription<serial_msgs::msg::Temperature>(
+        "temperature", 10, std::bind(&NetNode::temperature_callback, this, _1)
+    );
+    positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
+        "position", 10, std::bind(&NetNode::position_callback, this, _1)
+    );
   }
 
 private:
-  void topic_callback(const serial_msgs::msg::Feedback::SharedPtr msg)
+
+  void current_bus_voltage_callback(const serial_msgs::msg::CurrentBusVoltage::SharedPtr msg)
   {
-    RCLCPP_INFO(this->get_logger(), "Recieved motor feedback packet");
-    float front_left = msg->front_left;
-    float front_right = msg->front_right;
-    float back_left = msg->back_left;
-    float back_right = msg->back_right;
-    float l_bucket_drum = msg->l_drum;
-    float r_bucket_drum = msg->r_drum;
-    float l_actuator = msg->l_actuator;
-    float r_actuator = msg->r_actuator;
-    float actuator_height = msg->actuator_height;
+    RCLCPP_INFO(this->get_logger(), "Received current bus voltage feedback packet");
 
-    size_t buffer_size = 36;
-    unsigned char* buffer = new unsigned char[buffer_size];
-    std::memcpy(&buffer[0], &front_left, 4);
-    std::memcpy(&buffer[4], &front_right, 4);
-    std::memcpy(&buffer[8], &back_left, 4);
-    std::memcpy(&buffer[12], &back_right, 4);
-    std::memcpy(&buffer[16], &l_bucket_drum, 4);
-    std::memcpy(&buffer[20], &r_bucket_drum, 4);
-    std::memcpy(&buffer[24], &l_actuator, 4);
-    std::memcpy(&buffer[28], &r_actuator, 4);
-    std::memcpy(&buffer[32], &actuator_height, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_CURRENT], &msg->front_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_CURRENT], &msg->back_left_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_CURRENT], &msg->front_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_CURRENT], &msg->back_right_wheel_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_CURRENT], &msg->front_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_CURRENT], &msg->back_drum_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_CURRENT], &msg->front_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_CURRENT], &msg->back_actuator_current, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::MAIN_BATTERY_VOLTAGE], &msg->main_battery_voltage, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::AUX_BATTERY_VOLTAGE], &msg->aux_battery_voltage, 4);
+  }
 
-    // RCLCPP_WARN(this->get_logger(), "Sending now...");
-    client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
+  void temperature_callback(const serial_msgs::msg::Temperature::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Received temperature feedback packet");
+
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_TEMPERATURE], &msg->front_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_TEMPERATURE], &msg->back_left_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_RIGHT_WHEEL_TEMPERATURE], &msg->front_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_RIGHT_WHEEL_TEMPERATURE], &msg->back_right_wheel_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_DRUM_TEMPERATURE], &msg->front_drum_temperature, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_DRUM_TEMPERATURE], &msg->back_drum_temperature, 4);
+  }
+
+  void position_callback(const serial_msgs::msg::Position::SharedPtr msg)
+  {
+    RCLCPP_INFO(this->get_logger(), "Received position feedback packet");
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_POSITION], &msg->front_actuator_position, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
+  }
+
+  void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
+    // TODO: send to UI
+  }
+
+  void serial_timer_callback()
+  {
+      client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
   void timer_callback()
@@ -113,11 +154,15 @@ private:
     /* Receive Control messages */
     counter++;
     std::string message;
+    uint8_t robot_action;
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
     if (info.flag == true)
     {
+      robot_action = info.robot_action;
+      //RCLCPP_INFO(this->get_logger(), "Robot Action State:%d", robot_action_state);
+
       message = std::string(info.client_message);
 
       const char delimiter[] = ",";
@@ -195,9 +240,25 @@ private:
           gamepad_msg->start_pressed ? "true" : "false",
           gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
           gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
-
+      
+      switch (robot_action) {
+        case 0: //default, do nothing
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+          break;
+        case DIG_AUTO: //TODO: make client and send goal to action server
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          break;
+        case DUMP_AUTO:
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          break;
+        case ESTOP:
+          std_msgs::msg::UInt8 msg;
+          msg.data = ESTOP;
+          robot_state_toggle_publisher_->publish(msg); //everything else is handled
+      }
       human_input_msg->gamepad_state = *gamepad_msg;
-      human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
+
+      //UNUSED 
       human_input_msg->a_stop = false;
       human_input_msg->e_stop = false;
 
@@ -205,20 +266,16 @@ private:
 
       publisher_->publish(*human_input_msg);
     }
-
-    /* Send Webcam Feeds over */
-    // cv::Mat fromCam = imgReader.processImage();
-    // if (!fromCam.empty())
-    // {
-    //   client_send(CONTROL_STATION_IP, fromCam, IMAGE_PORT);
-    //   RCLCPP_INFO(this->get_logger(), "Sent webcam feed");
-    // }
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr serialTimer_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
-  rclcpp::Subscription<serial_msgs::msg::Feedback>::SharedPtr subscription_;
-  size_t count_;
+  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr robot_state_subscriber_;
+  rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
+  rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
 };
 
 int main(int argc, char *argv[])
