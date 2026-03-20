@@ -11,10 +11,25 @@ class PurePursuitNode(Node):
     def __init__(self):
         super().__init__('pure_pursuit')
 
-        using_rotation = False
+        ## Variables for Pure Pursuit
+
+        ##are you using rotation?? IDEK
+        self.using_rotation = False
+
+        ##how often the pure pursuit loop should run
+        self.hertz = 0
+
+        ## the path, it will be delivered/
+        self.path_to_follow = []
 
 
-        ################    PUblsihers TBD   ################
+
+
+        ################    Publsihers TBD   ################
+
+        self.motor_controller_publisher = self.create_publisher(
+            
+        )
 
         ################    Subscribers      ################
 
@@ -26,13 +41,29 @@ class PurePursuitNode(Node):
         self.current_position_subscriber = self.create_subscription(
 
         )
+
+
+
     
     
     #################################################### CURRENT POSE ####################################################
     def position_callback():
         pass
-    
+
+    #################################################### PATH BUILDER ####################################################
+
+    type Point = tuple[float,float]
+
+    ## appends the points to the path_to_follow array
+    ## this should be updated later
+    def path_builder(self, point: Point) -> None:
+        self.path_to_follow.append(point)
+        return
+
+
     #################################################### PURE PURSUIT ####################################################
+
+
 
     ## helper function
     def pt_to_pt_distance (pt1,pt2):
@@ -127,7 +158,7 @@ class PurePursuitNode(Node):
         Kp = 3
 
         # calculate absTargetAngle with the atan2 function
-        absTargetAngle = math.atan2 (goalPoint[1]-currentPos[1], goalPoint[0]-currentPos[0]) *180/pi
+        absTargetAngle = math.atan2 (goalPoint[1]-currentPosition[1], goalPoint[0]-currentPosition[0]) *180/pi
         if absTargetAngle < 0: absTargetAngle += 360
 
         # compute turn error by finding the minimum angle
