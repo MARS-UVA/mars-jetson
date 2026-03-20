@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+#used to convert pose from zed to PoseWithCovarianceStamped
+#commented out code can be used to publish 
+
+
 
 import math
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped  # NEW
-
 
 class PosePublisher(Node):
     def __init__(self):

@@ -45,7 +45,7 @@ ekf_filter_node:
 # sensor_msgs/Imu). To add an input, simply append the next number in the sequence to its "base" name, e.g., odom0,
 # odom1, twist0, twist1, imu0, imu1, imu2, etc. The value should be the topic name. These parameters obviously have no
 # default values, and must be specified.
-        pose0: /pose_with_cov    #topic of zed readings processed to be posewithcovariancestamped
+       #pose0: /pose_with_cov    #topic of zed readings processed to be posewithcovariancestamped
 
 # Each sensor reading updates some or all of the filter's state. These options give you greater control over which
 # values from each measurement are fed to the filter. For example, if you have an odometry message as input, but only
@@ -54,11 +54,12 @@ ekf_filter_node:
 # do not provide some of the state variables estimated by the filter. For example, a TwistWithCovarianceStamped message
 # has no pose information, so the first six values would be meaningless in that case. Each vector defaults to all false
 # if unspecified, effectively making this parameter required for each sensor.
-        pose0_config: [true, true, false,
-                       false, false, true,
-                       false, false, false,
-                       false, false, false,
-                       false, false, false]
+        # pose0_config: [true, true, false,
+        #                false, false, true,
+        #                false, false, false,
+        #                false, false, false,
+        #                false, false, false]
+        #commented out since not using zed 
 
         #        [x_pos   , y_pos    , z_pos,
         #         roll    , pitch    , yaw,
@@ -67,16 +68,16 @@ ekf_filter_node:
         #         x_accel , y_accel  , z_accel]
 
 
-        pose1: /localization/estimated_pose   #topic of positions from apriltag
-        pose1_config: [true, true, false,
+        pose0: /localization/estimated_pose   #topic of positions from apriltag
+        pose0_config: [true, true, false,
                       false, false, true,
                       false, false, false,
                       false, false, false,
                       false, false, false]
 
-        # odom0: /zed2i/zed_node/odom
-        # odom0_config: [true, true, false,
-        #         false, false, true,
-        #         true,  true,  false,
-        #         false, false, true,
-        #         false, false, false]
+        odom0: /zed/zed_node/imu/data
+        odom0_config: [false, false, false,
+                false, false, false,
+                true,  true,  false,
+                false, false, true,
+                false, false, false]
