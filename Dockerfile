@@ -4,6 +4,8 @@ FROM ros:jazzy-ros-base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
+SHELL ["/bin/bash", "-c"]
+
 # Install GStreamer, Python bindings, and OpenCV
 RUN apt-get update && apt-get install -y \
     python3-pip \
@@ -35,4 +37,4 @@ COPY ./src /ws/src
 RUN source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer
 
 # Source ROS 2 and run startup
-ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && source install/setup.bash && ros2 run gstreamer webrtc_stream"]
+ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && source install/setup.bash && ros2 run gstreamer webrtc_stream --ros-args -p signaling_url:=ws://172.25.154.93:6767"]

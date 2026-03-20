@@ -26,18 +26,18 @@ class WebRTCNode(Node):
         super().__init__('webrtc_node')
 
         # Declare Parameters
-        self.declare_parameter('signaling_url')
+        self.declare_parameter('signaling_url', '')
         self.declare_parameter('video_topic', '/camera/image_raw')
         self.declare_parameter('bitrate', 1800000)
         self.declare_parameter('stream_height', 480)
         self.declare_parameter('stream_width', 640)
 
         # Get Parameter Values
-        self.signaling_url = self.get_parameter('signaling_url').get_parameter_value().string_value()
-        self.video_topic = self.get_parameter('video_topic').get_parameter_value().string_value()
-        self.bitrate = self.get_parameter('bitrate').get_parameter_value().value()
-        self.stream_height = self.get_parameter('stream_height').get_parameter_value().value()
-        self.stream_width = self.get_parameter('stream_width').get_parameter_value().value()
+        self.signaling_url = self.get_parameter('signaling_url').value
+        self.video_topic = self.get_parameter('video_topic').value
+        self.bitrate = self.get_parameter('bitrate').value
+        self.stream_height = self.get_parameter('stream_height').value
+        self.stream_width = self.get_parameter('stream_width').value
         
         # Initialize GStreamer
         Gst.init(None)
@@ -55,7 +55,7 @@ class WebRTCNode(Node):
         # Setup Pipeline
         self.pipeline_desc = f"""
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
-            caps=video/x-raw,format=BGR,width={self.image_width},height={self.image_height},framerate={FRAMERATE}/1 ! 
+            caps=video/x-raw,format=BGR,width={self.stream_width},height={self.stream_height},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue max-size-buffers=1 leaky=downstream ! 
             vp8enc deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
             rtpvp8pay ! 
