@@ -85,14 +85,15 @@ class SerialNode(Node):
         self.robot_state_pub_.publish(msg)
     
     def change_robot_state(self, robot_state_msg):
-        self.mode = robot_state_msg.data
-        if robot_state_msg.data == ESTOP: # estop toggle, probably better way to do this?
-            if self.mode == ESTOP:
+        new_state = robot_state_msg.data
+        if self.mode == ESTOP:
+            if new_state == ESTOP:
                 self.mode = TELEOP_MODE
-            else:
+        else:
+            self.mode = new_state
+            if new_state == ESTOP:
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
-                self.mode = ESTOP
             
         self.get_logger().warn(f"CHANGING MODE: {INT2MODE[self.mode]}")
 
