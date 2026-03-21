@@ -5,6 +5,18 @@ import matplotlib.pyplot as plt
 import math
 import matplotlib.animation as animation
 from IPython import display
+from nav_msgs.msg import Odometry
+from rclpy.time import Time
+from rclpy.duration import Duration
+from teleop_msgs.msg import SetMotor, MotorChanges
+
+
+
+#TODO:
+#subscribe to position and append to path
+#send controls
+#start and stop
+#timer callback to run pure pursuit step update
 
 
 class PurePursuitNode(Node):
@@ -17,38 +29,72 @@ class PurePursuitNode(Node):
         self.using_rotation = False
 
         ##how often the pure pursuit loop should run
-        self.hertz = 0
+        self.hertz = 30
+        self.look_ahead_distance = 1 #meters
+        self.velocity = 180
+
 
         ## the path, it will be delivered/
         self.path_to_follow = []
-
-
+        self.last_received_time = None
+        self.time_between_pose = 0.25
+        self.current_position = None
+        self.current_heading = None
+        self.last_found_index = 0
+        #move to be called when pure pursuit shoudl be played
+        #runs main pure pursuit loop
+        self.timer = self.create_timer(1.0 / self.hertz, self.timer_callback)
 
 
         ################    Publsihers TBD   ################
-
         self.motor_controller_publisher = self.create_publisher(
             
         )
 
         ################    Subscribers      ################
 
-        #
-        self.path_subscriber = self.create_subscription(
+        #/odometry/filtered
+        self.pose_subscriber = self.create_subscription(
             ###TBD
+            Odometry,
+            "/odometry/filtered",
+            self.position_callback,
+            10
         )
 
         self.current_position_subscriber = self.create_subscription(
 
         )
+    #main loop to run pure pursuit
+    def timer_callback(self):
+        goalPoint, lastFoundIndex, turnVel = self.pure_pursuit_step(self.current_position, self.current_heading, self.look_ahead_distance, self.last_found_index)
+        left_wheel_speeds = self.velocity - turnVel
+        right_wheel_speeds = self.velocity + turnVel
+        motors_msg = MotorChanges(
+            changes = [SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)]
+        )
 
-
-
-    
     
     #################################################### CURRENT POSE ####################################################
-    def position_callback():
-        pass
+    #add pose with path_builder if enough time has passed
+    def position_callback(self, msg: Odometry):
+        current_time = Time.from_msg(msg.header.stamp)
+        if self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose:                
+            self.last_received_time = current_time
+            x=msg.pose.pose.position.x
+            y=msg.pose.pose.position.y
+            self.path_builder((x,y))
+        self.current_position = (msg.pose.pose.position.x, msg.pose.pose.position.y)
+        q = msg.pose.pose.orientation
+        self.current_heading = math.atan2(
+            2*(q.w*q.z + q.x*q.y),
+            1 - 2*(q.y*q.y + q.z*q.z)
+        )
+        return
+        
 
     #################################################### PATH BUILDER ####################################################
 
@@ -82,8 +128,8 @@ class PurePursuitNode(Node):
     ## currentHeading: a 
     ## lookAheadDistance: number that determines distance in meters for the circle to look ahead
     ## lastFoundIndex_input: determines the last index to ensure that the robot is not going background
-    def pure_pursuit_step(self, path, currentPosition, currentHeading, lookAheadDistance, lastFoundIndex_input):
-        
+    def pure_pursuit_step(self, currentPosition, currentHeading, lookAheadDistance, lastFoundIndex_input):
+        path = self.path_to_follow
         #Extract current X and Y positions
         currentX = currentPosition[0]
         currentY = currentPosition[1]
