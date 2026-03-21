@@ -37,24 +37,24 @@ class SerialHandler:
 
 	def readMsg(self, logger=None):
 		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
-		if self.currentHeader == 0 and self.SER.in_waiting > 3:
-			self.currentHeader == self.SER.read(4)
+		if self.currentHeader == None and self.SER.in_waiting > 3:
+			self.currentHeader = self.SER.read(4)[1]
 		feedback = []
-		if self.currentHeader[1] == 0x00:
+		if self.currentHeader == 0x00:
 			logger.warn("no data")
-		elif self.currentHeader[1] == 0x01:
+		elif self.currentHeader == 0x01:
 			if self.SER.in_waiting < 40: return []
 			feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, fa, ba, mbat, auxbat
-		elif self.currentHeader[1] == 0x02:
+		elif self.currentHeader == 0x02:
 			if self.SER.in_waiting < 24: return []
 			feedback = list(struct.iter_unpack("f",self.SER.read(24))) # tuple of: fl, bl, fr, br, fdrum, bdrum
-		elif self.currentHeader[1] == 0x03:
+		elif self.currentHeader == 0x03:
 			if self.SER.in_waiting < 8: return []
 			feedback = list(struct.iter_unpack("f",self.SER.read(8))) # tuple of: fa, ba
 		
 		feedback = [i[0] for i in feedback]
 		header = self.currentHeader
-		self.currentHeader = 0
+		self.currentHeader = None
 		return (header, feedback)
 		
 		# deprecated readMSG code:
