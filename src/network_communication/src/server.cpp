@@ -108,20 +108,23 @@ int create_server(ThreadInfo *info)
             std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
         }
         uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
-        if (crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragment_size != num_bytes - HEADER_SIZE)
+        if (crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragmentSize != num_bytes - HEADER_SIZE)
         {
             // Handle this later
         }
 	    //printf("after crc\n");
         char *payloadStart = buffer + HEADER_SIZE;
 	    //printf("1\n");
-        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragment_size);
+        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
         //printf("insert data\n");
         received_data.push_back('\0');
         memset(info->client_message, '\0', 100000);
         memcpy(info->client_message, received_data.data(), received_data.size());
+        // set robot_action_state to the first byte of the buffer header
+        info->robot_action = *buffer;
         //printf("after seting data");
         info->flag = true;
+        
 
         // std::cout << buffer << std::endl;
     }
