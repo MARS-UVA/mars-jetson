@@ -43,36 +43,22 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     dump_msg.changes.push_back(msg);
     drive_msg.changes.push_back(msg);
   }
-<<<<<<< HEAD
-
-  for (int i = 0; i < 8; i++) {
-    teleop_msgs::msg::SetMotor msg;
-    msg.index = i;
-    stop_msg.changes.push_back(msg);
-  }
-
-  // Stop all motors
-  for (auto & m : stop_msg.changes) {
-    m.velocity = 127;  // safe stop
-  }
-
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = lower_speed;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = raise_speed;
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed;
-  drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed;
-  drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed;
-=======
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed*-1;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed;
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed + 127;
   dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed + 127;
+
+  /*
   drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed + 127;
   drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed + 127;
   drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed + 127;
   drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed + 127;
+  */
+
+  drive_msg.changes[0].velocity = drive_speed + 127;
+  drive_msg.changes[1].velocity = drive_speed + 127;
+  drive_msg.changes[2].velocity = drive_speed + 127;
+  drive_msg.changes[3].velocity = drive_speed + 127;
 
   stop_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127;
   stop_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127;
@@ -80,10 +66,8 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   stop_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = 127;
   stop_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127;
   stop_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127;
->>>>>>> refs/remotes/origin/mux-node
 
 }
-
 
 
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
@@ -228,18 +212,25 @@ void DigDumpActionServer::execute(
   }
 }
 
-void DigDumpActionServer::handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle)
+void DigDumpActionServer::cancel_current_goal(
+  std_msgs::msg::UInt8 & state,
+  const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
-  // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-  std::thread{std::bind(&DigDumpActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
-}
-
-void DigDumpActionServer::cancel_current_goal(auto state, const std::shared_ptr<DigDumpGoalHandle> goal_handle) {
   state.data = 0;
   motor_publisher_->publish(stop_msg);
   state_publisher_->publish(state);
+  auto result = std::make_shared<DigDump::Result>();
   goal_handle->canceled(result);
   RCLCPP_INFO(rclcpp::get_logger("server"), "Goal Canceled");
+}
+
+void DigDumpActionServer::handle_accepted(
+  const std::shared_ptr<DigDumpGoalHandle> goal_handle)
+{
+  std::thread{
+    std::bind(&DigDumpActionServer::execute, this, std::placeholders::_1),
+    goal_handle
+  }.detach();
 }
 
 int main(int argc, char ** argv)

@@ -32,37 +32,36 @@ class DigDumpActionServer : public rclcpp::Node
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
 
-    auto lower_speed_descriptor;
-    auto raise_speed_descriptor;
-    auto dig_speed_descriptor;
-    auto dump_speed_descriptor;
-    auto drive_speed_descriptor;
-    auto dig_arm_movement_time_descriptor;
-    auto dump_arm_movement_time_descriptor;
-    auto dig_time_descriptor;
-    auto dump_time_descriptor;
-    auto move_time_descriptor;
+    // Parameter values
+    int actuator_speed;
+    int dig_speed;
+    int dump_speed;
+    int drive_speed;
+
+    double dig_arm_movement_time;
+    double dump_arm_movement_time;
+    double dig_time;
+    double dump_time;
+    double move_time;
 
     teleop_msgs::msg::MotorChanges lower_msg;
     teleop_msgs::msg::MotorChanges raise_msg;
     teleop_msgs::msg::MotorChanges dig_msg;
     teleop_msgs::msg::MotorChanges dump_msg;
     teleop_msgs::msg::MotorChanges drive_msg;
-<<<<<<< HEAD
-    teleop_msgs::msg::MotorChanges stop_msg;   
-=======
     teleop_msgs::msg::MotorChanges stop_msg;
->>>>>>> refs/remotes/origin/mux-node
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 
     rclcpp_action::CancelResponse handle_cancel(
       const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 
+    void cancel_current_goal(
+      std_msgs::msg::UInt8 & state,
+      const std::shared_ptr<DigDumpGoalHandle> goal_handle);
+
     void execute(
       const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 
     void handle_accepted(const std::shared_ptr<DigDumpGoalHandle> goal_handle);
-
-    void cancel_current_goal(auto state, const std::shared_ptr<DigDumpGoalHandle> goal_handle);
 };
