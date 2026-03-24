@@ -130,7 +130,7 @@ class SerialNode(Node):
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
         if header:
             if header == 0x00:
-                self.get_logger().warn("no data")
+                self.get_logger().info("no data")
             elif header == 0x01:
                 mf = CurrentBusVoltage( 
                     front_left_wheel_current = feedback[0],
