@@ -190,14 +190,12 @@ class TeleopNode(Node):
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
         rightStickY = gamepad_state.right_stick.y
+        if abs(rightStickY) < 0.1: # account for stick drift
+            rightStickY = 0
+        armMotorAdd = int(rightStickY*30) # 30 is the max add -- can change
+
         # Raise and Lower Bucket Drum Arm(s)
-        if rightStickY > 0.2:
-            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)     
-        elif rightStickY < -0.2:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
-        else:
-            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
-        
+        raise_arms(armMotorAdd, self.front_arm_control, self.back_arm_control, motor_msg)  
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
             # self._motor_publisher.publish(stop_motors()) #this happens on the next tick anyway
