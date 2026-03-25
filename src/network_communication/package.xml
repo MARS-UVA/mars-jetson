@@ -10,6 +10,7 @@
   <depend>image_transport</depend>
   <depend>teleop_msgs</depend>
   <depend>serial_msgs</depend>
+  <depend>autonomy_msgs</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

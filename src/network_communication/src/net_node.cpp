@@ -13,6 +13,7 @@
 #include <serial_msgs/msg/current_bus_voltage.hpp>
 #include <serial_msgs/msg/position.hpp>
 #include <serial_msgs/msg/temperature.hpp>
+#include <autonomy_msgs/action/autonomous_actions.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "main.hpp"
@@ -20,6 +21,7 @@
 #include <cstdlib>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 
 #include "client.hpp"
@@ -125,7 +127,7 @@ public:
 
 private:
 
-  void goal_response_callback(const GoalHandleFibonacci::SharedPtr & goal_handle)
+  void goal_response_callback(const GoalHandle<DigDump>::SharedPtr & goal_handle)
   {
     if (!goal_handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
