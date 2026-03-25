@@ -3,7 +3,7 @@
 #include <memory>
 #include <std_msgs/msg/detail/u_int8__struct.hpp>
 #include <string>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int8.hpp"
@@ -82,9 +82,12 @@ int Socket(ThreadInfo *info)
 class NetNode : public rclcpp::Node
 {
 public:
+  using DigDump = autonomy_msgs::action::AutonomousActions;
+  using DigDumpGoalHandle = rclcpp_action::ServerGoalHandle<DigDump>;
   NetNode()
       : Node("NetNode")
   {
+    this->client_ptr_ = rclcpp_action::create_client<DigDump>(this, "digdump");
     robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
@@ -103,7 +106,33 @@ public:
     );
   }
 
+  void send_goal(int action_type) {
+    
+    if (!this->client_ptr_->wait_for_action_server()) {
+      RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+      return;
+    }
+
+    auto goal_msg = DigDump::Goal();
+    goal_msg.index = action_type;
+
+    auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
+    send_goal_options.goal_response_callback =
+      std::bind(&NetNode::goal_response_callback, this, _1);
+
+    this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+  }
+
 private:
+
+  void goal_response_callback(const GoalHandleFibonacci::SharedPtr & goal_handle)
+  {
+    if (!goal_handle) {
+      RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+    }
+  }
 
   void current_bus_voltage_callback(const serial_msgs::msg::CurrentBusVoltage::SharedPtr msg)
   {
