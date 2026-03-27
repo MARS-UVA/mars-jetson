@@ -95,7 +95,7 @@ class WebRTCNode(Node):
             return
 
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
             if cv_image.shape[1] != self.stream_width or cv_image.shape[0] != self.stream_height:
                 cv_image = cv2.resize(cv_image, (self.stream_width, self.stream_height))
             
