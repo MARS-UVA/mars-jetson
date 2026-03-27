@@ -9,7 +9,7 @@ def generate_launch_description():
             executable='webrtc_stream',
             name='stream1',
             parameters=[{
-                'signaling_url': 'ws://172.25.154.93:6767',
+                'signaling_url': 'ws://192.168.50.101:6767',
                 'video_topic': '/camera1/image_raw'
             }]
         ),
@@ -18,7 +18,7 @@ def generate_launch_description():
             executable='webrtc_stream',
             name='stream2',
             parameters=[{
-                'signaling_url': 'ws://172.25.154.93:6969',
+                'signaling_url': 'ws://192.168.50.101:6969',
                 'video_topic': '/camera2/image_raw'
             }]
         ),
