@@ -37,4 +37,4 @@ COPY ./src /ws/src
 RUN source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer
 
 # Source ROS 2 and run startup
-ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && source install/setup.bash && ros2 run gstreamer webrtc_stream --ros-args -p signaling_url:=ws://172.25.154.93:6767"]
+ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && source install/setup.bash && ros2 launch gstreamer gstreamer_launch.py"]
