@@ -55,7 +55,7 @@ class WebRTCNode(Node):
         # Setup Pipeline
         self.pipeline_desc = f"""
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
-            caps=video/x-raw,format=BGR,width={self.stream_width},height={self.stream_height},framerate={FRAMERATE}/1 ! 
+            caps=video/x-raw,format=GRAY8,width={self.stream_width},height={self.stream_height},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue max-size-buffers=1 leaky=downstream ! 
             vp8enc deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
             rtpvp8pay ! 
