@@ -11,7 +11,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     std::bind(&DigDumpActionServer::handle_accepted, this,
               std::placeholders::_1));
 
-  state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 1);
+  state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
 
   auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
