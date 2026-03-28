@@ -1,6 +1,7 @@
 import serial
 from time import sleep
 import struct
+from collections import deque
 
 # To run this script on Jetson independently, you can do
 # eg. python3 100 100 100 100 100 100
@@ -12,6 +13,7 @@ class SerialHandler:
 		except serial.SerialException as e:
 			print(f"Error: Could not open or close serial port: {e}")
 
+		self.serial_buffer = deque()
 		self.numMotors = 8
 		self.bytesPerMotor = 1
 		self.totalDataBytes = self.numMotors * self.bytesPerMotor
@@ -37,24 +39,41 @@ class SerialHandler:
 
 	def readMsg(self, logger=None):
 		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
-		if self.currentHeader == 0 and self.SER.in_waiting > 3:
-			self.currentHeader == self.SER.read(4)
-		feedback = []
-		if self.currentHeader[1] == 0x00:
-			logger.warn("no data")
-		elif self.currentHeader[1] == 0x01:
-			if self.SER.in_waiting < 40: return []
-			feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, fa, ba, mbat, auxbat
-		elif self.currentHeader[1] == 0x02:
-			if self.SER.in_waiting < 24: return []
-			feedback = list(struct.iter_unpack("f",self.SER.read(24))) # tuple of: fl, bl, fr, br, fdrum, bdrum
-		elif self.currentHeader[1] == 0x03:
-			if self.SER.in_waiting < 8: return []
-			feedback = list(struct.iter_unpack("f",self.SER.read(8))) # tuple of: fa, ba
+		self.serial_buffer.extend(self.SER.read(self.SER.in_waiting))
+
+		while (len(self.serial_buffer) >= 4 and
+		 not (self.serial_buffer[0] == 0xFF and self.serial_buffer[1] == 0x00 and self.serial_buffer[2] == 0x00)): # check first three bytes
+			self.serial_buffer.popleft()
 		
-		feedback = [i[0] for i in feedback]
-		header = self.currentHeader
-		self.currentHeader = 0
+		if (len(self.serial_buffer) >= 4):
+			header = self.serial_buffer[3]
+		else:
+			header = 0
+	
+		num_data_bytes = 0
+		match header:
+			case 0x00:
+				logger.info("no data")
+				return (0, [])
+			case 0x01:
+				num_data_bytes = 40 # fl, fr, bl, br, ldrum, rdrum, fa, ba, mbat, auxbat
+			case 0x02:
+				num_data_bytes = 24 # fl, bl, fr, br, fdrum, bdrum
+			case 0x03:
+				num_data_bytes = 8 # fa, ba
+			case _:
+				logger.info(f"unknown header: {header}")
+				self.serial_buffer.popleft()
+				return (0, [])
+	
+		if len(self.serial_buffer) < 4 + num_data_bytes: return (0, [])
+		# consume the 4-byte header
+		for _ in range(4):
+			self.serial_buffer.popleft()
+
+		# extract data bytes and unpack as floats
+		data_bytes = bytes(self.serial_buffer.popleft() for _ in range(num_data_bytes))
+		feedback = [f[0] for f in struct.iter_unpack("f", data_bytes)]
 		return (header, feedback)
 		
 		# deprecated readMSG code:
