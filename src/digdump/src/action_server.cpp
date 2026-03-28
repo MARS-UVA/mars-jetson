@@ -49,18 +49,10 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed + 127;
   dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed*-1 + 127;
 
-  /*
-  drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed + 127;
-  drive_msg.changes[msg.DRIVE_FRONT_RIGHT_WHEEL].velocity = drive_speed + 127;
-  drive_msg.changes[msg.DRIVE_BACK_LEFT_WHEEL].velocity = drive_speed + 127;
-  drive_msg.changes[msg.DRIVE_BACK_RIGHT_WHEEL].velocity = drive_speed + 127;
-  */
-
-  drive_msg.changes[0].velocity = drive_speed + 127;
-  drive_msg.changes[1].velocity = drive_speed + 127;
-  drive_msg.changes[2].velocity = drive_speed + 127;
-  drive_msg.changes[3].velocity = drive_speed + 127;
-
+  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = drive_speed + 127;
+  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
+  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = drive_speed + 127;
+  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
 }
 
 
@@ -113,7 +105,6 @@ void DigDumpActionServer::execute(
     }
     case 1: {
       // Dig Autonomy
-      
       double elapsed_time = 0.0;
       while (elapsed_time < dig_arm_movement_time) {
         if (goal_handle->is_canceling()) {
@@ -137,11 +128,22 @@ void DigDumpActionServer::execute(
         elapsed_time += 0.1;
       }
       motor_publisher_->publish(stop_msg);
+
+      elapsed_time = 0.0;
+      while (elapsed_time < dig_arm_movement_time) {
+        if (goal_handle->is_canceling()) {
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
+        motor_publisher_->publish(raise_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
+      motor_publisher_->publish(stop_msg);
       break;
     }
     case 2: {
       // dump
-
       // Drive forward
       double elapsed_time = 0.0;
       while (elapsed_time < move_time) {
