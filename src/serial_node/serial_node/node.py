@@ -30,7 +30,7 @@ class SerialNode(Node):
         super().__init__('serial_mux')
 
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
-        self.mode = ESTOP
+        self.mode = TELEOP_MODE
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY

@@ -44,10 +44,10 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     drive_msg.changes.push_back(msg);
     stop_msg.changes.push_back(msg);
   }
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed*-1;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = actuator_speed;
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + actuator_speed*-1;
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + actuator_speed;
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dig_speed + 127;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = (dump_speed + 127)*-1;
+  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = dump_speed*-1 + 127;
 
   /*
   drive_msg.changes[msg.DRIVE_FRONT_LEFT_WHEEL].velocity = drive_speed + 127;
