@@ -3,7 +3,7 @@
 #include <memory>
 #include <std_msgs/msg/detail/u_int8__struct.hpp>
 #include <string>
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/msg/image.hpp>
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int8.hpp"
@@ -89,7 +89,7 @@ public:
   NetNode()
       : Node("NetNode")
   {
-    this->client_ptr_ = rclcpp_action::create_client<DigDump>(this, "digdump");
+    client_ptr_ = rclcpp_action::create_client<DigDump>(this, "digdump");
     robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
@@ -127,7 +127,7 @@ public:
 
 private:
 
-  void goal_response_callback(const GoalHandle<DigDump>::SharedPtr & goal_handle)
+  void goal_response_callback(const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & goal_handle)
   {
     if (!goal_handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
@@ -307,6 +307,8 @@ private:
   rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
+
+  rclcpp_action::Client<DigDump>::SharedPtr client_ptr_;
 };
 
 int main(int argc, char *argv[])

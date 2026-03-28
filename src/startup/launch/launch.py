@@ -20,7 +20,18 @@ def generate_launch_description():
             package='digdump',
             executable='action_server',
             name='digdump',
-            output='screen'
+            output='screen',
+            parameters=[{
+                'actuator_speed': 1,
+                'dig_speed': 1,
+                'dump_speed': 1,
+                'drive_speed': 1,
+                'dig_arm_movement_time': 5.0,
+                'dump_arm_movement_time': 5.0,
+                'dig_time': 5.0,
+                'dump_time': 5.0,
+                'move_time': 5.0,
+            }]
         ),
         Node(
             package='network_communication',
