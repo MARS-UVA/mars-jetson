@@ -7,7 +7,8 @@
 
 struct ThreadInfo {
     char client_message[100000];
-    bool flag;
+    bool controller_flag;
+    bool auto_flag;
     int8_t robot_action;
 };
 
