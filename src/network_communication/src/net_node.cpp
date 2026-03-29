@@ -73,6 +73,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 //const char* CONTROL_STATION_IP_CLIENT = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
+uint8_t current_action_state = 0;
 
 const int MOTOR_CURRENT_BYTES = 4;
 int Socket(ThreadInfo *info)
@@ -93,7 +94,8 @@ public:
     robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
     publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
-    timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::timer_callback, this));
+    timer_ = this->create_wall_timer(10ms, std::bind(&NetNode::controller_timer_callback, this));
+    timertwo_ = this->create_wall_timer(10ms, std::bind(&NetNode::action_timer_callback, this));
     // subscription_ = this->create_subscription<serial_msgs::msg::Feedback>(
     //     "feedback", 10, std::bind(&NetNode::topic_callback, this, _1));
     serialTimer_ = this->create_wall_timer(10ms, std::bind(&NetNode::serial_timer_callback, this));
@@ -180,20 +182,35 @@ private:
       client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
-  void timer_callback()
+  void action_timer_callback() {
+    uint8_t robot_action;
+    if (info.auto_flag) {
+      robot_action = info.robot_action;
+      current_action_state = info.robot_action;
+      switch (robot_action) {
+        case 0: // TODO: cancel goal
+          break;
+        case DIG_AUTO:
+          send_goal(DIG_AUTO);
+          break;
+        case DUMP_AUTO:
+          send_goal(DUMP_AUTO);
+          break;
+      }
+      info.auto_flag = false;
+    }
+  }
+
+  void controller_timer_callback()
   {
     /* Receive Control messages */
     counter++;
     std::string message;
-    uint8_t robot_action;
     auto stickPosition_msg = std::make_shared<StickPosition>();
     auto gamepad_msg = std::make_shared<GamepadState>();
     auto human_input_msg = std::make_shared<teleop_msgs::msg::HumanInputState>();
-    if (info.flag == true)
+    if (info.controller_flag == true)
     {
-      robot_action = info.robot_action;
-      //RCLCPP_INFO(this->get_logger(), "Robot Action State:%d", robot_action_state);
-
       message = std::string(info.client_message);
 
       const char delimiter[] = ",";
@@ -240,7 +257,7 @@ private:
         field_i++;
       }
 
-      info.flag = false;
+      info.controller_flag = false;
       memset(info.client_message, '\0', sizeof(info.client_message));
 
       RCLCPP_INFO(
@@ -272,15 +289,17 @@ private:
           gamepad_msg->left_stick.x, gamepad_msg->left_stick.y,
           gamepad_msg->right_stick.x, gamepad_msg->right_stick.y);
       
-      switch (robot_action) {
+      switch (current_action_state) {
         case 0: //default, do nothing
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
           break;
         case DIG_AUTO: //TODO: make client and send goal to action server
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          send_goal(DIG_AUTO);
           break;
         case DUMP_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          send_goal(DUMP_AUTO);
           break;
         case ESTOP:
           std_msgs::msg::UInt8 msg;
