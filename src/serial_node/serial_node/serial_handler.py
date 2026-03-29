@@ -14,7 +14,7 @@ class SerialHandler:
 			print(f"Error: Could not open or close serial port: {e}")
 
 		self.serial_buffer = deque()
-		self.numMotors = 8
+		self.numMotors = 6
 		self.bytesPerMotor = 1
 		self.totalDataBytes = self.numMotors * self.bytesPerMotor
 		self.currentHeader = 0
@@ -31,9 +31,9 @@ class SerialHandler:
 		# print("sending")
 		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
 		# assert 0 <= header <= mnum
-		self.SER.write(bytes([START]))
-		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
-		# logger.warn(f"Wrate {data}")
+		self.SER.write(bytes([START, 0xff]))
+		# self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
+		# logger.warn(f"Wrote {START} {0xff} {data}")
 		self.SER.write(bytes(data)) # write the data to serial port
 		#logger.warn(f"Wrote {data} to Nucleo")
 

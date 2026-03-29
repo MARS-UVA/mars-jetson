@@ -10,26 +10,6 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)],
                         adds = [])
 
-def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
-    actuator_value = 127
-    ACTUATOR_BIG_SPEED = 127
-    ACTUATOR_SMALL_SPEED_MAX = 64
-    if human_input.gamepad_state.du_pressed and not human_input.gamepad_state.dd_pressed:
-        actuator_value = 127 + ACTUATOR_BIG_SPEED
-    elif human_input.gamepad_state.dd_pressed and not human_input.gamepad_state.du_pressed:
-        actuator_value = 127 - ACTUATOR_BIG_SPEED
-    else:
-        actuator_value = 127 + int(human_input.gamepad_state.right_stick.y * ACTUATOR_SMALL_SPEED_MAX)
-    return SetMotor(index=SetMotor.BUCKET_DRUM_ACTUATOR, velocity = actuator_value)
-
-# Raises the arms of the robot
-def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
-    arm_velocity = 127 + velocity
-    if front_arm:
-        msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
-    if back_arm:
-        msg.changes.append(SetMotor(index=SetMotor.ARM_BACK_ACTUATOR, velocity=arm_velocity))
-
 def move_actuator(direction: int, msg: MotorChanges) -> None:
     msg.changes.append(SetMotor(index=SetMotor.ACTUATOR, velocity=127 + direction * 127))
 

@@ -9,7 +9,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, move_actuator, set_vibrator
+from .motor_queries import wheel_speed_to_motor_queries, stop_motors, move_actuator, set_vibrator
 
 
 class TeleopNode(Node):
@@ -160,35 +160,12 @@ class TeleopNode(Node):
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
 
-        if gamepad_state.lt_pressed and not self.prev_gamepad_state.lt_pressed:
-            move_actuator(motor_msg, 1)
-        elif gamepad_state.rt_pressed and not self.prev_gamepad_state.rt_pressed:
-            move_actuator(motor_msg, -1)
+        actuator_dir = (-1 if gamepad_state.lb_pressed else 0) + (1 if gamepad_state.rb_pressed else 0)
+        move_actuator(actuator_dir, motor_msg)
         
         set_vibrator(gamepad_state.b_pressed, motor_msg)
         
-        # Spin Bucket Drum(s)
-        if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum backwards
-            self.get_logger().info("bucket drum -15")
-            increment_drum_spin(-15, self.front_arm_control, self.back_arm_control, motor_msg)
-            
-        elif gamepad_state.rb_pressed and  not self.prev_gamepad_state.rb_pressed: #spin bucket drum forward
-            self.get_logger().info("bucket drum +15")
-            increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
-
-        # Stop Bucket Drum(s)
-        if gamepad_state.a_pressed:
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         self.get_logger().info(f'Calculated: {wheel_speeds}')
-        
-        rightStickY = gamepad_state.right_stick.y
-        # Raise and Lower Bucket Drum Arm(s)
-        if rightStickY > 0.2:
-            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)     
-        elif rightStickY < -0.2:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
-        else:
-            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
         
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
