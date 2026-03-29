@@ -14,9 +14,9 @@ ConnectionHeaders create_connection_headers(int port);
 
 struct DataHeader
 {
-    uint16_t packetNum;
-    uint16_t totalPackets;
-    uint16_t fragment_size;
+    uint16_t packetToSend;
+    uint16_t totalPacketsToSend;
+    uint16_t fragmentSize;
     uint32_t crc;
 } __attribute__((packed));
 #define HEADER_SIZE sizeof(DataHeader)
