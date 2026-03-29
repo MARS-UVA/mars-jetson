@@ -72,7 +72,7 @@ std::vector<std::pair<std::string, StickFieldPtr>> stickFields = {
 //const char* CONTROL_STATION_IP_CLIENT = std::getenv("CONTROL_STATION_IP");
 ThreadInfo info;
 int counter = 0;
-uint32_t current_action_state = 0;
+uint8_t current_action_state = 0;
 
 const int MOTOR_CURRENT_BYTES = 4;
 int Socket(ThreadInfo *info)
@@ -348,9 +348,11 @@ void action_timer_callback() {
           break;
         case DIG_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          send_goal(DIG_AUTO);
           break;
         case DUMP_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
+          send_goal(DUMP_AUTO);
           break;
       }
       human_input_msg->gamepad_state = *gamepad_msg;
