@@ -90,6 +90,7 @@ public:
   NetNode()
       : Node("NetNode")
   {
+    goal_handle = nullptr;
     client_ptr_ = rclcpp_action::create_client<DigDump>(this, "digdump");
     robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>("robot_state", 10, std::bind(&NetNode::robot_state_callback, this, _1));
@@ -140,7 +141,6 @@ private:
     if (!goal_handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {
-      this->goal_handle = goal_handle;
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
     }
   }
@@ -339,6 +339,7 @@ private:
   rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
 
   rclcpp_action::Client<DigDump>::SharedPtr client_ptr_;
+  rclcpp_action::ClientGoalHandle<autonomy_msgs::action::AutonomousActions>::SharedPtr goal_handle;
 };
 
 int main(int argc, char *argv[])
