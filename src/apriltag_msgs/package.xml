@@ -7,6 +7,8 @@
   <maintainer email="ivan.post24@gmail.com">rosdev</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>teleop_msgs</depend>
+  <depend>autonomy_msgs</depend>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 

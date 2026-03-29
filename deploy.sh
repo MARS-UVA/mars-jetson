@@ -14,7 +14,7 @@ fi
 
 # Build the packages
 # colcon build --packages-select teleop_msgs serial_msgs
-colcon build --symlink-install --packages-select startup serial_msgs teleop_msgs webapp_comms teleop serial_node webcam
+colcon build --symlink-install --packages-ignore zed_components zed_wrapper zed_ros2 --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=true
 # Source the setup file
 source install/setup.bash
 
@@ -26,4 +26,4 @@ source install/setup.bash
 
 ros2 launch startup launch.py
 
-kill $OBSTACLE_DETECT_PID
+# kill $OBSTACLE_DETECT_PID
