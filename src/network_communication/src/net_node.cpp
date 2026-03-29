@@ -127,6 +127,12 @@ public:
     this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
   }
 
+  void cancel_goal() {
+    if (this->goal_handle) {
+      this->client_ptr_->async_cancel_goal(this->goal_handle);
+    }
+  }
+
 private:
 
   void goal_response_callback(const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & goal_handle)
@@ -134,6 +140,7 @@ private:
     if (!goal_handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {
+      this->goal_handle = goal_handle;
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
     }
   }
@@ -187,8 +194,11 @@ private:
     if (info.auto_flag) {
       robot_action = info.robot_action;
       current_action_state = info.robot_action;
+      cancel_goal();
       switch (robot_action) {
-        case 0: // TODO: cancel goal
+        case 0: // default, do nothing
+          break;
+        case ESTOP: // Estop, do nothing else, handled in controller_timer_callback
           break;
         case DIG_AUTO:
           send_goal(DIG_AUTO);
