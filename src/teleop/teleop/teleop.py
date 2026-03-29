@@ -9,7 +9,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, stop_drum_spin, increment_drum_spin#, bucket_drum_speed_cruise_control
+from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, move_actuator, set_vibrator
 
 
 class TeleopNode(Node):
@@ -159,22 +159,14 @@ class TeleopNode(Node):
 
         if not self.cruise_control: motor_msg = wheel_speed_to_motor_queries(wheel_speeds)
         elif self.cruise_control:   motor_msg = MotorChanges(changes = [], adds = [])
-        
-        # Set states for control of bucket drums
-        if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
-            self.front_arm_control = True
-            self.back_arm_control = True
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
-        elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
-            self.front_arm_control = True
-            self.back_arm_control = False
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
-        elif gamepad_state.b_pressed and not self.prev_gamepad_state.b_pressed:
-            self.front_arm_control = False
-            self.back_arm_control = True
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
-        
 
+        if gamepad_state.lt_pressed and not self.prev_gamepad_state.lt_pressed:
+            move_actuator(motor_msg, 1)
+        elif gamepad_state.rt_pressed and not self.prev_gamepad_state.rt_pressed:
+            move_actuator(motor_msg, -1)
+        
+        set_vibrator(gamepad_state.b_pressed, motor_msg)
+        
         # Spin Bucket Drum(s)
         if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum backwards
             self.get_logger().info("bucket drum -15")

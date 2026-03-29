@@ -10,7 +10,7 @@ from serial_msgs.msg import Temperature
 
 TESTING = False
 
-NUM_MOTORS = 8
+NUM_MOTORS = 6
 MOTOR_CURRENT_MSG = 0
 SEND_HZ = 20
 READ_HZ = 20
