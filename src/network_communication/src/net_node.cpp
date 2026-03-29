@@ -330,6 +330,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::TimerBase::SharedPtr serialTimer_;
+  rclcpp::TimerBase::SharedPtr timertwo_;
   rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr publisher_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr robot_state_subscriber_;
@@ -343,7 +344,8 @@ private:
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
-  info.flag = false;
+  info.controller_flag = false;
+  info.auto_flag = false;
   memset(info.client_message, '\0', sizeof(info.client_message));
   std::thread socket(create_server, &info);
   rclcpp::spin(std::make_shared<NetNode>());
