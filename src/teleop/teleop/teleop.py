@@ -163,7 +163,9 @@ class TeleopNode(Node):
         actuator_dir = (-1 if gamepad_state.lb_pressed else 0) + (1 if gamepad_state.rb_pressed else 0)
         move_actuator(actuator_dir, motor_msg)
         
-        set_vibrator(gamepad_state.b_pressed, motor_msg)
+        right_stick_y = gamepad_state.right_stick.y
+        vibrator_output = right_stick_y if abs(right_stick_y) > 0.2 else 0
+        set_vibrator(vibrator_output, motor_msg)
         
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         

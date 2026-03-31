@@ -4,6 +4,8 @@
 #Option 2: ./deploy.sh <control station ip>
 cd ~/mars-jetson
 
+# Avoid domain collisions with bucket drum
+export ROS_DOMAIN_ID=10
 
 # if [ $# -ge 1 ];
 #     then

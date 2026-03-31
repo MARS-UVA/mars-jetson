@@ -13,8 +13,8 @@ def wheel_speed_to_motor_queries(wheel_speeds: WheelSpeeds) -> MotorChanges:
 def move_actuator(direction: int, msg: MotorChanges) -> None:
     msg.changes.append(SetMotor(index=SetMotor.ACTUATOR, velocity=127 + direction * 127))
 
-def set_vibrator(on: bool, msg: MotorChanges) -> None:
-    msg.changes.append(SetMotor(index=SetMotor.VIBRATOR, velocity=127 + (127 if on else -127)))
+def set_vibrator(direction: float, msg: MotorChanges) -> None:
+    msg.changes.append(SetMotor(index=SetMotor.VIBRATOR, velocity=max(0, min(255, int(127 + direction * 127)))))
 
 def stop_motors() -> MotorChanges:
     return MotorChanges(changes=[SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=127),
