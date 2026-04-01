@@ -32,6 +32,9 @@ class DigDumpActionServer : public rclcpp::Node
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
 
+    //Parameter to track if a goal is currently active. Used to prevent accepting new goals while one is active
+    bool goal_active_ = false;
+
     // Parameter values
     int actuator_speed;
     int dig_speed;
