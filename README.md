@@ -7,7 +7,7 @@ This repository is still in development and documentation is only available for 
 - April Tag Pose Estimation implementation: please visit **apriltag** branch
 
 ## How to Run
-```./deploy.sh [CONTROL_STATION_IP]```
+```./deploy.sh -i [CONTROL_STATION_IP] -d [ROS_DOMAIN_ID]```
 
 ## Structure
 This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:

@@ -5,12 +5,31 @@
 cd ~/mars-jetson
 
 
-if [ $# -ge 1 ];
-    then
-        export CONTROL_STATION_IP=$1
-    else 
-        export CONTROL_STATION_IP="192.168.0.109"
-fi
+# if [ $# -ge 1 ];
+#     then
+#         export CONTROL_STATION_IP=$1
+#     else 
+#         export CONTROL_STATION_IP="192.168.0.109"
+# fi
+
+ip="192.168.0.109" # default value for control station ip
+domain="0" # default value for ROS domain id, between 0-101
+
+while getopts "i:d:" flag
+do
+    case "${flag}" in
+        i) ip=${OPTARG}
+                ;;
+        d) domain=${OPTARG}
+                ;;
+        *) echo "Invalid option: -$flag" ;;
+        esac
+done
+# echo "Control Station IP: $ip"
+# echo "Control Station Domain: $domain"
+
+export CONTROL_STATION_IP=$ip
+export ROS_DOMAIN_ID=$domain
 
 # Build the packages
 # colcon build --packages-select teleop_msgs serial_msgs
