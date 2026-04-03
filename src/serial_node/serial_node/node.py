@@ -21,8 +21,9 @@ TELEOP_MODE = 0
 DIG_MODE = 1
 DUMP_MODE = 2
 ESTOP = 3
+TRAVERSAL_MODE = 4  #Autonomous traversal following breadcrumbing
 
-INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
+INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED", "TRAVERSAL AUTONOMY"]
 
 class SerialNode(Node):
 
@@ -33,6 +34,7 @@ class SerialNode(Node):
         self.mode = TELEOP_MODE
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
+        self.traversal_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
 
         self.teleop_sub_ = self.create_subscription(
@@ -45,6 +47,11 @@ class SerialNode(Node):
             topic = 'digdump_autonomy',
             callback = self.update_digdump_buffer,
             qos_profile = qos)
+        self.traversal_sub_ = self.create_subscription(
+            msg_type = MotorChanges, 
+            topic = 'traversal_autonomy',
+            callback = self.update_traversal_buffer,
+            qos_profile = qos)    
         self.robot_state_sub_ = self.create_subscription(
             msg_type = UInt8,
             topic = 'robot_state/toggle',
@@ -94,6 +101,7 @@ class SerialNode(Node):
             if new_state == ESTOP:
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
+                self.traversal_buffer_ = [MOTOR_STILL]*NUM_MOTORS
             
         self.get_logger().warn(f"CHANGING MODE: {INT2MODE[self.mode]}")
 
@@ -112,12 +120,17 @@ class SerialNode(Node):
         
     def update_digdump_buffer(self, motor_updates):
         self.update_buffer(self.digdump_buffer_, motor_updates)
+
+    def update_traversal_buffer(self, motor_updates):
+        self.update_buffer(self.traversal_buffer_, motor_updates)
         
     def sendCurrents(self):
         if self.mode == TELEOP_MODE:
             buffer = self.teleop_buffer_
         elif self.mode == DIG_MODE or self.mode == DUMP_MODE:
             buffer = self.digdump_buffer_
+        elif self.mode == TRAVERSAL_MODE:
+            buffer = self.traversal_buffer_
         elif self.mode == ESTOP:
             buffer = self.STOP_MSG
 

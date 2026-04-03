@@ -37,6 +37,7 @@
 #define DIG_AUTO 1
 #define DUMP_AUTO 2
 #define ESTOP 3
+#define TRAVERSAL_AUTO 4
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -286,6 +287,7 @@ private:
         case DUMP_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           break;
+        case TRAVERSAL_AUTO:
         case ESTOP:
           std_msgs::msg::UInt8 msg;
           msg.data = ESTOP;

@@ -1,4 +1,5 @@
 import rclpy
+from typing import Tuple
 from rclpy.node import Node
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ from nav_msgs.msg import Odometry
 from rclpy.time import Time
 from rclpy.duration import Duration
 from teleop_msgs.msg import SetMotor, MotorChanges
+from std_msgs.msg import UInt8
 
 
 
@@ -48,8 +50,16 @@ class PurePursuitNode(Node):
 
         ################    Publsihers TBD   ################
         self.motor_controller_publisher = self.create_publisher(
-            
+            MotorChanges,
+            "traversal_autonomy",
+            10
         )
+        self.state_publisher = self.create_publisher(
+            UInt8,
+            "robot_state/toggle",
+            10
+        )
+
 
         ################    Subscribers      ################
 
@@ -62,9 +72,6 @@ class PurePursuitNode(Node):
             10
         )
 
-        self.current_position_subscriber = self.create_subscription(
-
-        )
     #main loop to run pure pursuit
     def timer_callback(self):
         goalPoint, lastFoundIndex, turnVel = self.pure_pursuit_step(self.current_position, self.current_heading, self.look_ahead_distance, self.last_found_index)
@@ -98,7 +105,7 @@ class PurePursuitNode(Node):
 
     #################################################### PATH BUILDER ####################################################
 
-    type Point = tuple[float,float]
+    Point = Tuple[float, float]
 
     ## appends the points to the path_to_follow array
     ## this should be updated later
