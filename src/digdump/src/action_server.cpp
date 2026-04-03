@@ -55,17 +55,8 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
 }
 
-//Used to preserve the old handle_goal function in case the new functionality doesnt work as intended. 
-//The new handle_goal function adds the ability to reject new goals while one is active, which is important to prevent issues with multiple goals being accepted at once
-/*
-rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
-  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
-{
-  (void)uuid;
-  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-}
-*/
-
+//New handle_goal callback that accepts new goals only if there is not already an active goal. 
+//Tested and should work now but perhaps not the most elegant solution.
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
   const rclcpp_action::GoalUUID & uuid,
   std::shared_ptr<const DigDump::Goal> goal)
@@ -97,9 +88,7 @@ rclcpp_action::CancelResponse DigDumpActionServer::handle_cancel(
 void DigDumpActionServer::execute(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
-
   goal_active_ = true;
-  
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
   double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
   double dump_arm_movement_time = this->get_parameter("dump_arm_movement_time").as_double();
