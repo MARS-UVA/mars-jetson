@@ -17,9 +17,26 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
         Node(
-            package='webapp_comms',
+            package='digdump',
+            executable='action_server',
+            name='digdump',
+            output='screen',
+            parameters=[{
+                'actuator_speed': 15,
+                'dig_speed': 15,
+                'dump_speed': 15,
+                'drive_speed': 15,
+                'dig_arm_movement_time': 5.0,
+                'dump_arm_movement_time': 5.0,
+                'dig_time': 5.0,
+                'dump_time': 5.0,
+                'move_time': 5.0,
+            }]
+        ),
+        Node(
+            package='network_communication',
             executable='net_node',
-            name='webapp_comms',
+            name='network_communication',
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
@@ -30,12 +47,5 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
-        Node(
-            package='webcam',
-            executable='webcam',
-            name='webcam',
-            output='screen',
-            arguments=['--ros-args', '--log-level', 'INFO']
-        )
     ])
 
