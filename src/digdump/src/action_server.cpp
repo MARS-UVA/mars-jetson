@@ -55,11 +55,21 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
 }
 
-
+//New handle_goal callback that accepts new goals only if there is not already an active goal. 
+//Tested and should work now but perhaps not the most elegant solution.
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
-  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal)
+  const rclcpp_action::GoalUUID & uuid,
+  std::shared_ptr<const DigDump::Goal> goal)
 {
   (void)uuid;
+  (void)goal;
+
+  if (goal_active_) {
+    RCLCPP_WARN(this->get_logger(), "Rejecting goal: already running");
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+
+  RCLCPP_INFO(this->get_logger(), "Accepting new goal");
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -78,6 +88,7 @@ rclcpp_action::CancelResponse DigDumpActionServer::handle_cancel(
 void DigDumpActionServer::execute(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
+  goal_active_ = true;
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
   double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
   double dump_arm_movement_time = this->get_parameter("dump_arm_movement_time").as_double();
@@ -108,6 +119,7 @@ void DigDumpActionServer::execute(
       double elapsed_time = 0.0;
       while (elapsed_time < dig_arm_movement_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -120,6 +132,7 @@ void DigDumpActionServer::execute(
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -132,6 +145,7 @@ void DigDumpActionServer::execute(
       elapsed_time = 0.0;
       while (elapsed_time < dig_arm_movement_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -148,6 +162,7 @@ void DigDumpActionServer::execute(
       double elapsed_time = 0.0;
       while (elapsed_time < move_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -160,6 +175,7 @@ void DigDumpActionServer::execute(
       elapsed_time = 0.0;
       while (elapsed_time < dump_arm_movement_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -173,6 +189,7 @@ void DigDumpActionServer::execute(
       elapsed_time = 0.0;
       while (elapsed_time < dump_time) {
         if (goal_handle->is_canceling()) {
+          goal_active_ = false;
           cancel_current_goal(state, goal_handle);
           return;
         }
@@ -193,6 +210,7 @@ void DigDumpActionServer::execute(
       auto state = std_msgs::msg::UInt8();
       state.data = 0;
       state_publisher_->publish(state);
+      goal_active_ = false;
 
       goal_handle->abort(result);
       break;

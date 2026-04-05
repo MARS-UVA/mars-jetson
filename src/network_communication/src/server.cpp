@@ -112,18 +112,26 @@ int create_server(ThreadInfo *info)
         {
             // Handle this later
         }
-	    //printf("after crc\n");
+
         char *payloadStart = buffer + HEADER_SIZE;
-	    //printf("1\n");
-        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
-        //printf("insert data\n");
-        received_data.push_back('\0');
-        memset(info->client_message, '\0', 100000);
-        memcpy(info->client_message, received_data.data(), received_data.size());
-        // set robot_action_state to the first byte of the buffer header
-        info->robot_action = *buffer;
-        //printf("after seting data");
-        info->flag = true;
+        if (*buffer == 'p') {
+            //printf("after crc\n");
+        
+            //printf("1\n");
+            received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
+            //printf("insert data\n");
+            received_data.push_back('\0');
+            memset(info->client_message, '\0', 100000);
+            memcpy(info->client_message, received_data.data(), received_data.size());
+            
+            //printf("after seting data");
+            info->controller_flag = true;
+        }
+        else if (*buffer == 'a') {
+            info->robot_action = *payloadStart;
+            info->auto_flag = true;
+        }
+	    
         
 
         // std::cout << buffer << std::endl;
