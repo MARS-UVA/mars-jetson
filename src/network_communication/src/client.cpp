@@ -87,7 +87,7 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
     /*use connection_headers */
     ConnectionHeaders connection_headers = create_connection_headers(server_port);
 
-    /* Track howmuch has been sent so far */
+    /* Track how much has been sent so far in terms of data size, not the number of chunks */
     size_t sent_bytes = 0;
     
     /* Track the correct order of the packets sent*/
@@ -103,9 +103,12 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
     memset(sendBuffer, '\0', sizeof(sendBuffer));
 
     // std::cout << "Sending feedback bytes..." << std::endl;
+    /*Keeps track of how size of data sent vs how how much needs to be sent*/
     while (sent_bytes < data_size)
     {
+        /*Specify the size of the bytes to send*/
         size_t bytes_to_send = std::min(CHUNK_SIZE, (int)(data_size - sent_bytes));
+        /*Create the headers*/
         DataHeader header_struct;
         DataHeader *header = &header_struct;
         header->packetToSend = seqNo;
@@ -114,22 +117,37 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
         header->crc = crc32bit((char *)(data + sent_bytes), bytes_to_send);
         memcpy(sendBuffer, header, HEADER_SIZE);
         memcpy(sendBuffer + HEADER_SIZE, data + sent_bytes, bytes_to_send);
+        
+        /*Sends the packet through port specified prior
+        https://pubs.opengroup.org/onlinepubs/009604499/functions/sendto.html
+        Inputs:
+            int socket: specifies socket [connection_headers.client_socket_fd]
+            const void *message: points to a buffer containing message [sendBuffer]
+            length: size in bytes [bytes_to_send + HEADER_SIZE]
+            int flags: message transmission type [0]
+            dest_addr: destination address, must be sockaddr struct [(struct sockaddr * ) ...]
+            dest_len: specifies length of sockaddr structure in dest_addr
+        */
         ssize_t transmission_result = sendto(connection_headers.client_socket_fd,
                                              sendBuffer,
                                              bytes_to_send + HEADER_SIZE, 0,
                                              (struct sockaddr *)&(connection_headers.control_station_addr),
                                              sizeof(connection_headers.control_station_addr));
+        /* transmission_result actually records the number of bytes_sent, and returns -1 of there was an error */
         if (transmission_result < 0)
         {
             throw std::runtime_error("Unable to send message");
             return;
         }
+        /*Increment Loop*/
         sent_bytes += bytes_to_send;
+        /*Increment what part of the sequences this is*/
         seqNo++;
     }
     close(connection_headers.client_socket_fd);
 }
 
+/*I believe this is deprecated*/
 void client_send(cv::Mat &image, int server_port)
 {
     //std::cout << "Sending webcam feed rn" << std::endl;
