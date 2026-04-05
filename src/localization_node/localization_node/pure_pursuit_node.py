@@ -11,6 +11,7 @@ from rclpy.time import Time
 from rclpy.duration import Duration
 from teleop_msgs.msg import SetMotor, MotorChanges
 from std_msgs.msg import UInt8
+from std_srvs.srv import Trigger
 
 
 
@@ -34,7 +35,11 @@ class PurePursuitNode(Node):
         self.hertz = 30
         self.look_ahead_distance = 1 #meters
         self.velocity = 180
+        # When on the last segment (last_found_index targets the final waypoint), stop inside this radius of path[-1].
+        self.goal_arrival_distance_m = 0.35
 
+        self.recording_path = False
+        
 
         ## the path, it will be delivered/
         self.path_to_follow = []
@@ -45,7 +50,7 @@ class PurePursuitNode(Node):
         self.last_found_index = 0
         #move to be called when pure pursuit shoudl be played
         #runs main pure pursuit loop
-        self.timer = self.create_timer(1.0 / self.hertz, self.timer_callback)
+        self.timer = None
 
 
         ################    Publsihers TBD   ################
@@ -65,11 +70,34 @@ class PurePursuitNode(Node):
 
         #/odometry/filtered
         self.pose_subscriber = self.create_subscription(
-            ###TBD
             Odometry,
             "/odometry/filtered",
             self.position_callback,
             10
+        )
+
+
+        ###############     Services        ################
+        self.start_pathbuild_srv = self.create_service(
+            Trigger,
+            'start_pathbuild',
+            self.start_pathbuild_callback
+        )
+        self.stop_pathbuild_srv = self.create_service(
+            Trigger,
+            'stop_pathbuild',
+            self.stop_pathbuild_callback
+        )
+
+        self.start_purepursuit_srv = self.create_service(
+            Trigger,
+            'start_purepursuit',
+            self.start_purepursuit_callback
+        )
+        self.stop_purepursuit_srv = self.create_service(
+            Trigger,
+            'stop_purepursuit',
+            self.stop_purepursuit_callback
         )
 
     #main loop to run pure pursuit
@@ -83,13 +111,17 @@ class PurePursuitNode(Node):
                                  SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
                                  SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)]
         )
+        self.motor_controller_publisher.publish(motors_msg)
+        if self.pt_to_pt_distance(self.current_position, self.path[-1]) < self.goal_arrival_distance_m:
+            self._deactivate_pure_pursuit()
 
     
     #################################################### CURRENT POSE ####################################################
     #add pose with path_builder if enough time has passed
     def position_callback(self, msg: Odometry):
         current_time = Time.from_msg(msg.header.stamp)
-        if self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose:                
+        #if currently recording path and it has been long enough since last position recording
+        if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pos):                
             self.last_received_time = current_time
             x=msg.pose.pose.position.x
             y=msg.pose.pose.position.y
@@ -102,6 +134,46 @@ class PurePursuitNode(Node):
         )
         return
         
+
+
+    #################################################### SERVICE CALLBACKS ####################################################
+
+    def start_pathbuild_callback(self, request, response):
+        self.recording_path = True
+        response.success = True
+        response.message = "Path building started"
+        self.path_to_follow = []        #reset path
+        return response
+
+    def stop_pathbuild_callback(self, request, response):
+        self.recording_path = False
+        response.success = True
+        response.message = "Path building stopped"
+        return response
+    
+    def start_purepursuit_callback(self, request, response):
+        #start the timer callback to repeatedly call pure pursuit step
+        self.recording_path = False
+        self.last_found_index = 0
+        self.timer = self.create_timer(1.0 / self.hertz, self.timer_callback)
+        response.success = True
+        response.message = "Pure pursuit started"
+        return response
+
+    def _deactivate_pure_pursuit(self):
+        if self.timer is not None:
+            self.timer.cancel()
+            self.timer = None
+        msg = UInt8()
+        msg.data = 0
+        self.state_publisher.publish(msg)
+
+    def stop_purepursuit_callback(self, request, response):
+        self._deactivate_pure_pursuit()
+        response.success = True
+        response.message = "Pure pursuit stopped"
+        return response
+
 
     #################################################### PATH BUILDER ####################################################
 
@@ -118,12 +190,13 @@ class PurePursuitNode(Node):
 
 
 
-    ## helper function
-    def pt_to_pt_distance (pt1,pt2):
+    @staticmethod
+    def pt_to_pt_distance(pt1, pt2):
         distance = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
         return distance
 
-    def sgn (num):
+    @staticmethod
+    def sgn(num):
         if num >= 0:
             return 1
         else:
@@ -211,7 +284,7 @@ class PurePursuitNode(Node):
         Kp = 3
 
         # calculate absTargetAngle with the atan2 function
-        absTargetAngle = math.atan2 (goalPoint[1]-currentPosition[1], goalPoint[0]-currentPosition[0]) *180/pi
+        absTargetAngle = math.atan2(goalPoint[1]-currentPosition[1], goalPoint[0]-currentPosition[0]) * 180 / math.pi
         if absTargetAngle < 0: absTargetAngle += 360
 
         # compute turn error by finding the minimum angle
