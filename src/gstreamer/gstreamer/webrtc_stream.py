@@ -26,19 +26,20 @@ class WebRTCNode(Node):
         super().__init__('webrtc_node')
 
         # Declare Parameters
-        self.declare_parameter('signaling_url', '')
+        self.declare_parameter('signaling_host', '')
+        self.declare_parameter('signaling_port', 0)
         self.declare_parameter('video_topic', '/camera/image_raw')
         self.declare_parameter('bitrate', 1800000)
         self.declare_parameter('stream_height', 480)
         self.declare_parameter('stream_width', 640)
 
         # Get Parameter Values
-        self.signaling_url = self.get_parameter('signaling_url').value
+        self.signaling_url = f'ws://{self.get_parameter("signaling_host").value}:{self.get_parameter("signaling_port").value}'
         self.video_topic = self.get_parameter('video_topic').value
         self.bitrate = self.get_parameter('bitrate').value
         self.stream_height = self.get_parameter('stream_height').value
         self.stream_width = self.get_parameter('stream_width').value
-        
+
         # Initialize GStreamer
         Gst.init(None)
         self.bridge = CvBridge()
@@ -91,6 +92,7 @@ class WebRTCNode(Node):
         self.get_logger().info(f"WebRTC Node listening on {self.video_topic}...")
 
     def image_callback(self, msg):
+        self.get_logger().info(f"got image!")
         if self.appsrc is None:
             return
 

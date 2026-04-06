@@ -4,9 +4,6 @@
 #Option 2: ./deploy.sh <control station ip>
 cd ~/mars-jetson
 
-# Avoid domain collisions with bucket drum
-export ROS_DOMAIN_ID=10
-
 # if [ $# -ge 1 ];
 #     then
 #         export CONTROL_STATION_IP=$1
@@ -27,9 +24,10 @@ do
         *) echo "Invalid option: -$flag" ;;
         esac
 done
-# echo "Control Station IP: $ip"
-# echo "Control Station Domain: $domain"
+echo "Control Station IP: $ip"
+echo "Control Station Domain: $domain"
 
+export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 export CONTROL_STATION_IP=$ip
 export ROS_DOMAIN_ID=$domain
 
