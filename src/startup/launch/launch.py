@@ -65,5 +65,6 @@ def generate_launch_description():
         digdump,
         network,
         serial,
+        cameras,
     ])
 
