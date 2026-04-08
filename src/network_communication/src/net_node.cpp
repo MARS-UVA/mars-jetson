@@ -31,6 +31,8 @@
 #include "client.hpp"
 #include "server.hpp"
 #include <regex>
+#include "std_srvs/srv/trigger.hpp"
+
 
 #define NUM_GAMEPAD_BTNS 14
 #define NUM_GAMEPAGE_STICKS 2
@@ -114,6 +116,9 @@ public:
     positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
         "position", 10, std::bind(&NetNode::position_callback, this, _1)
     );
+
+    start_purepursuit_client_ = this->create_client<std_srvs::srv::Trigger>("start_purepursuit");
+
   }
 
   void send_goal(int action_type) {
@@ -306,23 +311,46 @@ private:
       
       switch (current_action_state) {
         case 0: //default, do nothing
+          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
           break;
         case DIG_AUTO: //TODO: make client and send goal to action server
+          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           send_goal(DIG_AUTO);
           break;
         case DUMP_AUTO:
+          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           send_goal(DUMP_AUTO);
           break;
         case TRAVERSAL_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_PURE_PURSUIT;
-          
+          if (!pure_pursuit_start_sent_) {
+            if (start_purepursuit_client_->service_is_ready()) {
+              auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+              start_purepursuit_client_->async_send_request(
+                req,
+                [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+                  auto resp = future.get();
+                  RCLCPP_INFO(
+                    this->get_logger(), "start_purepursuit: success=%s",
+                    resp->success ? "true" : "false");
+                });
+              pure_pursuit_start_sent_ = true;
+            } else {
+              RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 2000,
+                "start_purepursuit service not ready yet");
+            }
+          }
+          break;
         case ESTOP:
+          pure_pursuit_start_sent_ = false;
           std_msgs::msg::UInt8 msg;
           msg.data = ESTOP;
           robot_state_toggle_publisher_->publish(msg); //everything else is handled
+          break;
       }
       human_input_msg->gamepad_state = *gamepad_msg;
 
@@ -348,6 +376,10 @@ private:
 
   rclcpp_action::Client<DigDump>::SharedPtr client_ptr_;
   rclcpp_action::ClientGoalHandle<autonomy_msgs::action::AutonomousActions>::SharedPtr goal_handle;
+
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr start_purepursuit_client_;
+  /// Avoid spamming start_purepursuit on every controller timer tick while in TRAVERSAL_AUTO.
+  bool pure_pursuit_start_sent_{false};
 };
 
 int main(int argc, char *argv[])

@@ -19,6 +19,7 @@ find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
 find_package(serial_msgs REQUIRED)
 find_package(autonomy_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -49,6 +50,7 @@ ament_target_dependencies(net_node
   teleop_msgs
   serial_msgs
   autonomy_msgs
+  std_srvs
 )
 
 install(TARGETS
