@@ -317,6 +317,8 @@ private:
           send_goal(DUMP_AUTO);
           break;
         case TRAVERSAL_AUTO:
+          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_PURE_PURSUIT;
+          
         case ESTOP:
           std_msgs::msg::UInt8 msg;
           msg.data = ESTOP;
