@@ -1,9 +1,5 @@
 /* Sends communcations to the control station */
-
 #include "client.hpp"
-#include "frame_sender.hpp"
-#include "main.hpp"
-#include <cstdlib>
 
 /* IP based, this is an environmental variable */
 const char* CONTROL_STATION_IP_FOR_CLIENT = std::getenv("CONTROL_STATION_IP");
@@ -33,7 +29,6 @@ ConnectionHeaders create_connection_headers(int port)
 
     /* Set port and IP for control station laptop: */
     struct sockaddr_in control_station_addr;
-
     socklen_t control_station_struct_len = sizeof(control_station_addr);
 
     /*Specifies address family, again IPv4 */
@@ -77,11 +72,6 @@ uint32_t crc32bit(const char *data, size_t data_size)
     return ~crc;
 }
 
-/*client_send: sends data
-Parameters:
-*data: the data to be sent
-size_t: the size of the data
-server_port: the destination port, this will be the port of the server on the control station*/
 void client_send(unsigned char *data, size_t data_size, int server_port)
 {
     /*use connection_headers */
@@ -144,17 +134,5 @@ void client_send(unsigned char *data, size_t data_size, int server_port)
         /*Increment what part of the sequences this is*/
         seqNo++;
     }
-    close(connection_headers.client_socket_fd);
-}
-
-/*I believe this is deprecated*/
-void client_send(cv::Mat &image, int server_port)
-{
-    //std::cout << "Sending webcam feed rn" << std::endl;
-	//std::cout << "starting client send..." << std::endl;
-    ConnectionHeaders connection_headers = create_connection_headers(server_port);
-    //std::cout << "got connection headers" << std::endl;
-    send_frame(connection_headers, image);
-    //std::cout << "finished send" << std::endl;
     close(connection_headers.client_socket_fd);
 }

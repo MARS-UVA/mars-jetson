@@ -19,6 +19,7 @@ find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
 find_package(serial_msgs REQUIRED)
 find_package(autonomy_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -31,6 +32,10 @@ add_executable(net_node
   src/client.cpp
   src/frame_sender.cpp
 )
+
+if ($ENV{ROS_DISTRO} STREQUAL "humble")
+target_compile_definitions(net_node PRIVATE LEGACY_CV_BRIDGE)
+endif ()
 
 target_link_libraries(net_node ${OpenCV_LIBS})
 target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
@@ -45,6 +50,7 @@ ament_target_dependencies(net_node
   teleop_msgs
   serial_msgs
   autonomy_msgs
+  std_srvs
 )
 
 install(TARGETS

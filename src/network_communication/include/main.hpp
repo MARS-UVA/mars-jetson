@@ -1,4 +1,7 @@
 #pragma once
+
+#include <thread>
+#include <cstdlib>
 #include <string.h>
 #include <iostream>
 #include <unistd.h>

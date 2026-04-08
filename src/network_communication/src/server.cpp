@@ -1,20 +1,5 @@
 /*Receives from the control station*/
-
-#include "./server.hpp"
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <thread>
-#include "./client.hpp"
-#include <cstdio>
-#include <stdexcept>
-#include <csignal>
-
-/*Port for receiving*/
-#define PORT 8080
+#include "server.hpp"
 
 /*
 socket_desc is described below
@@ -22,18 +7,12 @@ socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 */
 int socket_desc;
 
-/*What does this do? What is signum?*/
 void signal_handler(int signum)
 {
     close(socket_desc);
     exit(signum);
 }
 
-/*Creates the server in a thread
-ThreadInfo is for windows???????
-https://github.com/MScholtes/ThreadInfo
-I need to look more into ThreadInfo
-*/
 int create_server(ThreadInfo *info)
 {
     /*Declare the addresses*/
@@ -45,29 +24,6 @@ int create_server(ThreadInfo *info)
 
     /*length of the client address struct in bytes*/
     socklen_t client_struct_length = sizeof(client_addr);
-
-    /*
-    const char* cmd = "hostname -I | awk '{print $1}\0";
-    std::vector<char> inet_buffer(128);
-    std::string localIp;
-    FILE* pipe = popen(cmd, "r");
-    if (!pipe) {
-        throw std::runtime_error("failed!");
-    }
-    while (fgets(inet_buffer.data(), inet_buffer.size(), pipe) != nullptr) {
-        localIp += inet_buffer.data();
-    }
-    pclose(pipe);
-
-    if (!localIp.empty() && localIp.back() == '\n') {
-        localIp.pop_back();
-    }
-
-    std::cout << localIp << std::endl;
-    */
-    // Clean buffers:
-    // memset(server_message, '\0', sizeof(server_message));
-    // memset(client_message, '\0', sizeof(client_message));
 
     /* Create UDP socket: */
     socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -129,7 +85,6 @@ int create_server(ThreadInfo *info)
     {
         /*Overwrites everything to ensure no data can impact what we read later*/
         memset(buffer, '\0', 1410);
-
         // printf("2");
 
         /*Stores the recieved data as a vector of characters*/
@@ -149,6 +104,7 @@ int create_server(ThreadInfo *info)
         if (num_bytes < 0)
         {
             std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
+            continue;
         }
         /*This is not used, but is supposed to ensure that the data sent is correct*/
         uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
@@ -156,33 +112,24 @@ int create_server(ThreadInfo *info)
         {
             // Handle this later
         }
-	    //printf("after crc\n");
-        
+
         /*indicates the start of the data that is not the header*/
         char *payloadStart = buffer + HEADER_SIZE;
-
-	    //printf("1\n");
-
-        /* Insert data into the end*/
-        received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
-        
-        //printf("insert data\n");
-
-        /*Append null to the end of the vector*/
-        received_data.push_back('\0');
-
-        /*Wipe data*/
-        memset(info->client_message, '\0', 100000);
-
-        /*Copies data*/
-        memcpy(info->client_message, received_data.data(), received_data.size());
-
+        if (*buffer == 'p') {
+            received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
+            //printf("insert data\n");
+            received_data.push_back('\0');
+            memset(info->client_message, '\0', 100000);
+            memcpy(info->client_message, received_data.data(), received_data.size());
+            
         // set robot_action_state to the first byte of the buffer header
-        info->robot_action = *buffer;
-        //printf("after seting data");
-        info->flag = true;
-        
-
+            //printf("after seting data");
+            info->controller_flag = true;
+        }
+        else if (*buffer == 'a') {
+            info->robot_action = *payloadStart;
+            info->auto_flag = true;
+        }
         // std::cout << buffer << std::endl;
     }
     // Close the socket:
