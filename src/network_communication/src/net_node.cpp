@@ -111,28 +111,46 @@ public:
     );
   }
 
-  void send_goal(int action_type) {
-    
-    if (!this->client_ptr_->wait_for_action_server()) {
-      RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
-      return;
-    }
-
-    auto goal_msg = DigDump::Goal();
-    goal_msg.index = action_type;
-
-    auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
-    send_goal_options.goal_response_callback =
-      std::bind(&NetNode::goal_response_callback, this, _1);
-
-    this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+void send_goal(int action_type) {
+  if (!this->client_ptr_->wait_for_action_server()) {
+    RCLCPP_ERROR(this->get_logger(), "Action server not available");
+    return;
   }
 
-  void cancel_goal() {
-    if (this->goal_handle) {
-      this->client_ptr_->async_cancel_goal(this->goal_handle);
+  auto goal_msg = DigDump::Goal();
+  goal_msg.index = action_type;
+
+  auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
+  
+  // Update this callback to store the handle
+  send_goal_options.goal_response_callback = [this](const DigDumpGoalHandle::SharedPtr & handle) {
+    if (!handle) {
+      RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Goal accepted by server");
+      this->goal_handle = handle; // Store the handle for later cancellation
     }
+  };
+
+  this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+}
+
+void cancel_goal() {
+  if (!this->goal_handle) {
+    RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
+    return;
   }
+
+  RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
+  
+  // Use a lambda to nullify the handle once the server acknowledges cancellation
+  auto cancel_callback = [this](auto response) {
+    RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
+    this->goal_handle = nullptr; 
+  };
+
+  this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
+}
 
 private:
 
@@ -189,27 +207,35 @@ private:
       client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
-  void action_timer_callback() {
-    uint8_t robot_action;
-    if (info.auto_flag) {
-      robot_action = info.robot_action;
-      current_action_state = info.robot_action;
+void action_timer_callback() {
+  if (info.auto_flag) {
+    uint8_t robot_action = info.robot_action;
+    
+    // Always cancel the previous goal if it exists before starting a new one
+    if (this->goal_handle) {
       cancel_goal();
-      switch (robot_action) {
-        case 0: // default, do nothing
-          break;
-        case ESTOP: // Estop, do nothing else, handled in controller_timer_callback
-          break;
-        case DIG_AUTO:
-          send_goal(DIG_AUTO);
-          break;
-        case DUMP_AUTO:
-          send_goal(DUMP_AUTO);
-          break;
-      }
-      info.auto_flag = false;
     }
+
+    switch (robot_action) {
+      case 0:
+        current_action_state = 0;
+        break;
+      case DIG_AUTO:
+        current_action_state = DIG_AUTO;
+        send_goal(DIG_AUTO);
+        break;
+      case DUMP_AUTO:
+        current_action_state = DUMP_AUTO;
+        send_goal(DUMP_AUTO);
+        break;
+      case ESTOP:
+        current_action_state = ESTOP;
+        // The publisher logic remains in controller_timer_callback
+        break;
+    }
+    info.auto_flag = false;
   }
+}
 
   void controller_timer_callback()
   {
