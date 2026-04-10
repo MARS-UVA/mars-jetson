@@ -1,0 +1,14 @@
+digraph G {
+"map" -> "odom"[label=" Broadcaster: default_authority\nAverage rate: 20.2\nBuffer length: 5.0\nMost recent transform: 1771882521.5921\nOldest transform: 1771882516.592135\n"];
+"zed2i_left_camera_frame" -> "zed2i_imu_link"[label=" Broadcaster: default_authority\nAverage rate: 99.134\nBuffer length: 4.358\nMost recent transform: 1771882521.501289\nOldest transform: 1771882517.143563\n"];
+"zed2i_camera_center" -> "zed2i_left_camera_frame"[label=" Broadcaster: default_authority\nAverage rate: 10.278\nBuffer length: 4.086\nMost recent transform: 1771882521.193228\nOldest transform: 1771882517.106984\n"];
+"zed2i_camera_link" -> "zed2i_camera_center"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"odom" -> "zed2i_camera_link"[label=" Broadcaster: default_authority\nAverage rate: 10.594\nBuffer length: 4.153\nMost recent transform: 1771882521.193228\nOldest transform: 1771882517.039991\n"];
+"zed2i_left_camera_frame" -> "zed2i_left_camera_frame_optical"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"zed2i_camera_center" -> "zed2i_right_camera_frame"[label=" Broadcaster: default_authority\nAverage rate: 10.353\nBuffer length: 4.153\nMost recent transform: 1771882521.193228\nOldest transform: 1771882517.039991\n"];
+"zed2i_right_camera_frame" -> "zed2i_right_camera_frame_optical"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1771882521.5323532"[ shape=plaintext ] ;
+}->"map";
+}

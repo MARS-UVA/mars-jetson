@@ -4,8 +4,6 @@ from rclpy.node import Node
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import matplotlib.animation as animation
-from IPython import display
 from nav_msgs.msg import Odometry
 from rclpy.time import Time
 from rclpy.duration import Duration
@@ -296,3 +294,10 @@ class PurePursuitNode(Node):
         turnVel = Kp*turnError
         
         return goalPoint, lastFoundIndex, turnVel
+    
+def main():
+    rclpy.init()
+    node = PurePursuitNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()

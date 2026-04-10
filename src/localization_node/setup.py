@@ -32,6 +32,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pose_publisher = localization_node.pose_publisher:main',
+            'pure_pursuit_node = localization_node.pure_pursuit_node:main',
         ],
     },
 )
