@@ -53,6 +53,27 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
   drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = drive_speed + 127;
   drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = drive_speed + 127;
+
+  cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
+  "cancel_command",
+  10,
+  [this](std_msgs::msg::UInt8::SharedPtr msg) {
+    if (msg->data == 1 && active_goal_) {
+      RCLCPP_WARN(this->get_logger(), "Manual cancel triggered");
+
+      auto result = std::make_shared<DigDump::Result>();
+      active_goal_->canceled(result);
+
+      goal_active_ = false;
+
+      auto state = std_msgs::msg::UInt8();
+      state.data = 0;
+      state_publisher_->publish(state);
+
+      motor_publisher_->publish(stop_msg);
+    }
+  }
+  );
 }
 
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
@@ -223,7 +244,12 @@ void DigDumpActionServer::execute(
   if (rclcpp::ok()) {
     goal_handle->succeed(result);
     RCLCPP_INFO(rclcpp::get_logger("server"), "Goal Succeeded");
+    goal_active_ = false;
   }
+
+  goal_active_ = false;
+  active_goal_.reset();
+  
 }
 
 void DigDumpActionServer::cancel_current_goal(
@@ -241,6 +267,9 @@ void DigDumpActionServer::cancel_current_goal(
 void DigDumpActionServer::handle_accepted(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
+
+    active_goal_ = goal_handle;
+
   std::thread{
     std::bind(&DigDumpActionServer::execute, this, std::placeholders::_1),
     goal_handle
