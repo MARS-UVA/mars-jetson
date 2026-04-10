@@ -43,6 +43,12 @@ class DigDumpActionServer : public rclcpp::Node
     //Parameter to track if a goal is currently active. Used to prevent accepting new goals while one is active
     bool goal_active_ = false;
 
+    // Track active goal
+    std::shared_ptr<DigDumpGoalHandle> active_goal_;
+
+    // Cancel command subscriber
+    rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr cancel_sub_;
+
     // Parameter values
     int actuator_speed;
     int dig_speed;
