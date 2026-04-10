@@ -174,6 +174,7 @@ int create_server(ThreadInfo *info)
         else if (*buffer == 'a') {
             info->robot_action = *payloadStart;
             info->auto_flag = true;
+            printf("Received auto command: %d\n", info->robot_action);
         }
 	    
         
