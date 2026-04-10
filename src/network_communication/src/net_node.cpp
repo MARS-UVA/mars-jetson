@@ -160,6 +160,7 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+      this->goal_handle = goal_handle;
     }
   }
 
@@ -329,7 +330,8 @@ void action_timer_callback() {
         case 0: //default, do nothing
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
           break;
-        case DIG_AUTO: //TODO: make client and send goal to action server
+        case DIG_AUTO:
+
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           send_goal(DIG_AUTO);
           break;
