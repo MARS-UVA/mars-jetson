@@ -172,7 +172,7 @@ int create_server(ThreadInfo *info)
             info->controller_flag = true;
         }
         else if (*buffer == 'a') {
-            info->robot_action = *payloadStart;
+            info->robot_action = *payloadStart - '0'; // Convert char digit to int
             info->auto_flag = true;
             printf("Received auto command: %d\n", info->robot_action);
         }
