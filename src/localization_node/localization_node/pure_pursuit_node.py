@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseStamped
 from rclpy.time import Time
 from rclpy.duration import Duration
 from teleop_msgs.msg import SetMotor, MotorChanges
@@ -68,8 +69,8 @@ class PurePursuitNode(Node):
 
         #/odometry/filtered
         self.pose_subscriber = self.create_subscription(
-            Odometry,
-            "/odometry/filtered",
+            PoseStamped,
+            "/zed/zed_node/pose",
             self.position_callback,
             10
         )
@@ -116,16 +117,16 @@ class PurePursuitNode(Node):
     
     #################################################### CURRENT POSE ####################################################
     #add pose with path_builder if enough time has passed
-    def position_callback(self, msg: Odometry):
-        current_time = Time.from_msg(msg.header.stamp)
+    def position_callback(self, msg: PoseStamped):
+        current_time = Time.from_msg(msg.header.stamp.sec)
         #if currently recording path and it has been long enough since last position recording
-        if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pos):                
+        if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose):                
             self.last_received_time = current_time
-            x=msg.pose.pose.position.x
-            y=msg.pose.pose.position.y
+            x=msg.pose.position.x
+            y=msg.pose.position.y
             self.path_builder((x,y))
-        self.current_position = (msg.pose.pose.position.x, msg.pose.pose.position.y)
-        q = msg.pose.pose.orientation
+        self.current_position = (msg.pose.position.x, msg.pose.position.y)
+        q = msg.pose.orientation
         self.current_heading = math.atan2(
             2*(q.w*q.z + q.x*q.y),
             1 - 2*(q.y*q.y + q.z*q.z)
@@ -146,7 +147,7 @@ class PurePursuitNode(Node):
     def stop_pathbuild_callback(self, request, response):
         self.recording_path = False
         response.success = True
-        response.message = "Path building stopped"
+        response.message = "Path building stopped with " + str(len(self.path_to_follow))+ " nodes"
         return response
     
     def start_purepursuit_callback(self, request, response):

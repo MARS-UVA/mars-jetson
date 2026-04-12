@@ -1,0 +1,14 @@
+/**:
+  ros__parameters:
+    depth:
+      depth_mode: "NEURAL_LIGHT"
+    pos_tracking:
+      pos_tracking_mode: "GEN_3"
+      pos_tracking_enabled: true
+      gnss_fusion_enabled: false
+    mapping:
+      mapping_enabled: false
+    object_detection:
+      od_enabled: false
+    body_tracking:
+      bt_enabled: false
