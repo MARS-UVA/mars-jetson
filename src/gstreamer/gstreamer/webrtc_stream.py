@@ -32,6 +32,7 @@ class WebRTCNode(Node):
         self.declare_parameter('bitrate', 1800000)
         self.declare_parameter('stream_height', 480)
         self.declare_parameter('stream_width', 640)
+        self.declare_parameter('feed_active', True)
 
         # Get Parameter Values
         self.signaling_url = f'ws://{self.get_parameter("signaling_host").value}:{self.get_parameter("signaling_port").value}'
@@ -39,6 +40,7 @@ class WebRTCNode(Node):
         self.bitrate = self.get_parameter('bitrate').value
         self.stream_height = self.get_parameter('stream_height').value
         self.stream_width = self.get_parameter('stream_width').value
+        self.feed_active = self.get_paramter('feed_active').value
         
         # Initialize GStreamer
         Gst.init(None)
@@ -95,20 +97,21 @@ class WebRTCNode(Node):
         if self.appsrc is None:
             return
 
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-            if cv_image.shape[1] != self.stream_width or cv_image.shape[0] != self.stream_height:
-                cv_image = cv2.resize(cv_image, (self.stream_width, self.stream_height))
-            
-            data = cv_image.tobytes()
-            buf = Gst.Buffer.new_allocate(None, len(data), None)
-            buf.fill(0, data)
-            buf.duration = (1000000000 // FRAMERATE)
-            
-            self.appsrc.emit('push-buffer', buf)
-            
-        except Exception as e:
-            self.get_logger().error(f"Frame error: {e}")
+        if self.feed_active:
+            try:
+                cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+                if cv_image.shape[1] != self.stream_width or cv_image.shape[0] != self.stream_height:
+                    cv_image = cv2.resize(cv_image, (self.stream_width, self.stream_height))
+                
+                data = cv_image.tobytes()
+                buf = Gst.Buffer.new_allocate(None, len(data), None)
+                buf.fill(0, data)
+                buf.duration = (1000000000 // FRAMERATE)
+                
+                self.appsrc.emit('push-buffer', buf)
+                
+            except Exception as e:
+                self.get_logger().error(f"Frame error: {e}")
 
     def start_async_loop(self):
         self.loop = asyncio.new_event_loop()
