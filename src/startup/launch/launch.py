@@ -21,7 +21,7 @@ def generate_launch_description():
                 }],
                 arguments=['--ros-args', '--log-level', 'WARN']
             )
-    
+
     digdump = Node(
                 package='digdump',
                 executable='action_server',
@@ -53,7 +53,7 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', 'WARN']
             )
-    
+
     cameras = IncludeLaunchDescription(
       PythonLaunchDescriptionSource([os.path.join(
          get_package_share_directory('startup'), 'launch'),
@@ -61,7 +61,7 @@ def generate_launch_description():
       )
 
     return LaunchDescription([
-        teleop, 
+        teleop,
         digdump,
         network,
         serial,
