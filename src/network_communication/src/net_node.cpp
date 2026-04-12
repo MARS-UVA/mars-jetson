@@ -60,7 +60,7 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
 size_t buffer_size = 72;
-unsigned char* buffer = new unsigned char[buffer_size];
+unsigned char* buffer = new unsigned char[buffer_size]();
 
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
