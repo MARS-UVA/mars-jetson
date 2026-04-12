@@ -141,6 +141,7 @@ class SerialNode(Node):
     def readFeedback(self):
         if TESTING: return
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
+        self.get_logger().info(f"Received header: {header}, feedback: {feedback}")
         if header:
             if header == 0x00:
                 self.get_logger().info("no data")

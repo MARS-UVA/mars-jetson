@@ -18,6 +18,8 @@ colcon build --symlink-install --packages-ignore zed_components zed_wrapper zed_
 # Source the setup file
 source install/setup.bash
 
+export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+
 # Launch everything
 # run realsense executable in parallel
 #ros2 launch startup launch.py

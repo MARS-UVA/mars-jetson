@@ -9,7 +9,7 @@ START = 255 # start byte preceding every message
 class SerialHandler:
 	def __init__(self):
 		try:
-			self.SER = serial.Serial("/dev/ttyUSB0", 115200, timeout = None)
+			self.SER = serial.Serial("/dev/ttyUSB0", 2000000, timeout = None)
 		except serial.SerialException as e:
 			print(f"Error: Could not open or close serial port: {e}")
 
@@ -41,12 +41,11 @@ class SerialHandler:
 		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
 		self.serial_buffer.extend(self.SER.read(self.SER.in_waiting))
 
-		while (len(self.serial_buffer) >= 4 and
-		 not (self.serial_buffer[0] == 0xFF and self.serial_buffer[1] == 0x00 and self.serial_buffer[2] == 0x00)): # check first three bytes
+		while (len(self.serial_buffer) >= 4 and not (self.serial_buffer[0] == 0xFF and self.serial_buffer[2] == 0x00 and self.serial_buffer[3] == 0x00)): # check first three bytes
 			self.serial_buffer.popleft()
 		
 		if (len(self.serial_buffer) >= 4):
-			header = self.serial_buffer[3]
+			header = self.serial_buffer[1]
 		else:
 			header = 0
 	
