@@ -118,7 +118,7 @@ class PurePursuitNode(Node):
     #################################################### CURRENT POSE ####################################################
     #add pose with path_builder if enough time has passed
     def position_callback(self, msg: PoseStamped):
-        current_time = Time.from_msg(msg.header.stamp.sec)
+        current_time = msg.header.stamp.sec
         #if currently recording path and it has been long enough since last position recording
         if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose):                
             self.last_received_time = current_time
