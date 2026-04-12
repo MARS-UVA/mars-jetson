@@ -1,5 +1,7 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import Image
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from cv_bridge import CvBridge
@@ -40,7 +42,11 @@ class WebRTCNode(Node):
         self.bitrate = self.get_parameter('bitrate').value
         self.stream_height = self.get_parameter('stream_height').value
         self.stream_width = self.get_parameter('stream_width').value
-        self.feed_active = self.get_paramter('feed_active').value
+        self.feed_active = self.get_parameter('feed_active').value
+
+        # Parameter Callback
+        self.add_on_set_parameters_callback(self.parameter_callback)
+
         
         # Initialize GStreamer
         Gst.init(None)
@@ -80,18 +86,32 @@ class WebRTCNode(Node):
         self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
         
         # Camera Subscriber
-        qos_profile = QoSProfile(
+        self.qos_profile = qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
-        self.create_subscription(Image, self.video_topic, self.image_callback, qos_profile)
+        self.image_subscription = self.create_subscription(Image, self.video_topic, self.image_callback, self.qos_profile)
         
         # Start Signaling Thread
         self.thread = threading.Thread(target=self.start_async_loop, daemon=True)
         self.thread.start()
         
         self.get_logger().info(f"WebRTC Node listening on {self.video_topic}...")
+
+    def parameter_callback(self, params):
+        for param in params:
+            if param.name == 'video_topic':
+                self.video_topic = param.value
+                self.get_logger().info(f'Updated video topic: {self.video_topic}')
+                self.destroy_subscription(self.image_subscription)
+                self.image_subscription = self.create_subscription(
+                    Image, self.video_topic, self.image_callback, self.qos_profile)
+            elif param.name == 'feed_active':
+                self.feed_active = param.value
+            else:
+                self.get_logger().warning(f'Tried to update {param.name}, but that does not update')
+        return SetParametersResult(successful=True)
 
     def image_callback(self, msg):
         if self.appsrc is None:
