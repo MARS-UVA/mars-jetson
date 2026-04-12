@@ -123,7 +123,7 @@ void send_goal(int action_type) {
   auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
   
   // Update this callback to store the handle
-  send_goal_options.goal_response_callback = [this](const DigDumpGoalHandle::SharedPtr & handle) {
+  send_goal_options.goal_response_callback = [this](const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & handle) {
     if (!handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {
