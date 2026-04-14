@@ -66,7 +66,7 @@ class WebRTCNode(Node):
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
             caps=video/x-raw,format=GRAY8,width={self.stream_width},height={self.stream_height},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue max-size-buffers=1 leaky=downstream ! 
-            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
+            vp8enc name=encoder deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
             rtpvp8pay ! 
             application/x-rtp,media=video,encoding-name=VP8,payload=96 ! 
             webrtcbin name=sendrecv bundle-policy=max-bundle stun-server={STUN_SERVER}
@@ -109,6 +109,18 @@ class WebRTCNode(Node):
                     Image, self.video_topic, self.image_callback, self.qos_profile)
             elif param.name == 'feed_active':
                 self.feed_active = param.value
+                if self.feed_active:
+                    self.pipe.set_state(Gst.State.PLAYING)
+                else:
+                    self.pipe.set_state(Gst.State.PAUSED)
+            elif param.name == 'bitrate':
+                self.bitrate = param.value
+                encoder = self.pipe.get_by_name('encoder')
+                if encoder:
+                    encoder.set_property('target-bitrate', self.bitrate)
+                    self.get_logger().info(f'Updated bitrate: {self.bitrate}')
+                else:
+                    self.get_logger().error('Encoder not found!')
             else:
                 self.get_logger().warning(f'Tried to update {param.name}, but that does not update')
         return SetParametersResult(successful=True)
