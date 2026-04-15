@@ -59,7 +59,7 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
-size_t buffer_size = 76;
+size_t buffer_size = 80;
 unsigned char* buffer = new unsigned char[buffer_size]();
 
 
@@ -249,6 +249,7 @@ void action_timer_callback() {
   }
   if (info.pursuit_flag) {
     // Handle pursuit command here
+
 
     info.pursuit_flag = false;
   }
