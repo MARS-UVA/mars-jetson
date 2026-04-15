@@ -59,7 +59,7 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
-size_t buffer_size = 72;
+size_t buffer_size = 73;
 unsigned char* buffer = new unsigned char[buffer_size]();
 
 
@@ -200,7 +200,7 @@ private:
   }
 
   void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
-    // TODO: send to UI
+     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state->data, 1); 
   }
 
   void serial_timer_callback()
