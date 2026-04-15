@@ -158,6 +158,8 @@ int create_server(ThreadInfo *info)
         }
 
         char *payloadStart = buffer + HEADER_SIZE;
+
+        // p for packet content (gamepad state)
         if (*buffer == 'p') {
             //printf("after crc\n");
         
@@ -171,10 +173,18 @@ int create_server(ThreadInfo *info)
             //printf("after seting data");
             info->controller_flag = true;
         }
+
+        // a for auto
         else if (*buffer == 'a') {
             info->robot_action = *payloadStart - '0'; // Convert char digit to int
             info->auto_flag = true;
             printf("Received auto command: %d\n", info->robot_action);
+        }
+
+        // b for breadcrumbing
+        else if (*buffer == 'b') {
+            info->pursuit_flag = true;
+            printf("Received pursuit command\n");
         }
 	    
         
