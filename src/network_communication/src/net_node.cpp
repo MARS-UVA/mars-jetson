@@ -333,11 +333,9 @@ void action_timer_callback() {
         case DIG_AUTO:
 
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
-          send_goal(DIG_AUTO);
           break;
         case DUMP_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
-          send_goal(DUMP_AUTO);
           break;
         case ESTOP:
           std_msgs::msg::UInt8 msg;
