@@ -202,7 +202,8 @@ private:
   }
 
   void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
-     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state->data, 4); 
+    current_action_state = state->data;
+     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &current_action_state, 4); 
   }
 
   void serial_timer_callback()
