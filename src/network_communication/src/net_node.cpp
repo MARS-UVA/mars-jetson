@@ -126,6 +126,7 @@ void send_goal(int action_type) {
   send_goal_options.goal_response_callback = [this](const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & handle) {
     if (!handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+      current_action_state = 0; // Reset action state if goal is rejected
     } else {
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server");
       this->goal_handle = handle; // Store the handle for later cancellation
@@ -147,6 +148,7 @@ void cancel_goal() {
   auto cancel_callback = [this](auto response) {
     RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
     this->goal_handle = nullptr; 
+    current_action_state = 0; // Reset action state if goal is canceled
   };
 
   this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
