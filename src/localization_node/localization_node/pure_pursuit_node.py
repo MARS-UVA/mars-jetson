@@ -33,6 +33,10 @@ class PurePursuitNode(Node):
         self.hertz = 30
         self.look_ahead_distance = 1 #meters
         self.velocity = 180
+        self.stop_motor_pwm = 127
+        # Max differential to apply for turning (motor units, 0..255).
+        # Keeping this modest avoids saturating to max speed during turns.
+        self.max_turn_delta = 60
         # When on the last segment (last_found_index targets the final waypoint), stop inside this radius of path[-1].
         self.goal_arrival_distance_m = 0.35
 
@@ -108,11 +112,21 @@ class PurePursuitNode(Node):
         if len(self.path_to_follow) < 2:
             return
 
-        goalPoint, lastFoundIndex, turnVel = self.pure_pursuit_step(self.current_position, self.current_heading, self.look_ahead_distance, self.last_found_index)
-        # Prevent extreme turn commands from breaking motor message constraints.
-        turnVel = max(-self.velocity, min(self.velocity, turnVel))
-        left_wheel_speeds = self.velocity - turnVel
-        right_wheel_speeds = self.velocity + turnVel
+        goalPoint, lastFoundIndex, turnErrorDeg = self.pure_pursuit_step(
+            self.current_position,
+            self.current_heading,
+            self.look_ahead_distance,
+            self.last_found_index,
+        )
+        self.last_found_index = lastFoundIndex
+
+        # Map angular error (deg) -> motor differential (uint8 units).
+        # Clamp error so we don't saturate the motors for large transient errors.
+        turnErrorDeg = max(-90.0, min(90.0, float(turnErrorDeg)))
+        turn_delta = int((turnErrorDeg / 90.0) * self.max_turn_delta)
+
+        left_wheel_speeds = int(self.velocity) - turn_delta
+        right_wheel_speeds = int(self.velocity) + turn_delta
 
         # teleop_msgs/SetMotor.velocity is uint8 (0..255)
         left_wheel_speeds = max(0, min(255, int(left_wheel_speeds)))
@@ -179,6 +193,18 @@ class PurePursuitNode(Node):
         if self.timer is not None:
             self.timer.cancel()
             self.timer = None
+
+        # Send one-shot neutral command so restarting doesn't "reuse" old outputs.
+        stop_msg = MotorChanges(
+            changes=[
+                SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+            ]
+        )
+        self.motor_controller_publisher.publish(stop_msg)
+
         msg = UInt8()
         msg.data = 0
         self.state_publisher.publish(msg)
@@ -317,10 +343,10 @@ class PurePursuitNode(Node):
         if turnError > 180 or turnError < -180 :
             turnError = -1 * self.sgn(turnError) * (360 - abs(turnError))
         
-        # apply proportional controller
+        # apply proportional controller (deg -> arbitrary turn signal)
         turnVel = Kp*turnError
         
-        return goalPoint, lastFoundIndex, turnVel
+        return goalPoint, lastFoundIndex, turnError
     
 def main():
     rclpy.init()
