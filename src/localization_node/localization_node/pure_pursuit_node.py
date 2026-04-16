@@ -131,10 +131,11 @@ class PurePursuitNode(Node):
             self.path_builder((x,y))
         self.current_position = (msg.pose.position.x, msg.pose.position.y)
         q = msg.pose.orientation
-        self.current_heading = math.atan2(
+        # Use degrees to match pure_pursuit_step() math below.
+        self.current_heading = math.degrees(math.atan2(
             2*(q.w*q.z + q.x*q.y),
             1 - 2*(q.y*q.y + q.z*q.z)
-        )
+        ))
         return
         
 
