@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import math
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 from rclpy.time import Time
 from rclpy.duration import Duration
 from teleop_msgs.msg import SetMotor, MotorChanges
@@ -42,6 +43,9 @@ class PurePursuitNode(Node):
 
         ## the path, it will be delivered/
         self.path_to_follow = []
+        self.path_pub = self.create_publisher(Path, "/pure_pursuit/path", 10)
+        self.path_msg = Path()
+        self.path_frame = "odom"
         self.last_received_time = None
         self.time_between_pose = 0.25
         self.current_position = None
@@ -118,6 +122,8 @@ class PurePursuitNode(Node):
     #################################################### CURRENT POSE ####################################################
     #add pose with path_builder if enough time has passed
     def position_callback(self, msg: PoseStamped):
+        if msg.header.frame_id:
+            self.path_frame = msg.header.frame_id
         current_time = msg.header.stamp.sec
         #if currently recording path and it has been long enough since last position recording
         if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose):                
@@ -182,6 +188,16 @@ class PurePursuitNode(Node):
     ## this should be updated later
     def path_builder(self, point: Point) -> None:
         self.path_to_follow.append(point)
+        ps = PoseStamped()
+        ps.header.frame_id = self.path_frame
+        ps.pose.position.x = float(point[0])
+        ps.pose.position.y = float(point[1])
+        ps.pose.orientation.w = 1.0
+
+        self.path_msg.header.stamp = self.get_clock().now().to_msg()
+        self.path_msg.header.frame_id = self.path_frame
+        self.path_msg.poses.append(ps)
+        self.path_pub.publish(self.path_msg)
         return
 
 
