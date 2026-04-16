@@ -1,8 +1,6 @@
 import rclpy
 from typing import Tuple
 from rclpy.node import Node
-import numpy as np
-import matplotlib.pyplot as plt
 import math
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -207,8 +205,7 @@ class PurePursuitNode(Node):
 
     @staticmethod
     def pt_to_pt_distance(pt1, pt2):
-        distance = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
-        return distance
+        return math.hypot(pt2[0] - pt1[0], pt2[1] - pt1[1])
 
     @staticmethod
     def sgn(num):
@@ -252,10 +249,11 @@ class PurePursuitNode(Node):
 
             if discriminant >= 0:
                 ## line intersection code
-                intersection_x1 = (D * dy + self.sgn(dy) * dx * np.sqrt(discriminant)) / dr**2
-                intersection_x2 = (D * dy - self.sgn(dy) * dx * np.sqrt(discriminant)) / dr**2
-                intersection_y1 = (- D * dx + abs(dy) * np.sqrt(discriminant)) / dr**2
-                intersection_y2 = (-D * dx - abs(dy) * np.sqrt(discriminant)) / dr **2
+                sqrt_disc = math.sqrt(discriminant)
+                intersection_x1 = (D * dy + self.sgn(dy) * dx * sqrt_disc) / dr**2
+                intersection_x2 = (D * dy - self.sgn(dy) * dx * sqrt_disc) / dr**2
+                intersection_y1 = (- D * dx + abs(dy) * sqrt_disc) / dr**2
+                intersection_y2 = (-D * dx - abs(dy) * sqrt_disc) / dr **2
 
                 intersection_1 = [intersection_x1 + currentX, intersection_y1 + currentY]
                 intersection_2 = [intersection_x2 + currentX, intersection_y2 + currentY]
