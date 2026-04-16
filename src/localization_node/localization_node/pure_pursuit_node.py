@@ -103,14 +103,25 @@ class PurePursuitNode(Node):
 
     #main loop to run pure pursuit
     def timer_callback(self):
+        if self.current_position is None or self.current_heading is None:
+            return
+        if len(self.path_to_follow) < 2:
+            return
+
         goalPoint, lastFoundIndex, turnVel = self.pure_pursuit_step(self.current_position, self.current_heading, self.look_ahead_distance, self.last_found_index)
+        # Prevent extreme turn commands from breaking motor message constraints.
+        turnVel = max(-self.velocity, min(self.velocity, turnVel))
         left_wheel_speeds = self.velocity - turnVel
         right_wheel_speeds = self.velocity + turnVel
+
+        # teleop_msgs/SetMotor.velocity is uint8 (0..255)
+        left_wheel_speeds = max(0, min(255, int(left_wheel_speeds)))
+        right_wheel_speeds = max(0, min(255, int(right_wheel_speeds)))
         motors_msg = MotorChanges(
-            changes = [SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=int(left_wheel_speeds)),
-                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=int(left_wheel_speeds)),
-                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=int(right_wheel_speeds)),
-                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=int(right_wheel_speeds))]
+            changes = [SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)]
         )
         self.motor_controller_publisher.publish(motors_msg)
         if self.pt_to_pt_distance(self.current_position, self.path_to_follow[-1]) < self.goal_arrival_distance_m:
