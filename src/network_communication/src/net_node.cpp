@@ -225,12 +225,20 @@ void action_timer_callback() {
         current_action_state = 0;
         break;
       case DIG_AUTO:
-        current_action_state = DIG_AUTO;
-        send_goal(DIG_AUTO);
+        if (current_action_state != DIG_AUTO) {
+          current_action_state = 0;
+        } else {
+          current_action_state = DIG_AUTO;
+          send_goal(DIG_AUTO);
+        }
         break;
       case DUMP_AUTO:
-        current_action_state = DUMP_AUTO;
-        send_goal(DUMP_AUTO);
+        if (current_action_state != DUMP_AUTO) {
+          current_action_state = 0;
+        } else {
+          current_action_state = DUMP_AUTO;
+          send_goal(DUMP_AUTO);
+        }
         break;
       case ESTOP:
         current_action_state = ESTOP;
