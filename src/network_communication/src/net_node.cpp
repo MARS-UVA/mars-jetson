@@ -133,7 +133,6 @@ public:
     RCLCPP_ERROR(this->get_logger(), "Action server not available");
     return;
   }
-  }
 
   auto goal_msg = DigDump::Goal();
   goal_msg.index = action_type;
@@ -152,25 +151,25 @@ public:
   };
 
   this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
-}
-
-void cancel_goal() {
-  if (!this->goal_handle) {
-    RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
-    return;
   }
 
-  RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
-  
-  // Use a lambda to nullify the handle once the server acknowledges cancellation
-  auto cancel_callback = [this](auto response) {
-    RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
-    this->goal_handle = nullptr; 
-    current_action_state = 0; // Reset action state if goal is canceled
-  };
+  void cancel_goal() {
+    if (!this->goal_handle) {
+      RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
+      return;
+    }
 
-  this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
-}
+    RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
+  
+    // Use a lambda to nullify the handle once the server acknowledges cancellation
+    auto cancel_callback = [this](auto response) {
+      RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
+      this->goal_handle = nullptr; 
+      current_action_state = 0; // Reset action state if goal is canceled
+    };
+
+    this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
+  }
 
 private:
 
@@ -229,45 +228,45 @@ private:
       client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
-void action_timer_callback() {
-  if (info.auto_flag) {
-    uint8_t robot_action = info.robot_action;
-    
-    // Always cancel the previous goal if it exists before starting a new one
-    if (this->goal_handle) {
-      cancel_goal();
+  void action_timer_callback() {
+    if (info.auto_flag) {
+      uint8_t robot_action = info.robot_action;
+      
+      // Always cancel the previous goal if it exists before starting a new one
+      if (this->goal_handle) {
+        cancel_goal();
+      }
+
+      switch (robot_action) {
+        case 0:
+          current_action_state = 0;
+          break;
+        case DIG_AUTO:
+          if (current_action_state != DIG_AUTO) {
+            current_action_state = 0;
+          } else {
+            current_action_state = DIG_AUTO;
+            send_goal(DIG_AUTO);
+          }
+          break;
+        case DUMP_AUTO:
+          if (current_action_state != DUMP_AUTO) {
+            current_action_state = 0;
+          } else {
+            current_action_state = DUMP_AUTO;
+            send_goal(DUMP_AUTO);
+          }
+          break;
+        case ESTOP:
+          current_action_state = ESTOP;
+          // The publisher logic remains in controller_timer_callback
+          break;
+      }
+      info.auto_flag = false;
     }
 
-    switch (robot_action) {
-      case 0:
-        current_action_state = 0;
-        break;
-      case DIG_AUTO:
-        if (current_action_state != DIG_AUTO) {
-          current_action_state = 0;
-        } else {
-          current_action_state = DIG_AUTO;
-          send_goal(DIG_AUTO);
-        }
-        break;
-      case DUMP_AUTO:
-        if (current_action_state != DUMP_AUTO) {
-          current_action_state = 0;
-        } else {
-          current_action_state = DUMP_AUTO;
-          send_goal(DUMP_AUTO);
-        }
-        break;
-      case ESTOP:
-        current_action_state = ESTOP;
-        // The publisher logic remains in controller_timer_callback
-        break;
-    }
-    info.auto_flag = false;
-  }
 
-
-  if (info.pursuit_flag) {
+    if (info.pursuit_flag) {
     uint8_t pursuit_action = info.pursuit_action;
     
     /* 4 CASES:
@@ -278,71 +277,72 @@ void action_timer_callback() {
       4: STOP_RECORDING_PURE_PURSUIT: sends trigger to stop the recording of pure pursuit
       5: STOP_RUNNING_PURE_PURSUIT: sends trigger to stop running pure pursuit
       */
-    switch (pursuit_action) {
-      case 0:
-        current_pursuit_action = 0;
-        break;
-      case START_RECORDING_PURE_PURSUIT:
-        if (current_action_state != START_RUNNING_PURE_PURSUIT) {
-          current_action_state = 0;
-        } else {
-          current_action_state = START_RUNNING_PURE_PURSUIT;
-          if (start_purepursuit_client_->service_is_ready()) {
-          auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-          start_purepursuit_client_->async_send_request(
-            req,
-            [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-              auto resp = future.get();
-              RCLCPP_INFO(
-                this->get_logger(), "start_purepursuit: success=%s",
-                resp->success ? "true" : "false");
+      switch (pursuit_action) {
+        case 0:
+          current_pursuit_action = 0;
+          break;
+        case START_RECORDING_PURE_PURSUIT:
+          if (current_action_state != START_RUNNING_PURE_PURSUIT) {
+            current_action_state = 0;
+          } else {
+            current_action_state = START_RUNNING_PURE_PURSUIT;
+            if (start_purepursuit_client_->service_is_ready()) {
+            auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+            start_purepursuit_client_->async_send_request(
+              req,
+              [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+                auto resp = future.get();
+                RCLCPP_INFO(
+                  this->get_logger(), "start_purepursuit: success=%s",
+                  resp->success ? "true" : "false");
+              }
+            );
+            } else {
+              RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 2000,
+                  "start_purepursuit service not ready yet");
             }
-          );
-        } else {
-          RCLCPP_WARN_THROTTLE(
-            this->get_logger(), *this->get_clock(), 2000,
-            "start_purepursuit service not ready yet");
-        }
-        break;
-      case START_RUNNING_PURE_PURSUIT:
-        if (current_action_state != START_RUNNING_PURE_PURSUIT) {
-          current_action_state = 0;
-        } else {
-          current_action_state = START_RUNNING_PURE_PURSUIT;
-          if (start_purepursuit_client_->service_is_ready()) {
-          auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-          start_purepursuit_client_->async_send_request(
-            req,
-            [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-              auto resp = future.get();
-              RCLCPP_INFO(
-                this->get_logger(), "start_purepursuit: success=%s",
-                resp->success ? "true" : "false");
+          break;
+        case START_RUNNING_PURE_PURSUIT:
+          if (current_action_state != START_RUNNING_PURE_PURSUIT) {
+            current_action_state = 0;
+          } else {
+            current_action_state = START_RUNNING_PURE_PURSUIT;
+            if (start_purepursuit_client_->service_is_ready()) {
+              auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+              start_purepursuit_client_->async_send_request(
+                req,
+                [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+                  auto resp = future.get();
+                  RCLCPP_INFO(
+                    this->get_logger(), "start_purepursuit: success=%s",
+                    resp->success ? "true" : "false");
+                }
+              );
+            } else {
+              RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 2000,
+                "start_purepursuit service not ready yet");
             }
-          );
-        } else {
-          RCLCPP_WARN_THROTTLE(
-            this->get_logger(), *this->get_clock(), 2000,
-            "start_purepursuit service not ready yet");
-        }
-        break;
-      case ESTOP:
-        current_action_state = ESTOP;
-        // The publisher logic remains in controller_timer_callback
-        break;
-      case STOP_RECORDING_PURE_PURSUIT:
-        //
-        break;
-      case STOP_RUNNING_PURE_PURSUIT:
-        
-        break;
-    }
+          }
+          break;
+        case ESTOP:
+          current_action_state = ESTOP;
+          // The publisher logic remains in controller_timer_callback
+          break;
+        case STOP_RECORDING_PURE_PURSUIT:
+          // TO BE IMPLEMENTED
+          break;
+        case STOP_RUNNING_PURE_PURSUIT:
+          //TO BE IMPLEMENTED
+          break;
+      }
 
     /// Avoid spamming start_purepursuit on every controller timer tick while in TRAVERSAL_AUTO.
     info.pursuit_flag = false;
-  }
-  }
-}
+    }
+    }
+    }
 
   void controller_timer_callback()
   {
