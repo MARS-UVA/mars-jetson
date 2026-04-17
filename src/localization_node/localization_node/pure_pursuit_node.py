@@ -1,11 +1,10 @@
 import rclpy
 from typing import Tuple
 from rclpy.node import Node
-import numpy as np
-import matplotlib.pyplot as plt
 import math
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 from rclpy.time import Time
 from rclpy.duration import Duration
 from teleop_msgs.msg import SetMotor, MotorChanges
@@ -34,6 +33,10 @@ class PurePursuitNode(Node):
         self.hertz = 30
         self.look_ahead_distance = 1 #meters
         self.velocity = 180
+        self.stop_motor_pwm = 127
+        # Max differential to apply for turning (motor units, 0..255).
+        # Keeping this modest avoids saturating to max speed during turns.
+        self.max_turn_delta = 60
         # When on the last segment (last_found_index targets the final waypoint), stop inside this radius of path[-1].
         self.goal_arrival_distance_m = 0.35
 
@@ -42,6 +45,9 @@ class PurePursuitNode(Node):
 
         ## the path, it will be delivered/
         self.path_to_follow = []
+        self.path_pub = self.create_publisher(Path, "/pure_pursuit/path", 10)
+        self.path_msg = Path()
+        self.path_frame = "odom"
         self.last_received_time = None
         self.time_between_pose = 0.25
         self.current_position = None
@@ -101,14 +107,35 @@ class PurePursuitNode(Node):
 
     #main loop to run pure pursuit
     def timer_callback(self):
-        goalPoint, lastFoundIndex, turnVel = self.pure_pursuit_step(self.current_position, self.current_heading, self.look_ahead_distance, self.last_found_index)
-        left_wheel_speeds = self.velocity - turnVel
-        right_wheel_speeds = self.velocity + turnVel
+        if self.current_position is None or self.current_heading is None:
+            return
+        if len(self.path_to_follow) < 2:
+            return
+
+        goalPoint, lastFoundIndex, turnErrorDeg = self.pure_pursuit_step(
+            self.current_position,
+            self.current_heading,
+            self.look_ahead_distance,
+            self.last_found_index,
+        )
+        self.last_found_index = lastFoundIndex
+
+        # Map angular error (deg) -> motor differential (uint8 units).
+        # Clamp error so we don't saturate the motors for large transient errors.
+        turnErrorDeg = max(-90.0, min(90.0, float(turnErrorDeg)))
+        turn_delta = int((turnErrorDeg / 90.0) * self.max_turn_delta)
+
+        left_wheel_speeds = int(self.velocity) - turn_delta
+        right_wheel_speeds = int(self.velocity) + turn_delta
+
+        # teleop_msgs/SetMotor.velocity is uint8 (0..255)
+        left_wheel_speeds = max(0, min(255, int(left_wheel_speeds)))
+        right_wheel_speeds = max(0, min(255, int(right_wheel_speeds)))
         motors_msg = MotorChanges(
-            changes = [SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=int(left_wheel_speeds)),
-                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=int(left_wheel_speeds)),
-                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=int(right_wheel_speeds)),
-                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=int(right_wheel_speeds))]
+            changes = [SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=left_wheel_speeds),
+                                 SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds),
+                                 SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=right_wheel_speeds)]
         )
         self.motor_controller_publisher.publish(motors_msg)
         if self.pt_to_pt_distance(self.current_position, self.path_to_follow[-1]) < self.goal_arrival_distance_m:
@@ -118,6 +145,8 @@ class PurePursuitNode(Node):
     #################################################### CURRENT POSE ####################################################
     #add pose with path_builder if enough time has passed
     def position_callback(self, msg: PoseStamped):
+        if msg.header.frame_id:
+            self.path_frame = msg.header.frame_id
         current_time = msg.header.stamp.sec
         #if currently recording path and it has been long enough since last position recording
         if self.recording_path and (self.last_received_time is None or current_time-self.last_received_time > self.time_between_pose):                
@@ -127,10 +156,11 @@ class PurePursuitNode(Node):
             self.path_builder((x,y))
         self.current_position = (msg.pose.position.x, msg.pose.position.y)
         q = msg.pose.orientation
-        self.current_heading = math.atan2(
+        # Use degrees to match pure_pursuit_step() math below.
+        self.current_heading = math.degrees(math.atan2(
             2*(q.w*q.z + q.x*q.y),
             1 - 2*(q.y*q.y + q.z*q.z)
-        )
+        ))
         return
         
 
@@ -163,6 +193,18 @@ class PurePursuitNode(Node):
         if self.timer is not None:
             self.timer.cancel()
             self.timer = None
+
+        # Send one-shot neutral command so restarting doesn't "reuse" old outputs.
+        stop_msg = MotorChanges(
+            changes=[
+                SetMotor(index=SetMotor.FRONT_LEFT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.BACK_LEFT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.FRONT_RIGHT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+                SetMotor(index=SetMotor.BACK_RIGHT_DRIVE_MOTOR, velocity=self.stop_motor_pwm),
+            ]
+        )
+        self.motor_controller_publisher.publish(stop_msg)
+
         msg = UInt8()
         msg.data = 0
         self.state_publisher.publish(msg)
@@ -182,6 +224,16 @@ class PurePursuitNode(Node):
     ## this should be updated later
     def path_builder(self, point: Point) -> None:
         self.path_to_follow.append(point)
+        ps = PoseStamped()
+        ps.header.frame_id = self.path_frame
+        ps.pose.position.x = float(point[0])
+        ps.pose.position.y = float(point[1])
+        ps.pose.orientation.w = 1.0
+
+        self.path_msg.header.stamp = self.get_clock().now().to_msg()
+        self.path_msg.header.frame_id = self.path_frame
+        self.path_msg.poses.append(ps)
+        self.path_pub.publish(self.path_msg)
         return
 
 
@@ -191,8 +243,7 @@ class PurePursuitNode(Node):
 
     @staticmethod
     def pt_to_pt_distance(pt1, pt2):
-        distance = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
-        return distance
+        return math.hypot(pt2[0] - pt1[0], pt2[1] - pt1[1])
 
     @staticmethod
     def sgn(num):
@@ -236,10 +287,11 @@ class PurePursuitNode(Node):
 
             if discriminant >= 0:
                 ## line intersection code
-                intersection_x1 = (D * dy + self.sgn(dy) * dx * np.sqrt(discriminant)) / dr**2
-                intersection_x2 = (D * dy - self.sgn(dy) * dx * np.sqrt(discriminant)) / dr**2
-                intersection_y1 = (- D * dx + abs(dy) * np.sqrt(discriminant)) / dr**2
-                intersection_y2 = (-D * dx - abs(dy) * np.sqrt(discriminant)) / dr **2
+                sqrt_disc = math.sqrt(discriminant)
+                intersection_x1 = (D * dy + self.sgn(dy) * dx * sqrt_disc) / dr**2
+                intersection_x2 = (D * dy - self.sgn(dy) * dx * sqrt_disc) / dr**2
+                intersection_y1 = (- D * dx + abs(dy) * sqrt_disc) / dr**2
+                intersection_y2 = (-D * dx - abs(dy) * sqrt_disc) / dr **2
 
                 intersection_1 = [intersection_x1 + currentX, intersection_y1 + currentY]
                 intersection_2 = [intersection_x2 + currentX, intersection_y2 + currentY]
@@ -291,10 +343,10 @@ class PurePursuitNode(Node):
         if turnError > 180 or turnError < -180 :
             turnError = -1 * self.sgn(turnError) * (360 - abs(turnError))
         
-        # apply proportional controller
+        # apply proportional controller (deg -> arbitrary turn signal)
         turnVel = Kp*turnError
         
-        return goalPoint, lastFoundIndex, turnVel
+        return goalPoint, lastFoundIndex, turnError
     
 def main():
     rclpy.init()
