@@ -213,6 +213,8 @@ private:
 
 void action_timer_callback() {
   if (info.auto_flag) {
+
+    RCLCPP_WARN(this->get_logger(), "Processing autonomous action command: %d", info.robot_action);
     uint8_t robot_action = info.robot_action;
     
     // Always cancel the previous goal if it exists before starting a new one
