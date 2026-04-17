@@ -1,20 +1,11 @@
 #pragma once
-#include <string.h>
-#include <iostream>
-#include <unistd.h>
-#include <cstring>
-#include <stdio.h>
-#include <vector>
-#include <sys/types.h>
+
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
-#define IMAGE_PORT 2000
-#define CURRENT_FEEDBACK_PORT 2001
-#define CHUNK_SIZE 1400
-
+#define HEADER_SIZE 10
 struct __attribute__((packed)) udpHeader {
     uint8_t reserved;
     uint8_t packetType;

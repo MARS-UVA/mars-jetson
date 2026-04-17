@@ -1,34 +1,9 @@
+#include "server.hpp"
+
+#include "rclcpp/rclcpp.hpp"
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <string>
-
-#include "main.hpp"
-#include "server.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
-#include <teleop_msgs/msg/stick_position.hpp>
-#include "teleop_msgs/msg/human_input_state.hpp"
-#include <autonomy_msgs/action/autonomous_actions.hpp>
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <thread>
-#include <cstdio>
-#include <stdexcept>
-#include <csignal>
-#include <atomic>
-#include <mutex>
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "std_msgs/msg/u_int8.hpp"
-#include <iostream>
-#include <cerrno>
-
-// PORT FOR RECEIVING
-#define PORT 8080
 
 using namespace std::chrono_literals;
 

@@ -1,24 +1,9 @@
+#include "client.hpp"
+
+#include "rclcpp/rclcpp.hpp"
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <string>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <cstring>
-
-#include "rclcpp/rclcpp.hpp"
-#include "main.hpp"
-#include "client.hpp"
-#include <serial_msgs/msg/current_bus_voltage.hpp>
-#include <serial_msgs/msg/position.hpp>
-#include <serial_msgs/msg/temperature.hpp>
-#include <std_msgs/msg/u_int8.hpp>
-
-#define FEEDBACK_PORT 2001
-#define HEADER_SIZE 10
-#define FEEDBACK_LENGTH 72
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -32,7 +17,7 @@ class udpClient : public rclcpp::Node
     {
       create_connection_headers(FEEDBACK_PORT);
 
-      buffer = new unsigned char[FEEDBACK_LENGTH]();
+      buffer = new unsigned char[FEEDBACK_PACKET_LENGTH]();
 
       timer_ = this->create_wall_timer(10ms, std::bind(&udpClient::timer_callback, this));
 
@@ -130,7 +115,7 @@ class udpClient : public rclcpp::Node
     }
 
     void timer_callback() {
-      client_send(buffer, FEEDBACK_LENGTH);
+      client_send(buffer, FEEDBACK_PACKET_LENGTH);
     }
 
     ConnectionHeaders connection_headers;
