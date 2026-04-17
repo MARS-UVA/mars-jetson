@@ -1,29 +1,26 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+enum FeedbackByteIndices {
+    FRONT_LEFT_WHEEL_CURRENT = 0,
+    BACK_LEFT_WHEEL_CURRENT = 4,
+    FRONT_RIGHT_WHEEL_CURRENT = 8,
+    BACK_RIGHT_WHEEL_CURRENT = 12,
+    FRONT_DRUM_CURRENT = 16,
+    BACK_DRUM_CURRENT = 20,
+    FRONT_ACTUATOR_CURRENT = 24,
+    BACK_ACTUATOR_CURRENT = 28,
+    MAIN_BATTERY_VOLTAGE = 32,
+    AUX_BATTERY_VOLTAGE = 36,
+    FRONT_LEFT_WHEEL_TEMPERATURE = 40,
+    BACK_LEFT_WHEEL_TEMPERATURE = 44,
+    FRONT_RIGHT_WHEEL_TEMPERATURE = 48,
+    BACK_RIGHT_WHEEL_TEMPERATURE = 52,
+    FRONT_DRUM_TEMPERATURE = 56,
+    BACK_DRUM_TEMPERATURE = 60,
+    FRONT_ACTUATOR_POSITION = 64,
+    BACK_ACTUATOR_POSITION = 68
+};
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include "main.hpp"
-
-struct connection_headers
+struct ConnectionHeaders
 {
     int client_socket_fd;
     struct sockaddr_in control_station_addr;
-} typedef ConnectionHeaders;
-ConnectionHeaders create_connection_headers(int port);
-
-struct DataHeader
-{
-    uint16_t packetToSend;
-    uint16_t totalPacketsToSend;
-    uint16_t fragmentSize;
-    uint32_t crc;
-} __attribute__((packed));
-#define HEADER_SIZE sizeof(DataHeader)
-typedef struct DataHeader DataHeader;
-
-uint32_t crc32bit(const char *data, size_t data_size);
-void client_send(unsigned char *data, size_t data_size, int port);
-void client_send(cv::Mat &image, int port);
-
-#endif
+};

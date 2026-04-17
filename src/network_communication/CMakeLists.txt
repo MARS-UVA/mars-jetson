@@ -10,12 +10,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(cv_bridge REQUIRED)
-find_package(image_transport REQUIRED)
-find_package(OpenCV REQUIRED)
 find_package(teleop_msgs REQUIRED)
 find_package(serial_msgs REQUIRED)
 find_package(autonomy_msgs REQUIRED)
@@ -25,30 +21,31 @@ find_package(autonomy_msgs REQUIRED)
 # find_package(<dependency> REQUIRED)
 include_directories(include)
 
-add_executable(net_node
-  src/net_node.cpp
+add_executable(udp_server
   src/server.cpp
+)
+add_executable(udp_client
   src/client.cpp
-  src/frame_sender.cpp
 )
 
-target_link_libraries(net_node ${OpenCV_LIBS})
-target_include_directories(net_node PRIVATE ${OpenCV_INCLUDE_DIRS})
-ament_target_dependencies(net_node 
+ament_target_dependencies(udp_server 
   rclcpp 
   rclcpp_action
   std_msgs 
-  sensor_msgs 
-  cv_bridge 
-  image_transport 
-  OpenCV 
   teleop_msgs
-  serial_msgs
   autonomy_msgs
 )
 
+ament_target_dependencies(udp_client 
+  rclcpp 
+  rclcpp_action
+  std_msgs 
+  serial_msgs
+)
+
 install(TARGETS
-  net_node
+  udp_client
+  udp_server
   DESTINATION lib/${PROJECT_NAME})
 
 
