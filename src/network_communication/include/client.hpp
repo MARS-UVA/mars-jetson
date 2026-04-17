@@ -1,3 +1,17 @@
+#pragma once
+
+#include "main.hpp"
+
+#include <serial_msgs/msg/current_bus_voltage.hpp>
+#include <serial_msgs/msg/position.hpp>
+#include <serial_msgs/msg/temperature.hpp>
+#include <std_msgs/msg/u_int8.hpp>
+
+#include <vector>
+
+#define FEEDBACK_PORT 2001
+#define FEEDBACK_PACKET_LENGTH 72
+
 enum FeedbackByteIndices {
     FRONT_LEFT_WHEEL_CURRENT = 0,
     BACK_LEFT_WHEEL_CURRENT = 4,
