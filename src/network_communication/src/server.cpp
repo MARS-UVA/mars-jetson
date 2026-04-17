@@ -207,6 +207,9 @@ int create_server(ThreadInfo *info)
 
         // b for breadcrumbing
         else if (*buffer == 'b') {
+            // this distinguishes button presses and therefore when to start/stop recording/running
+            info->pursuit_action = *payloadStart - '0'; //converts char digit to int
+
             info->pursuit_flag = true;
             printf("Received pursuit command\n");
         }

@@ -39,7 +39,11 @@
 #define DIG_AUTO 1
 #define DUMP_AUTO 2
 #define ESTOP 3
-#define TRAVERSAL_AUTO 4
+#define START_RECORDING_PURE_PURSUIT 1
+#define START_RUNNING_PURE_PURSUIT 2
+#define STOP_RECORDING_PURE_PURSUIT 4
+#define STOP_RUNNING_PURE_PURSUIT 5
+
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -118,13 +122,17 @@ public:
     );
 
     start_purepursuit_client_ = this->create_client<std_srvs::srv::Trigger>("start_purepursuit");
+    start_recording_purepursuit_client = this->create_client<std_srvs::srv::Trigger>("start_pathbuild")
+    stop_purepursuit_client_ = this->create_client<std_srvs::srv::Trigger>("stop_purepursuit");
+    stop_recording_purepursuit_client = this->create_client<std_srvs::srv::Trigger>("stop_pathbuild")
 
   }
 
-void send_goal(int action_type) {
+  void send_goal(int action_type) {
   if (!this->client_ptr_->wait_for_action_server()) {
     RCLCPP_ERROR(this->get_logger(), "Action server not available");
     return;
+  }
   }
 
   auto goal_msg = DigDump::Goal();
@@ -257,29 +265,82 @@ void action_timer_callback() {
     }
     info.auto_flag = false;
   }
+
+
   if (info.pursuit_flag) {
-    // Handle pursuit command here
-    human_input_msg->drive_mode = human_input_msg->DRIVEMODE_PURE_PURSUIT;
-    if (!pure_pursuit_start_sent_) {
-      if (start_purepursuit_client_->service_is_ready()) {
-        auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-        start_purepursuit_client_->async_send_request(
-          req,
-          [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-            auto resp = future.get();
-            RCLCPP_INFO(
-              this->get_logger(), "start_purepursuit: success=%s",
-              resp->success ? "true" : "false");
-          });
-        pure_pursuit_start_sent_ = true;
-      } else {
-        RCLCPP_WARN_THROTTLE(
-          this->get_logger(), *this->get_clock(), 2000,
-          "start_purepursuit service not ready yet");
-      }
+    uint8_t pursuit_action = info.pursuit_action;
+    
+    /* 4 CASES:
+      0: Return to normal action, just ignore pure pursuit
+      1: START_RECORDING_PURE_PURSUIT: sends trigger to start the recording of pure pursuit
+      2: START_RUNNING_PURE_PURSUIT: sends trigger to start runnign the recording of pure pursuit
+      3: ESTOP: stops everything //to be implemented
+      4: STOP_RECORDING_PURE_PURSUIT: sends trigger to stop the recording of pure pursuit
+      5: STOP_RUNNING_PURE_PURSUIT: sends trigger to stop running pure pursuit
+      */
+    switch (pursuit_action) {
+      case 0:
+        current_pursuit_action = 0;
+        break;
+      case START_RECORDING_PURE_PURSUIT:
+        if (current_action_state != START_RUNNING_PURE_PURSUIT) {
+          current_action_state = 0;
+        } else {
+          current_action_state = START_RUNNING_PURE_PURSUIT;
+          if (start_purepursuit_client_->service_is_ready()) {
+          auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+          start_purepursuit_client_->async_send_request(
+            req,
+            [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+              auto resp = future.get();
+              RCLCPP_INFO(
+                this->get_logger(), "start_purepursuit: success=%s",
+                resp->success ? "true" : "false");
+            }
+          );
+        } else {
+          RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 2000,
+            "start_purepursuit service not ready yet");
+        }
+        break;
+      case START_RUNNING_PURE_PURSUIT:
+        if (current_action_state != START_RUNNING_PURE_PURSUIT) {
+          current_action_state = 0;
+        } else {
+          current_action_state = START_RUNNING_PURE_PURSUIT;
+          if (start_purepursuit_client_->service_is_ready()) {
+          auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+          start_purepursuit_client_->async_send_request(
+            req,
+            [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+              auto resp = future.get();
+              RCLCPP_INFO(
+                this->get_logger(), "start_purepursuit: success=%s",
+                resp->success ? "true" : "false");
+            }
+          );
+        } else {
+          RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 2000,
+            "start_purepursuit service not ready yet");
+        }
+        break;
+      case ESTOP:
+        current_action_state = ESTOP;
+        // The publisher logic remains in controller_timer_callback
+        break;
+      case STOP_RECORDING_PURE_PURSUIT:
+        //
+        break;
+      case STOP_RUNNING_PURE_PURSUIT:
+        
+        break;
     }
 
+    /// Avoid spamming start_purepursuit on every controller timer tick while in TRAVERSAL_AUTO.
     info.pursuit_flag = false;
+  }
   }
 }
 
@@ -413,8 +474,7 @@ void action_timer_callback() {
   rclcpp_action::ClientGoalHandle<autonomy_msgs::action::AutonomousActions>::SharedPtr goal_handle;
 
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr start_purepursuit_client_;
-  /// Avoid spamming start_purepursuit on every controller timer tick while in TRAVERSAL_AUTO.
-  bool pure_pursuit_start_sent_{false};
+  
 };
 
 int main(int argc, char *argv[])

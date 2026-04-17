@@ -11,6 +11,7 @@ struct ThreadInfo {
     bool auto_flag;
     bool pursuit_flag;
     int8_t robot_action;
+    int8_t pursuit_action;
 };
 
 int create_server(ThreadInfo* info);
