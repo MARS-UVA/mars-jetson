@@ -1,6 +1,15 @@
-/*Receives from the control station*/
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <string>
 
-#include "./server.hpp"
+#include "main.hpp"
+#include "server.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
+#include <teleop_msgs/msg/stick_position.hpp>
+#include "teleop_msgs/msg/human_input_state.hpp"
+#include <autonomy_msgs/action/autonomous_actions.hpp>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -8,181 +17,300 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <thread>
-#include "./client.hpp"
 #include <cstdio>
 #include <stdexcept>
 #include <csignal>
+#include <atomic>
+#include <mutex>
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "std_msgs/msg/u_int8.hpp"
+#include <iostream>
+#include <cerrno>
 
-/*Port for receiving*/
+// PORT FOR RECEIVING
 #define PORT 8080
 
-/*
-socket_desc is described below
-socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-*/
-int socket_desc;
+using namespace std::chrono_literals;
 
-/*What does this do? What is signum?*/
-void signal_handler(int signum)
+
+// Thread Safety
+std::mutex action_mutex;
+std::atomic<int> pending_action = 0;
+std::atomic<bool> action_update = false;
+
+class udpServer : public rclcpp::Node
 {
-    close(socket_desc);
-    exit(signum);
-}
-
-/*Creates the server in a thread
-ThreadInfo is for windows???????
-https://github.com/MScholtes/ThreadInfo
-I need to look more into ThreadInfo
-*/
-int create_server(ThreadInfo *info)
-{
-    /*Declare the addresses*/
-    struct sockaddr_in server_addr, client_addr;
-    memset(&server_addr, '\0', sizeof(server_addr));
-
-    /*Guess: This sets maximum size*/
-    char server_message[2000], client_message[2000];
-
-    /*length of the client address struct in bytes*/
-    socklen_t client_struct_length = sizeof(client_addr);
-
-    /*
-    const char* cmd = "hostname -I | awk '{print $1}\0";
-    std::vector<char> inet_buffer(128);
-    std::string localIp;
-    FILE* pipe = popen(cmd, "r");
-    if (!pipe) {
-        throw std::runtime_error("failed!");
-    }
-    while (fgets(inet_buffer.data(), inet_buffer.size(), pipe) != nullptr) {
-        localIp += inet_buffer.data();
-    }
-    pclose(pipe);
-
-    if (!localIp.empty() && localIp.back() == '\n') {
-        localIp.pop_back();
-    }
-
-    std::cout << localIp << std::endl;
-    */
-    // Clean buffers:
-    // memset(server_message, '\0', sizeof(server_message));
-    // memset(client_message, '\0', sizeof(client_message));
-
-    /* Create UDP socket: */
-    socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    /*Ensure socket socket was actually created, otherwise exit*/
-    if (socket_desc < 0)
+  public:
+    using DigDump = autonomy_msgs::action::AutonomousActions;
+    using DigDumpGoalHandle = rclcpp_action::ServerGoalHandle<DigDump>;
+    udpServer()
+    : Node("udp_server")
     {
+      client_ptr_ = rclcpp_action::create_client<DigDump>(this, "digdump");
+      goal_handle = nullptr;
+
+      robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
+      human_input_state_publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
+      server_active = true;
+      current_action_state = 0;
+
+      action_timer_ = this->create_wall_timer(10ms, std::bind(&udpServer::action_timer_callback, this));
+
+      server_thread_ = std::thread([this]() { runServer(); });
+    }
+
+  private:
+    void action_timer_callback() {
+      if(!action_update.load()) return;
+      int action = pending_action.load();
+      action_update.store(false);
+
+      // Cancel previous goal if one is active
+      if (this->goal_handle) {
+        cancel_goal();
+      }
+      // Set new action
+      switch (action) {
+        // TODO: send action state back to UI after updating (might need to be done elsewhere)
+        case 0: {
+          current_action_state = 0;
+          break;
+        }
+      
+        case DIG_AUTO:
+          current_action_state = DIG_AUTO;
+          send_goal(DIG_AUTO);
+          break;
+        
+        case DUMP_AUTO:
+          current_action_state = DUMP_AUTO;
+          send_goal(DUMP_AUTO);
+          break;
+        
+        case ESTOP: {
+          current_action_state = ESTOP;
+          // Change robot state to ESTOP immediately
+          std_msgs::msg::UInt8 msg;
+          msg.data = ESTOP;
+          robot_state_toggle_publisher_->publish(msg);
+          break;
+        }
+        default:
+          RCLCPP_WARN(this->get_logger(), "Received Invalid Action Command");
+          break;
+      }
+    }
+
+    void goal_response_callback(const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & goal_handle) {
+      if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+      } else {
+        RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+        this->goal_handle = goal_handle;
+      }
+    }
+
+    void send_goal(int action_type) {
+      if (!this->client_ptr_->wait_for_action_server()) {
+        RCLCPP_ERROR(this->get_logger(), "Action server not available");
+        return;
+      }
+
+      auto goal_msg = DigDump::Goal();
+      goal_msg.index = action_type;
+
+      auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
+      // Update this callback to store the handle
+      send_goal_options.goal_response_callback = [this](const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & handle) {
+        if (!handle) {
+          RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+        } else {
+          RCLCPP_INFO(this->get_logger(), "Goal accepted by server");
+          this->goal_handle = handle; // Store the handle for later cancellation
+        }
+      };
+
+      this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+    }
+
+    void cancel_goal() {
+      if (!this->goal_handle) {
+        RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
+        return;
+      }
+
+      RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
+      
+      // Use a lambda to nullify the handle once the server acknowledges cancellation
+      auto cancel_callback = [this](auto response) {
+        (void)response;
+        RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
+        this->goal_handle = nullptr; 
+      };
+
+      this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
+    }
+
+    int runServer()
+    {
+      struct sockaddr_in server_addr;
+      struct sockaddr_in client_addr;
+      memset(&server_addr, '\0', sizeof(server_addr));
+      
+      int socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+      if (socket_desc < 0)
+      {
         printf("Error while creating socket\n");
         return -1;
-    }
-    // printf("Socket created successfully\n");
+      }
+      // Set Port and IP
+      server_addr.sin_family = AF_INET;
+      server_addr.sin_port = htons(8080);
+      // 0.0.0.0 binds to all networks
+      server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
 
-    /* Set port and IP: */
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
-    /* 0.0.0.0 because it is local */
-    server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
-
-    /* Bind to the set port and IP: */
-    int reuse_option = 1;
-    /*
-    SOL_SOCKET needed to actually manipulate the socket itself
-    sets SO_REUSEADDR
-    setsockopt returns -1 if there was an error
-    */
-    if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse_option, sizeof(int)) < 0)
-    {
+      // Bind to the Port and IP
+      int reuse_option = 1;
+      if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse_option, sizeof(int)) < 0)
+      {
         throw std::runtime_error("Error setting socket options");
-    }
+      }
+      struct sockaddr *server_addr_ptr = (struct sockaddr *)&server_addr;
 
-    /*
-    Why must it be a pointer?
-    What is this line doing?
-    */
-    struct sockaddr *server_addr_ptr = (struct sockaddr *)&server_addr;
-
-    /* Actually creates the socket association, allows the code to interact with it*/
-    if (bind(socket_desc, server_addr_ptr, sizeof(server_addr)) < 0)
-    {
+      // Bind the socket
+      if (bind(socket_desc, server_addr_ptr, sizeof(server_addr)) < 0)
+      {
         std::cout << "Bind error number: " << errno << std::endl;
         throw std::runtime_error("Error binding server socket");
+      }
+
+      RCLCPP_INFO(this->get_logger(), "Listening for Incoming Messages");
+      // Loop for handling receiving data
+      char buffer[1410];
+      socklen_t client_len = sizeof(client_addr);
+      while (server_active) {
+        // Receive Bytes
+        ssize_t num_bytes = recvfrom(
+          socket_desc, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &client_len
+        );
+        // TODO: DELETE THIS ONCE CONFIRMED WORKING
+        RCLCPP_DEBUG(this->get_logger(), "Received Message");
+
+        // Can only be negative when there's an error
+        if (num_bytes < 0) {
+          RCLCPP_WARN(this->get_logger(), "Receiving error");
+        }
+
+        // Extract header
+        uint8_t* buf = reinterpret_cast<uint8_t*>(buffer);
+        udpHeader header = {
+          buf[static_cast<int>(HeaderFields::reserved)],
+          buf[static_cast<int>(HeaderFields::packetType)],
+          buf[static_cast<int>(HeaderFields::packetLength)],
+          buf[static_cast<int>(HeaderFields::numPackets)],
+          buf[static_cast<int>(HeaderFields::batchPacketCount)],
+          buf[static_cast<int>(HeaderFields::crc)]
+        };
+
+        // TODO: add crc Verification
+
+        // Get pointer to first byte after header
+        char *payload = buffer + sizeof(header);
+        // Process Data according to Packet Type
+        switch (header.packetType) {
+          // Gamepad Inputs
+          case static_cast<int>(RecvPacketTypes::HumanInput): {
+            // Create msgs to send data
+            auto gamepad_msg = teleop_msgs::msg::GamepadState();
+
+            // Save data into the struct for the packet
+            GamepadPacket pkt;
+            std::memcpy(&pkt, payload, sizeof(GamepadPacket));
+            // Save data into the message
+            // Joystick Values
+            gamepad_msg.left_stick.x = pkt.left_stick_x;
+            gamepad_msg.left_stick.y = pkt.left_stick_y;
+            gamepad_msg.right_stick.x = pkt.right_stick_x;
+            gamepad_msg.right_stick.y = pkt.right_stick_y;
+            // Button Values
+            gamepad_msg.x_pressed = pkt.x;
+            gamepad_msg.y_pressed = pkt.y;
+            gamepad_msg.a_pressed = pkt.a;
+            gamepad_msg.b_pressed = pkt.b;
+            gamepad_msg.lt_pressed = pkt.lt;
+            gamepad_msg.rt_pressed = pkt.rt;
+            gamepad_msg.lb_pressed = pkt.lb;
+            gamepad_msg.rb_pressed = pkt.rb;
+            gamepad_msg.dd_pressed = pkt.dd;
+            gamepad_msg.du_pressed = pkt.du;
+            gamepad_msg.dl_pressed = pkt.dl;
+            gamepad_msg.dr_pressed = pkt.dr;
+            gamepad_msg.l3_pressed = pkt.l3;
+            gamepad_msg.r3_pressed = pkt.r3;
+            gamepad_msg.start_pressed = pkt.start;
+            gamepad_msg.back_pressed = pkt.back;
+
+            // Put into human_input_msg
+            auto human_input_msg = teleop_msgs::msg::HumanInputState();
+            human_input_msg.gamepad_state = gamepad_msg;
+            switch (current_action_state) {
+              case 0: // teleop
+                human_input_msg.drive_mode = human_input_msg.DRIVEMODE_TELEOP;
+                break;
+              case DIG_AUTO:
+                human_input_msg.drive_mode = human_input_msg.DRIVEMODE_AUTONOMOUS;
+                break;
+              case DUMP_AUTO:
+                human_input_msg.drive_mode = human_input_msg.DRIVEMODE_AUTONOMOUS;
+                break;
+              case ESTOP:
+              // TODO: I think this can get moved to action commands section
+                std_msgs::msg::UInt8 msg;
+                msg.data = ESTOP;
+                robot_state_toggle_publisher_->publish(msg); //everything else is handled
+            }
+            // Publish Human Input State msg
+            human_input_state_publisher_->publish(human_input_msg);
+            break;
+          }
+          // Action Commands
+          case static_cast<int>(RecvPacketTypes::Action): {
+            uint8_t robot_action = *payload;
+            pending_action.store(robot_action);
+            action_update.store(true);
+            break;
+          }          
+          // Config/Settings
+          case static_cast<int>(RecvPacketTypes::Config):
+            break;
+          
+          default:
+            RCLCPP_WARN(this->get_logger(), "Received Invalid Packet Type");
+            break;
+        }
+      }
+      // Close socket when done
+      close(socket_desc);
+      return 0;
     }
-    // printf("Done with binding\n");
 
-    printf("Listening for incoming messages...\n\n");
+  bool server_active;
+  uint8_t current_action_state;
 
-    /* SIGINT: identification of the keyboard interupt
-    signal_handler actually closes the sockets*/
-    signal(SIGINT, signal_handler);
+  rclcpp_action::Client<DigDump>::SharedPtr client_ptr_;
+  rclcpp_action::ClientGoalHandle<autonomy_msgs::action::AutonomousActions>::SharedPtr goal_handle;
+  rclcpp::TimerBase::SharedPtr action_timer_;
 
-    /*Guess: Specifies what packets had corrupted data?*/
-    std::vector<uint16_t> pkts_to_retry;
+  std::thread server_thread_;
 
-    /*client address*/
-    socklen_t client_len = sizeof(client_addr);
-    // printf("1");
-    char buffer[1410];
-    while (true)
-    {
-        /*Overwrites everything to ensure no data can impact what we read later*/
-        memset(buffer, '\0', 1410);
+  rclcpp::Publisher<teleop_msgs::msg::HumanInputState>::SharedPtr human_input_state_publisher_;
+  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
+};
 
-        // printf("2");
-
-        /*Stores the recieved data as a vector of characters*/
-        std::vector<unsigned char> received_data;
-
-        //printf("3\n");
-
-        /*Actually read data*/
-        ssize_t num_bytes = recvfrom(socket_desc,
-                                     buffer, sizeof(buffer), 0,
-                                     (struct sockaddr *)&client_addr,
-                                     &client_len);
-
-        //printf("Recvieved message\n");
-
-        /*Only negative when error*/
-        if (num_bytes < 0)
-        {
-            std::cerr << "recvfrom error: " << strerror(errno) << std::endl;
-        }
-        /*This is not used, but is supposed to ensure that the data sent is correct*/
-        uint32_t crc = crc32bit(buffer + HEADER_SIZE, num_bytes - HEADER_SIZE);
-        if (crc != ((DataHeader *)buffer)->crc || ((DataHeader *)buffer)->fragmentSize != num_bytes - HEADER_SIZE)
-        {
-            // Handle this later
-        }
-
-        char *payloadStart = buffer + HEADER_SIZE;
-        if (*buffer == 'p') {
-            //printf("after crc\n");
-        
-            //printf("1\n");
-            received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
-            //printf("insert data\n");
-            received_data.push_back('\0');
-            memset(info->client_message, '\0', 100000);
-            memcpy(info->client_message, received_data.data(), received_data.size());
-            
-            //printf("after seting data");
-            info->controller_flag = true;
-        }
-        else if (*buffer == 'a') {
-            info->robot_action = *payloadStart - '0'; // Convert char digit to int
-            info->auto_flag = true;
-            printf("Received auto command: %d\n", info->robot_action);
-        }
-	    
-        
-
-        // std::cout << buffer << std::endl;
-    }
-    // Close the socket:
-    close(socket_desc);
-
-    return 0;
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<udpServer>());
+  rclcpp::shutdown();
+  return 0;
 }
