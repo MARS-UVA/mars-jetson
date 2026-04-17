@@ -180,7 +180,37 @@ int create_server(ThreadInfo *info)
         // set robot_action_state to the first byte of the buffer header
         info->robot_action = *buffer;
         //printf("after seting data");
-        info->flag = true;
+
+        char *payloadStart = buffer + HEADER_SIZE;
+
+        // p for packet content (gamepad state)
+        if (*buffer == 'p') {
+            //printf("after crc\n");
+        
+            //printf("1\n");
+            received_data.insert(received_data.end(), payloadStart, payloadStart + ((DataHeader *)buffer)->fragmentSize);
+            //printf("insert data\n");
+            received_data.push_back('\0');
+            memset(info->client_message, '\0', 100000);
+            memcpy(info->client_message, received_data.data(), received_data.size());
+            
+        //printf("after seting data");
+            info->controller_flag = true;
+        }
+
+        // a for auto
+        else if (*buffer == 'a') {
+            info->robot_action = *payloadStart - '0'; // Convert char digit to int
+        info->auto_flag = true;
+            printf("Received auto command: %d\n", info->robot_action);
+        }
+
+        // b for breadcrumbing
+        else if (*buffer == 'b') {
+            info->pursuit_flag = true;
+            printf("Received pursuit command\n");
+        }
+	    
         
 
         // std::cout << buffer << std::endl;

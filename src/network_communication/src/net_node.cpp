@@ -66,8 +66,8 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
-size_t buffer_size = 72;
-unsigned char* buffer = new unsigned char[buffer_size];
+size_t buffer_size = 80;
+unsigned char* buffer = new unsigned char[buffer_size]();
 
 
 using StickFieldPtr = teleop_msgs::msg::StickPosition teleop_msgs::msg::GamepadState::*;
@@ -121,28 +121,48 @@ public:
 
   }
 
-  void send_goal(int action_type) {
-    
-    if (!this->client_ptr_->wait_for_action_server()) {
-      RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
-      return;
-    }
-
-    auto goal_msg = DigDump::Goal();
-    goal_msg.index = action_type;
-
-    auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
-    send_goal_options.goal_response_callback =
-      std::bind(&NetNode::goal_response_callback, this, _1);
-
-    this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+void send_goal(int action_type) {
+  if (!this->client_ptr_->wait_for_action_server()) {
+    RCLCPP_ERROR(this->get_logger(), "Action server not available");
+    return;
   }
 
-  void cancel_goal() {
-    if (this->goal_handle) {
-      this->client_ptr_->async_cancel_goal(this->goal_handle);
+  auto goal_msg = DigDump::Goal();
+  goal_msg.index = action_type;
+
+  auto send_goal_options = rclcpp_action::Client<DigDump>::SendGoalOptions();
+  
+  // Update this callback to store the handle
+  send_goal_options.goal_response_callback = [this](const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & handle) {
+    if (!handle) {
+      RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+      current_action_state = 0; // Reset action state if goal is rejected
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Goal accepted by server");
+      this->goal_handle = handle; // Store the handle for later cancellation
     }
+  };
+
+  this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
+}
+
+void cancel_goal() {
+  if (!this->goal_handle) {
+    RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
+    return;
   }
+
+  RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
+  
+  // Use a lambda to nullify the handle once the server acknowledges cancellation
+  auto cancel_callback = [this](auto response) {
+    RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
+    this->goal_handle = nullptr; 
+    current_action_state = 0; // Reset action state if goal is canceled
+  };
+
+  this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
+}
 
 private:
 
@@ -152,6 +172,7 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+      this->goal_handle = goal_handle;
     }
   }
 
@@ -191,7 +212,8 @@ private:
   }
 
   void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
-    // TODO: send to UI
+    current_action_state = state->data;
+     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &current_action_state, 4); 
   }
 
   void serial_timer_callback()
@@ -199,27 +221,67 @@ private:
       client_send(buffer, buffer_size, CURRENT_FEEDBACK_PORT);
   }
 
-  void action_timer_callback() {
-    uint8_t robot_action;
-    if (info.auto_flag) {
-      robot_action = info.robot_action;
-      current_action_state = info.robot_action;
+void action_timer_callback() {
+  if (info.auto_flag) {
+    uint8_t robot_action = info.robot_action;
+    
+    // Always cancel the previous goal if it exists before starting a new one
+    if (this->goal_handle) {
       cancel_goal();
-      switch (robot_action) {
-        case 0: // default, do nothing
-          break;
-        case ESTOP: // Estop, do nothing else, handled in controller_timer_callback
-          break;
-        case DIG_AUTO:
-          send_goal(DIG_AUTO);
-          break;
-        case DUMP_AUTO:
-          send_goal(DUMP_AUTO);
-          break;
-      }
-      info.auto_flag = false;
     }
+
+    switch (robot_action) {
+      case 0:
+        current_action_state = 0;
+        break;
+      case DIG_AUTO:
+        if (current_action_state != DIG_AUTO) {
+          current_action_state = 0;
+        } else {
+          current_action_state = DIG_AUTO;
+          send_goal(DIG_AUTO);
+        }
+        break;
+      case DUMP_AUTO:
+        if (current_action_state != DUMP_AUTO) {
+          current_action_state = 0;
+        } else {
+          current_action_state = DUMP_AUTO;
+          send_goal(DUMP_AUTO);
+        }
+        break;
+      case ESTOP:
+        current_action_state = ESTOP;
+        // The publisher logic remains in controller_timer_callback
+        break;
+    }
+    info.auto_flag = false;
   }
+  if (info.pursuit_flag) {
+    // Handle pursuit command here
+    human_input_msg->drive_mode = human_input_msg->DRIVEMODE_PURE_PURSUIT;
+    if (!pure_pursuit_start_sent_) {
+      if (start_purepursuit_client_->service_is_ready()) {
+        auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
+        start_purepursuit_client_->async_send_request(
+          req,
+          [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+            auto resp = future.get();
+            RCLCPP_INFO(
+              this->get_logger(), "start_purepursuit: success=%s",
+              resp->success ? "true" : "false");
+          });
+        pure_pursuit_start_sent_ = true;
+      } else {
+        RCLCPP_WARN_THROTTLE(
+          this->get_logger(), *this->get_clock(), 2000,
+          "start_purepursuit service not ready yet");
+      }
+    }
+
+    info.pursuit_flag = false;
+  }
+}
 
   void controller_timer_callback()
   {
@@ -311,42 +373,15 @@ private:
       
       switch (current_action_state) {
         case 0: //default, do nothing
-          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
           break;
         case DIG_AUTO: //TODO: make client and send goal to action server
-          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
-          send_goal(DIG_AUTO);
           break;
         case DUMP_AUTO:
-          pure_pursuit_start_sent_ = false;
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
-          send_goal(DUMP_AUTO);
-          break;
-        case TRAVERSAL_AUTO:
-          human_input_msg->drive_mode = human_input_msg->DRIVEMODE_PURE_PURSUIT;
-          if (!pure_pursuit_start_sent_) {
-            if (start_purepursuit_client_->service_is_ready()) {
-              auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-              start_purepursuit_client_->async_send_request(
-                req,
-                [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-                  auto resp = future.get();
-                  RCLCPP_INFO(
-                    this->get_logger(), "start_purepursuit: success=%s",
-                    resp->success ? "true" : "false");
-                });
-              pure_pursuit_start_sent_ = true;
-            } else {
-              RCLCPP_WARN_THROTTLE(
-                this->get_logger(), *this->get_clock(), 2000,
-                "start_purepursuit service not ready yet");
-            }
-          }
           break;
         case ESTOP:
-          pure_pursuit_start_sent_ = false;
           std_msgs::msg::UInt8 msg;
           msg.data = ESTOP;
           robot_state_toggle_publisher_->publish(msg); //everything else is handled
