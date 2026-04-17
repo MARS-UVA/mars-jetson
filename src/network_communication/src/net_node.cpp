@@ -227,7 +227,7 @@ void action_timer_callback() {
         current_action_state = 0;
         break;
       case DIG_AUTO:
-        if (current_action_state != DIG_AUTO) {
+        if (current_action_state == DIG_AUTO) {
           current_action_state = 0;
         } else {
           current_action_state = DIG_AUTO;
@@ -235,7 +235,7 @@ void action_timer_callback() {
         }
         break;
       case DUMP_AUTO:
-        if (current_action_state != DUMP_AUTO) {
+        if (current_action_state == DUMP_AUTO) {
           current_action_state = 0;
         } else {
           current_action_state = DUMP_AUTO;
