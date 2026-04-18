@@ -28,7 +28,6 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
 
   // Time parameters are in seconds
   dig_arm_movement_time = declare_with_desc("dig_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dig autonomy routine");
-  dump_arm_movement_time = declare_with_desc("dump_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dump autonomy routine");
   dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
   dump_time = declare_with_desc("dump_time", 5.0, "The amount of time the front drums spend spinning during the dump autonomy routine");
   move_time = declare_with_desc("move_time", 5.0, "The amount of time the robot spends driving during the dump autonomy routine");
@@ -44,15 +43,6 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     drive_msg.changes.push_back(msg);
     stop_msg.changes.push_back(msg);
   }
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
-
-  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
 
   cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
   "cancel_command",
@@ -119,17 +109,12 @@ void DigDumpActionServer::execute(
 
   teleop_msgs::msg::SetMotor msg;
 
-  for (int i=0; i<8; i++) {
-    msg.index = i;
-    lower_msg.changes.push_back(msg);
-    raise_msg.changes.push_back(msg);
-    dig_msg.changes.push_back(msg);
-    dump_msg.changes.push_back(msg);
-    drive_msg.changes.push_back(msg);
-  }
-
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
+  lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
+  lower_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  lower_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
+  raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
   dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
 
@@ -210,19 +195,6 @@ void DigDumpActionServer::execute(
           return;
         }
         motor_publisher_->publish(drive_msg);
-        loop_rate.sleep();
-        elapsed_time += 0.1;
-      }
-      motor_publisher_->publish(stop_msg);
-      // Lower arms slightly
-      elapsed_time = 0.0;
-      while (elapsed_time < dump_arm_movement_time) {
-        if (goal_handle->is_canceling()) {
-          goal_active_ = false;
-          cancel_current_goal(state, goal_handle);
-          return;
-        }
-        motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
