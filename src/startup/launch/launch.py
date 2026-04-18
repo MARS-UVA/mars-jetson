@@ -19,7 +19,8 @@ def generate_launch_description():
                     'full_forward_magnitude': 0.6,
                     'deadband': 0.05
                 }],
-                arguments=['--ros-args', '--log-level', 'WARN']
+                arguments=['--ros-args', '--log-level', 'WARN'],
+                respawn=True
             )
     
     digdump = Node(
@@ -29,29 +30,32 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{
                     'actuator_speed': 15,
-                    'dig_speed': 15,
-                    'dump_speed': 15,
-                    'drive_speed': 15,
-                    'dig_arm_movement_time': 5.0,
-                    'dump_arm_movement_time': 5.0,
-                    'dig_time': 5.0,
-                    'dump_time': 5.0,
-                    'move_time': 5.0,
-                }]
+                    'dig_speed': 50,
+                    'dump_speed': 50,
+                    'drive_speed': 1,
+                    'dig_arm_movement_time': 12.5,
+                    'dump_arm_movement_time': 0.0,
+                    'dig_time': 15.0,
+                    'dump_time': 15.0,
+                    'move_time': 2.5,
+                }],
+                respawn=True
             )
     network = Node(
                 package='network_communication',
                 executable='net_node',
                 name='network_communication',
                 output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN']
+                arguments=['--ros-args', '--log-level', 'WARN'],
+                respawn=True
             )
     serial = Node(
                 package='serial_node',
                 executable='op_reader',
                 name='serial_node',
                 output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN']
+                arguments=['--ros-args', '--log-level', 'WARN'],
+                respawn=True
             )
     
     cameras = IncludeLaunchDescription(
