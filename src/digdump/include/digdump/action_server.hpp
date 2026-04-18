@@ -21,7 +21,6 @@ class DigDumpActionServer : public rclcpp::Node
     rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_arm_movement_time_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dump_arm_movement_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
@@ -48,7 +47,6 @@ class DigDumpActionServer : public rclcpp::Node
     int drive_speed;
 
     double dig_arm_movement_time;
-    double dump_arm_movement_time;
     double dig_time;
     double dump_time;
     double move_time;

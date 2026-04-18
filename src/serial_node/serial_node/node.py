@@ -121,7 +121,7 @@ class SerialNode(Node):
         elif self.mode == ESTOP:
             buffer = self.STOP_MSG
 
-        self.get_logger().warn(f"Sending currents: {buffer}")
+        self.get_logger().info(f"Sending currents: {buffer}")
         if TESTING: return
         self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
         
@@ -163,7 +163,7 @@ class SerialNode(Node):
                 )
                 self.position_publisher.publish(mf)
         else:
-            self.get_logger().warn("no data")
+            self.get_logger().debug("no data")
         
 
 def main(args=None):
