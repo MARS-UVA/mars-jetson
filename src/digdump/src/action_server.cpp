@@ -44,15 +44,15 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     drive_msg.changes.push_back(msg);
     stop_msg.changes.push_back(msg);
   }
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double()*-1;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double();
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_double() + 127;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_double();
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
+  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
 
-  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
+  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
 
   cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
   "cancel_command",
@@ -128,15 +128,15 @@ void DigDumpActionServer::execute(
     drive_msg.changes.push_back(msg);
   }
 
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double()*-1;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double();
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_double() + 127;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_double();
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
+  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
 
-  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
-  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_double() + 127;
+  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
 
 
 
