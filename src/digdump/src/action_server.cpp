@@ -117,6 +117,17 @@ void DigDumpActionServer::execute(
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
 
+  teleop_msgs::msg::SetMotor msg;
+
+  for (int i=0; i<8; i++) {
+    msg.index = i;
+    lower_msg.changes.push_back(msg);
+    raise_msg.changes.push_back(msg);
+    dig_msg.changes.push_back(msg);
+    dump_msg.changes.push_back(msg);
+    drive_msg.changes.push_back(msg);
+  }
+
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double()*-1;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_double();
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_double() + 127;
