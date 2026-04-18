@@ -133,7 +133,7 @@ void DigDumpActionServer::execute(
   // goal_handle->publish_feedback(feedback);
   // RCLCPP_INFO(rclcpp::get_logger("server"), "Publish Feedback");
   auto state = std_msgs::msg::UInt8();
-  state.data = 1;
+  state.data = action_type;
   state_publisher_->publish(state);
 
   switch (action_type) {
