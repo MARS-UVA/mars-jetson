@@ -102,7 +102,6 @@ void DigDumpActionServer::execute(
   goal_active_ = true;
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
   double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
-  double dump_arm_movement_time = this->get_parameter("dump_arm_movement_time").as_double();
   double dig_time = this->get_parameter("dig_time").as_double();
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
