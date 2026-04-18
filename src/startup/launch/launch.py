@@ -45,7 +45,8 @@ def generate_launch_description():
                 executable='udp_client',
                 name='client_node',
                 output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN']
+                arguments=['--ros-args', '--log-level', 'WARN'],
+                respawn=True
             )
     network_server = Node(
                 package='network_communication',
