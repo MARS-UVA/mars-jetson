@@ -125,7 +125,6 @@ void send_goal(int action_type) {
   send_goal_options.goal_response_callback = [this](const rclcpp_action::ClientGoalHandle<DigDump>::SharedPtr & handle) {
     if (!handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
-      current_action_state = 0; // Reset action state if goal is rejected
     } else {
       RCLCPP_INFO(this->get_logger(), "Goal accepted by server");
       this->goal_handle = handle; // Store the handle for later cancellation
@@ -135,7 +134,7 @@ void send_goal(int action_type) {
   this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
 }
 
-void cancel_goal() {
+void cancel_goal(bool estop = false) {
   if (!this->goal_handle) {
     RCLCPP_DEBUG(this->get_logger(), "No active goal to cancel");
     return;
@@ -144,10 +143,15 @@ void cancel_goal() {
   RCLCPP_INFO(this->get_logger(), "Sending cancel request...");
   
   // Use a lambda to nullify the handle once the server acknowledges cancellation
-  auto cancel_callback = [this](auto response) {
+  auto cancel_callback = [this, estop](auto response) {
     RCLCPP_INFO(this->get_logger(), "Cancel request processed by server");
     this->goal_handle = nullptr; 
-    current_action_state = 0; // Reset action state if goal is canceled
+    if (estop) {
+      RCLCPP_WARN(this->get_logger(), "E-Stop requested, publishing E-Stop state");
+      std_msgs::msg::UInt8 msg;
+      msg.data = ESTOP;
+      robot_state_toggle_publisher_->publish(msg);
+    }
   };
 
   this->client_ptr_->async_cancel_goal(this->goal_handle, cancel_callback);
@@ -202,7 +206,7 @@ private:
 
   void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
     current_action_state = state->data;
-     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &current_action_state, 4); 
+    std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &current_action_state, 4); 
   }
 
   void serial_timer_callback()
@@ -216,34 +220,34 @@ void action_timer_callback() {
     RCLCPP_WARN(this->get_logger(), "Processing autonomous action command: %d", info.robot_action);
     uint8_t robot_action = info.robot_action;
     
-    // Always cancel the previous goal if it exists before starting a new one
+    // Check if goal is already active
     if (this->goal_handle) {
-      cancel_goal();
+      
+      RCLCPP_WARN(this->get_logger(), "Already an active goal");
+      if (robot_action == ESTOP) {
+        RCLCPP_WARN(this->get_logger(), "E-Stop requested, canceling current goal");
+        cancel_goal(true);
+      }
+      else if (robot_action == current_action_state) {
+        RCLCPP_WARN(this->get_logger(), "Same action requested, canceling current goal");
+        cancel_goal(false);
+      }
+      robot_action = 0; // Set to no action if goal running
     }
 
     switch (robot_action) {
       case 0:
-        current_action_state = 0;
         break;
       case DIG_AUTO:
-        if (current_action_state == DIG_AUTO) {
-          current_action_state = 0;
-        } else {
-          current_action_state = DIG_AUTO;
-          send_goal(DIG_AUTO);
-        }
+        send_goal(DIG_AUTO);
         break;
       case DUMP_AUTO:
-        if (current_action_state == DUMP_AUTO) {
-          current_action_state = 0;
-        } else {
-          current_action_state = DUMP_AUTO;
-          send_goal(DUMP_AUTO);
-        }
+        send_goal(DUMP_AUTO);
         break;
       case ESTOP:
-        current_action_state = ESTOP;
-        // The publisher logic remains in controller_timer_callback
+        std_msgs::msg::UInt8 msg;
+        msg.data = ESTOP;
+        robot_state_toggle_publisher_->publish(msg);
         break;
     }
     info.auto_flag = false;
@@ -343,16 +347,11 @@ void action_timer_callback() {
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_TELEOP;
           break;
         case DIG_AUTO:
-
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           break;
         case DUMP_AUTO:
           human_input_msg->drive_mode = human_input_msg->DRIVEMODE_AUTONOMOUS;
           break;
-        case ESTOP:
-          std_msgs::msg::UInt8 msg;
-          msg.data = ESTOP;
-          robot_state_toggle_publisher_->publish(msg); //everything else is handled
       }
       human_input_msg->gamepad_state = *gamepad_msg;
 
