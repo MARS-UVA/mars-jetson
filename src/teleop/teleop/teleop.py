@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, Duration, QoSHistoryPolicy, QoSReliabilityPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
-from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState, AddMotor
+from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadState, AddMotor, ArmControl
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
@@ -123,6 +123,11 @@ class TeleopNode(Node):
             topic='teleop',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
+        self._arm_control_state_publisher = self.create_publisher(
+            msg_type=MotorChanges,
+            topic='arm_control_state',
+            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
+        )
         self.__add_parameter_event_handlers()
         self.timer = self.create_timer(2, self.__stopped_motors)
         self.cruise_control = False
@@ -173,6 +178,8 @@ class TeleopNode(Node):
             self.front_arm_control = False
             self.back_arm_control = True
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
+        
+        self._arm_control_state_publisher.publish(ArmControl(FRONT_ARM_CONTROL = self.front_arm_control, BACK_ARM_CONTROL = self.back_arm_control))
         
 
         # Spin Bucket Drum(s)
