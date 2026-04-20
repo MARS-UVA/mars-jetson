@@ -108,6 +108,9 @@ public:
     positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
         "position", 10, std::bind(&NetNode::position_callback, this, _1)
     );
+    armControlSubscription_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
+        "arm_control_state", 10, std::bind(&NetNode::arm_control_callback, this, _1)
+    );
   }
 
 void send_goal(int action_type) {
@@ -207,6 +210,11 @@ private:
   void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
     current_action_state = state->data;
     std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &current_action_state, 4); 
+  }
+
+  void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &msg->front_arm_control, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &msg->back_arm_control, 4);
   }
 
   void serial_timer_callback()
@@ -374,6 +382,7 @@ void action_timer_callback() {
   rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusVoltageSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
   rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
+  rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr armControlSubscription_;
 
   rclcpp_action::Client<DigDump>::SharedPtr client_ptr_;
   rclcpp_action::ClientGoalHandle<autonomy_msgs::action::AutonomousActions>::SharedPtr goal_handle;
