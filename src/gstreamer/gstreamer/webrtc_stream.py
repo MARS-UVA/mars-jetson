@@ -253,7 +253,7 @@ class WebRTCNode(Node):
         
         # Send Offer
         msg = json.dumps({'sdp': {'type': 'offer', 'sdp': offer.sdp.as_text()}})
-        if self.loop and self.conn and not self.conn.closed:
+        if self.loop and self.conn and self.conn.close_code is None:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def on_local_description_set(self, promise, _, __):
@@ -268,7 +268,7 @@ class WebRTCNode(Node):
         self.get_logger().info(f"Sending ICE Candidate: {candidate_str}")
         
         msg = json.dumps({'ice': {'candidate': candidate_str, 'sdpMLineIndex': mlineindex}})
-        if self.loop and self.conn and not self.conn.closed:
+        if self.loop and self.conn and self.conn.close_code is None:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def handle_sdp(self, sdp_data):
