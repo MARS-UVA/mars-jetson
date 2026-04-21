@@ -7,5 +7,5 @@ services:
     user: "1000:1000"
     environment:
       - ROS_DOMAIN_ID=0
-      - CONTROL_STATION_IP="172.25.183.75"
+      - CONTROL_STATION_IP="192.168.50.101"
       - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
