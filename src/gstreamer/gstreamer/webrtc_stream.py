@@ -84,6 +84,11 @@ class WebRTCNode(Node):
         # Connect Signals
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
         self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
+        self.webrtc.connect('notify::connection-state', self.on_connection_state)
+        # Bus Watcher
+        bus = self.pipe.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message', self.on_bus_message)
         
         # Camera Subscriber
         self.qos_profile = qos_profile = QoSProfile(
@@ -126,7 +131,9 @@ class WebRTCNode(Node):
         return SetParametersResult(successful=True)
 
     def image_callback(self, msg):
-        if self.appsrc is None:
+        # Local copy to prevent race condition on resetting pipeline
+        appsrc = self.appsrc
+        if appsrc is None:
             return
 
         if self.feed_active:
@@ -140,10 +147,61 @@ class WebRTCNode(Node):
                 buf.fill(0, data)
                 buf.duration = (1000000000 // FRAMERATE)
                 
-                self.appsrc.emit('push-buffer', buf)
+                appsrc.emit('push-buffer', buf)
                 
             except Exception as e:
                 self.get_logger().error(f"Frame error: {e}")
+        
+    def on_connection_state(self, webrtc, pspec):
+        if getattr(self, 'resetting_', False):
+            return
+        state = webrtc.get_property('connection-state')
+        self.get_logger().info(f'WebRTC state: {state.value_nick}')
+        if state.value_nick in ['failed', 'closed']:
+            self.get_logger().warn('WebRTC Died (RIP) -> Resetting Pipeline')
+            self.reset_pipeline()
+
+    def on_bus_message(self, bus, message):
+        msg_type = message.type
+        if msg_type == Gst.MessageType.ERROR:
+            e, debug = message.parse_error()
+            self.get_logger().error(f'GStreamer Error: {e}, {debug}')
+            self.reset_pipeline()
+        elif msg_type == Gst.MessageType.EOS:
+            self.get_logger().warn('End of Stream')
+            self.reset_pipeline()
+    
+    def reset_pipeline(self):
+        self.get_logger().warn("Reseting Full Pipeline")
+        # Ensure it can only reset once
+        if getattr(self, 'resetting_', False):
+            return
+        self.resetting_ = True
+
+        try:
+            self.appsrc = None
+            # Stop Pipeline
+            if self.pipe:
+                self.pipe.set_state(Gst.State.NULL)
+            # Create new Pipeline
+            self.pipe = Gst.parse_launch(self.pipeline_desc)
+            # Rebind elements to new pipeline
+            self.webrtc = self.pipe.get_by_name('sendrecv')
+            self.appsrc = self.pipe.get_by_name('ros_source')
+            # Reconnect Signals
+            self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
+            self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
+            self.webrtc.connect('notify::connection-state', self.on_connection_state)
+            # Get Bus Watcher to ensure Rebuild
+            bus = self.pipe.get_bus()
+            bus.add_signal_watch()
+            bus.connect('message', self.on_bus_message)
+            self.get_logger().info('Pipeline Rebuilt Successfuly')
+        except Exception as e:
+            self.get_logger().error(f'Pipeline Reset Failed: {e}')
+        finally:
+            self.resetting_ = False
+
 
     def start_async_loop(self):
         self.loop = asyncio.new_event_loop()
@@ -160,8 +218,10 @@ class WebRTCNode(Node):
                 async for message in self.conn:
                     data = json.loads(message)
                     if 'cmd' in data and data['cmd'] == 'HELLO_FROM_VIEWER':
-                        self.get_logger().info("Viewer detected. Starting Pipeline...")
-                        self.start_pipeline()
+                        self.get_logger().info("Viewer detected. Starting New Pipeline...")
+                        self.reset_pipeline()
+                        # Wait 50ms to ensure pipeline resets before we try to start the new pipeline
+                        GLib.timeout_add(50, self.start_pipeline)
                     elif 'sdp' in data:
                         self.handle_sdp(data['sdp'])
                     elif 'ice' in data:
@@ -171,6 +231,9 @@ class WebRTCNode(Node):
                 await asyncio.sleep(2)
 
     def start_pipeline(self):
+        if not self.pipe or not self.webrtc:
+            self.get_logger().error('Pipeline not yet ready')
+            return
         self.pipe.set_state(Gst.State.PLAYING)
         # Create Offer
         promise = Gst.Promise.new_with_change_func(self.on_offer_created, self.webrtc, None)
@@ -190,7 +253,7 @@ class WebRTCNode(Node):
         
         # Send Offer
         msg = json.dumps({'sdp': {'type': 'offer', 'sdp': offer.sdp.as_text()}})
-        if self.loop:
+        if self.loop and self.conn and not self.conn.closed:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def on_local_description_set(self, promise, _, __):
@@ -205,7 +268,7 @@ class WebRTCNode(Node):
         self.get_logger().info(f"Sending ICE Candidate: {candidate_str}")
         
         msg = json.dumps({'ice': {'candidate': candidate_str, 'sdpMLineIndex': mlineindex}})
-        if self.loop:
+        if self.loop and self.conn and not self.conn.closed:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def handle_sdp(self, sdp_data):
