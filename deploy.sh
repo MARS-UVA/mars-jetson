@@ -11,7 +11,7 @@ cd ~/mars-jetson
 #         export CONTROL_STATION_IP="192.168.0.109"
 # fi
 
-ip="192.168.0.109" # default value for control station ip
+ip="192.168.0.101" # default value for control station ip
 domain="0" # default value for ROS domain id, between 0-101
 
 while getopts "i:d:" flag
