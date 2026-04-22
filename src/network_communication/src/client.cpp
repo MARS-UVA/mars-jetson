@@ -110,8 +110,8 @@ class udpClient : public rclcpp::Node
       std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
     }
 
-    void robot_state_callback() {
-      // TODO: send to UI
+    void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
+      std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state->data, 4);
     }
 
     void timer_callback() {
