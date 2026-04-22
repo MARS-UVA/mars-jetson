@@ -40,10 +40,17 @@ def generate_launch_description():
                 }],
                 respawn=True
             )
-    network = Node(
+    network_client = Node(
                 package='network_communication',
-                executable='net_node',
-                name='network_communication',
+                executable='udp_client',
+                name='client_node',
+                output='screen',
+                arguments=['--ros-args', '--log-level', 'WARN']
+            )
+    network_server = Node(
+                package='network_communication',
+                executable='udp_server',
+                name='server_node',
                 output='screen',
                 arguments=['--ros-args', '--log-level', 'WARN'],
                 respawn=True
@@ -66,7 +73,8 @@ def generate_launch_description():
     return LaunchDescription([
         teleop, 
         digdump,
-        network,
+        network_client,
+        network_server,
         serial,
         cameras,
     ])
