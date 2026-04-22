@@ -31,14 +31,14 @@ class PurePursuitNode(Node):
 
         ##how often the pure pursuit loop should run
         self.hertz = 30
-        self.look_ahead_distance = 1 #meters
+        self.look_ahead_distance = 0.6 #meters
         self.velocity = 180
         self.stop_motor_pwm = 127
         # Max differential to apply for turning (motor units, 0..255).
         # Keeping this modest avoids saturating to max speed during turns.
         self.max_turn_delta = 60
         # When on the last segment (last_found_index targets the final waypoint), stop inside this radius of path[-1].
-        self.goal_arrival_distance_m = 0.35
+        self.goal_arrival_distance_m = 0.3
 
         self.recording_path = False
         
@@ -46,6 +46,8 @@ class PurePursuitNode(Node):
         ## the path, it will be delivered/
         self.path_to_follow = []
         self.path_pub = self.create_publisher(Path, "/pure_pursuit/path", 10)
+        self.lookahead_pub = self.create_publisher(PoseStamped, "/pure_pursuit/lookahead", 10)
+        #lookahead and path are for testing
         self.path_msg = Path()
         self.path_frame = "odom"
         self.last_received_time = None
@@ -112,13 +114,26 @@ class PurePursuitNode(Node):
         if len(self.path_to_follow) < 2:
             return
 
-        goalPoint, lastFoundIndex, turnErrorDeg = self.pure_pursuit_step(
+        r = self.pure_pursuit_step(
             self.current_position,
             self.current_heading,
             self.look_ahead_distance,
             self.last_found_index,
         )
+        if r is None:
+            self._deactivate_pure_pursuit()
+            return
+        goalPoint, lastFoundIndex, turnErrorDeg = r
         self.last_found_index = lastFoundIndex
+#publish goal point for testing
+        lookahead_msg = PoseStamped()
+        lookahead_msg.header.stamp = self.get_clock().now().to_msg()
+        lookahead_msg.header.frame_id = self.path_frame
+        lookahead_msg.pose.position.x = float(goalPoint[0])
+        lookahead_msg.pose.position.y = float(goalPoint[1])
+        lookahead_msg.pose.position.z = 0.0
+        lookahead_msg.pose.orientation.w = 1.0
+        self.lookahead_pub.publish(lookahead_msg)
 
         # Map angular error (deg) -> motor differential (uint8 units).
         # Clamp error so we don't saturate the motors for large transient errors.
@@ -267,9 +282,8 @@ class PurePursuitNode(Node):
         #Find last foudn index
         lastFoundIndex = lastFoundIndex_input
 
-        ##loop flag
-        intersectFound = False
-        
+        goalPoint = None
+
         ## Index of the first point
         startingIndex = lastFoundIndex
 
@@ -330,6 +344,8 @@ class PurePursuitNode(Node):
                 else:
                     foundIntersection = False
                     goalPoint = [path[lastFoundIndex][0], path[lastFoundIndex][1]]
+        if goalPoint is None:
+            return None
         # obtained goal point, now compute turn vel
         # initialize proportional controller constant
         Kp = 3
@@ -346,7 +362,7 @@ class PurePursuitNode(Node):
         # apply proportional controller (deg -> arbitrary turn signal)
         turnVel = Kp*turnError
         
-        return goalPoint, lastFoundIndex, turnError
+        return goalPoint, lastFoundIndex, turnVel
     
 def main():
     rclpy.init()
