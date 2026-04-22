@@ -1,8 +1,13 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
 
 def generate_launch_description():
-    return LaunchDescription([
+      
+   arducam_info_path = (Path(get_package_share_directory('startup')) / 'resource' / 'arducam1.yaml').as_uri()
+
+   return LaunchDescription([
         Node(
            package='v4l2_camera',
            namespace='front_camera',
@@ -12,6 +17,7 @@ def generate_launch_description():
                'video_device': '/dev/video0',
                'image_size': [480, 320],
                'output_encoding': 'yuv422_yuy2',
+               'camera_info_url': arducam_info_path
             #    'camera_info_url': 'file:///home/ericzn248/.ros/camera_info/narrow_stereo.yaml', fill out later
            }]
         ),
@@ -25,6 +31,7 @@ def generate_launch_description():
                'image_size': [480, 320],
                # 'image_size': [1280, 720],
                'output_encoding': 'yuv422_yuy2',
+               'camera_info_url': arducam_info_path
             #    'camera_info_url': 'file:///home/ericzn248/.ros/camera_info/narrow_stereo.yaml',
            }]
         ),
