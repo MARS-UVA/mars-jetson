@@ -1,2 +1,2 @@
-uint32 FRONT_ARM_CONTROL
-uint32 BACK_ARM_CONTROL
+uint32 front_arm_control
+uint32 back_arm_control
