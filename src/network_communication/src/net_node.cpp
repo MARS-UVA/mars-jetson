@@ -9,6 +9,7 @@
 #include <teleop_msgs/msg/gamepad_state.hpp>
 #include <teleop_msgs/msg/stick_position.hpp>
 #include "teleop_msgs/msg/human_input_state.hpp"
+#include "teleop_msgs/msg/arm_control.hpp"
 #include <serial_msgs/msg/current_bus_voltage.hpp>
 #include <serial_msgs/msg/position.hpp>
 #include <serial_msgs/msg/temperature.hpp>
@@ -58,7 +59,7 @@ std::vector<std::pair<std::string, FieldPtr>> fields = {
     {"back_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::back_pressed},
     {"start_pressed", (FieldPtr)&teleop_msgs::msg::GamepadState::start_pressed}};
 
-size_t buffer_size = 76;
+size_t buffer_size = 84;
 unsigned char* buffer = new unsigned char[buffer_size]();
 
 
@@ -213,8 +214,10 @@ private:
   }
 
   void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
-    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &msg->front_arm_control, 4);
-    std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &msg->back_arm_control, 4);
+    uint32_t front_arm_control = msg->front_arm_control;
+    uint32_t back_arm_control = msg->back_arm_control;
+    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &front_arm_control, 4);
+    std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &back_arm_control, 4);
   }
 
   void serial_timer_callback()
