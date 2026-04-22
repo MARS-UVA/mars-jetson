@@ -11,6 +11,10 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     std::bind(&DigDumpActionServer::handle_accepted, this,
               std::placeholders::_1));
 
+  arm_control_sub_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
+    "arm_control_state", 10, std::bind(&DigDumpActionServer::arm_control_callback, this, std::placeholders::_1)
+  );
+
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
 
@@ -66,6 +70,10 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   );
 }
 
+void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
+  back_arm_control_state = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
+}
+
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
 //Tested and should work now but perhaps not the most elegant solution.
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
@@ -115,13 +123,22 @@ void DigDumpActionServer::execute(
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
   raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
 
-  drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-  drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-
+  if (!back_arm_control_state) {
+    RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
+    dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
+    drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+    drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+    drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+    drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Back arm control state is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
+    dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
+    drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
+    drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
+    drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
+    drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
+  }
 
 
   std::cout<<lower_msg.changes.size()<<std::endl;
