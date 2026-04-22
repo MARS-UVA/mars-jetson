@@ -7,6 +7,7 @@
 #include "teleop_msgs/msg/add_motor.hpp"
 #include "teleop_msgs/msg/set_motor.hpp"
 #include "teleop_msgs/msg/motor_changes.hpp"
+#include "teleop_msgs/msg/arm_control.hpp"
 
 class DigDumpActionServer : public rclcpp::Node
 {
@@ -28,11 +29,13 @@ class DigDumpActionServer : public rclcpp::Node
 
   private:
     rclcpp_action::Server<DigDump>::SharedPtr action_server_;
+    rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr arm_control_sub_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
     
     //Parameter to track if a goal is currently active. Used to prevent accepting new goals while one is active
     bool goal_active_ = false;
+    bool back_arm_control_state = false;
 
     // Track active goal
     std::shared_ptr<DigDumpGoalHandle> active_goal_;
@@ -57,6 +60,9 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges dump_msg;
     teleop_msgs::msg::MotorChanges drive_msg;
     teleop_msgs::msg::MotorChanges stop_msg;
+
+    void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg);
+
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
 
