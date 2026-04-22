@@ -124,7 +124,7 @@ class TeleopNode(Node):
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
         self._arm_control_state_publisher = self.create_publisher(
-            msg_type=MotorChanges,
+            msg_type=ArmControl,
             topic='arm_control_state',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
@@ -179,7 +179,7 @@ class TeleopNode(Node):
             self.back_arm_control = True
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         
-        self._arm_control_state_publisher.publish(ArmControl(FRONT_ARM_CONTROL = self.front_arm_control, BACK_ARM_CONTROL = self.back_arm_control))
+        self._arm_control_state_publisher.publish(ArmControl(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control))
         
 
         # Spin Bucket Drum(s)
