@@ -10,7 +10,7 @@
 #include <vector>
 
 #define FEEDBACK_PORT 2001
-#define FEEDBACK_PACKET_LENGTH 72
+#define FEEDBACK_PACKET_LENGTH 80
 
 enum FeedbackByteIndices {
     FRONT_LEFT_WHEEL_CURRENT = 0,
@@ -30,7 +30,8 @@ enum FeedbackByteIndices {
     FRONT_DRUM_TEMPERATURE = 56,
     BACK_DRUM_TEMPERATURE = 60,
     FRONT_ACTUATOR_POSITION = 64,
-    BACK_ACTUATOR_POSITION = 68
+    BACK_ACTUATOR_POSITION = 68,
+    ROBOT_STATE = 72,
 };
 
 struct ConnectionHeaders
