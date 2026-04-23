@@ -40,33 +40,34 @@ class udpServer : public rclcpp::Node
       int action = pending_action.load();
       action_update.store(false);
 
+      RCLCPP_WARN(this->get_logger(), "Received Action Command: %d", action);
+
       // Cancel previous goal if one is active
       if (this->goal_handle) {
         cancel_goal();
       }
       // Set new action
       switch (action) {
-        // TODO: send action state back to UI after updating (might need to be done elsewhere)
-        case 0: {
-          current_action_state = 0;
+        case static_cast<int>(ActionTypes::None): {
+          current_action_state = static_cast<int>(ActionTypes::None);
           break;
         }
       
-        case DIG_AUTO:
-          current_action_state = DIG_AUTO;
-          send_goal(DIG_AUTO);
+        case static_cast<int>(ActionTypes::DigAutonomy):
+          current_action_state = static_cast<int>(ActionTypes::DigAutonomy);
+          send_goal(static_cast<int>(ActionTypes::DigAutonomy));
           break;
         
-        case DUMP_AUTO:
-          current_action_state = DUMP_AUTO;
-          send_goal(DUMP_AUTO);
+        case static_cast<int>(ActionTypes::DumpAutonomy):
+          current_action_state = static_cast<int>(ActionTypes::DumpAutonomy);
+          send_goal(static_cast<int>(ActionTypes::DumpAutonomy));
           break;
         
-        case ESTOP: {
-          current_action_state = ESTOP;
+        case static_cast<int>(ActionTypes::EStop): {
+          current_action_state = static_cast<int>(ActionTypes::EStop);
           // Change robot state to ESTOP immediately
           std_msgs::msg::UInt8 msg;
-          msg.data = ESTOP;
+          msg.data = static_cast<int>(ActionTypes::EStop);
           robot_state_toggle_publisher_->publish(msg);
           break;
         }
@@ -229,20 +230,15 @@ class udpServer : public rclcpp::Node
             auto human_input_msg = teleop_msgs::msg::HumanInputState();
             human_input_msg.gamepad_state = gamepad_msg;
             switch (current_action_state) {
-              case 0: // teleop
+              case static_cast<int>(ActionTypes::None): // teleop
                 human_input_msg.drive_mode = human_input_msg.DRIVEMODE_TELEOP;
                 break;
-              case DIG_AUTO:
+              case static_cast<int>(ActionTypes::DigAutonomy):
                 human_input_msg.drive_mode = human_input_msg.DRIVEMODE_AUTONOMOUS;
                 break;
-              case DUMP_AUTO:
+              case static_cast<int>(ActionTypes::DumpAutonomy):
                 human_input_msg.drive_mode = human_input_msg.DRIVEMODE_AUTONOMOUS;
                 break;
-              case ESTOP:
-              // TODO: I think this can get moved to action commands section
-                std_msgs::msg::UInt8 msg;
-                msg.data = ESTOP;
-                robot_state_toggle_publisher_->publish(msg); //everything else is handled
             }
             // Publish Human Input State msg
             human_input_state_publisher_->publish(human_input_msg);

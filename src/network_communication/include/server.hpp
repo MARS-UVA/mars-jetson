@@ -47,7 +47,9 @@ struct __attribute__((packed)) GamepadPacket {
     float right_stick_y;
 };
 
-// TODO: Convert these to enum
-#define DIG_AUTO 1
-#define DUMP_AUTO 2
-#define ESTOP 3
+enum class ActionTypes {
+    None = 0,
+    DigAutonomy = 1,
+    DumpAutonomy = 2,
+    EStop = 3
+};
