@@ -35,6 +35,13 @@
     </inertial>
   </link>
 
+<link name="dummy_root"/>
+
+<joint name="dummy_root_joint" type="fixed">
+  <parent link="dummy_root"/>
+  <child link="base_link"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+</joint>
   <!-- <link name="front_left_wheel">
     <visual>
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
