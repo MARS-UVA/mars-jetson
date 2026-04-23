@@ -30,6 +30,9 @@ class udpClient : public rclcpp::Node
       positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
         "position", 10, std::bind(&udpClient::position_callback, this, _1)
       );
+      robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>(
+        "robot_state", 10, std::bind(&udpClient::robot_state_callback, this, _1)
+      );
     }
     ~udpClient() {
       delete[] buffer;
@@ -111,7 +114,9 @@ class udpClient : public rclcpp::Node
     }
 
     void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
-      std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state->data, 4);
+      RCLCPP_DEBUG(this->get_logger(), "Received robot state feedback packet");
+      uint32_t state_data = static_cast<uint32_t>(state->data);
+      std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state_data, 4);
     }
 
     void timer_callback() {
