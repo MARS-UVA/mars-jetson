@@ -5,12 +5,13 @@
 #include <serial_msgs/msg/current_bus_voltage.hpp>
 #include <serial_msgs/msg/position.hpp>
 #include <serial_msgs/msg/temperature.hpp>
+#include <teleop_msgs/msg/arm_control.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 
 #include <vector>
 
 #define FEEDBACK_PORT 2001
-#define FEEDBACK_PACKET_LENGTH 80
+#define FEEDBACK_PACKET_LENGTH 88
 
 enum FeedbackByteIndices {
     FRONT_LEFT_WHEEL_CURRENT = 0,
@@ -32,6 +33,8 @@ enum FeedbackByteIndices {
     FRONT_ACTUATOR_POSITION = 64,
     BACK_ACTUATOR_POSITION = 68,
     ROBOT_STATE = 72,
+    FRONT_ARM_CONTROL = 76,
+    BACK_ARM_CONTROL = 80,
 };
 
 struct ConnectionHeaders

@@ -41,6 +41,7 @@ ament_target_dependencies(udp_client
   rclcpp_action
   std_msgs 
   serial_msgs
+  teleop_msgs
 )
 
 install(TARGETS
