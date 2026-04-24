@@ -80,7 +80,8 @@ void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmContro
 }
 
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
-  RCLCPP_WARN(this->get_logger(), "Received actuator position update: %f", msg->position);
+  RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
+  RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
   *current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
   *current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
 }
