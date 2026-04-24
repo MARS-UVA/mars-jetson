@@ -40,6 +40,10 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   // Actuator extend length is from 0.0-1.0 where 1.0 is fully extended
   actuator_extend_length = declare_with_desc("actuator_extend_length", 0.0, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended");
 
+  // Initialize current actuator position pointers
+  current_front_actuator_position = new double(0.0);
+  current_back_actuator_position = new double(0.0);
+
   teleop_msgs::msg::SetMotor msg;
 
   for (int i=0; i<8; i++) {
@@ -81,8 +85,8 @@ void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmContro
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
   RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
   RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
-  *current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
-  *current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
+  *(this->current_front_actuator_position) = msg->front_actuator_position; // Update the current actuator position
+  *(this->current_back_actuator_position) = msg->back_actuator_position; // Update the current actuator position
 }
 
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
@@ -179,6 +183,7 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
+        RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
         motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
