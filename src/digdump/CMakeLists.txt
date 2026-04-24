@@ -15,6 +15,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(teleop_msgs REQUIRED)
+find_package(serial_msgs REQUIRED)
 
 include_directories(include)
 
@@ -24,7 +25,8 @@ ament_target_dependencies(action_server
   std_msgs
   teleop_msgs
   rclcpp_action
-  autonomy_msgs)
+  autonomy_msgs
+  serial_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
