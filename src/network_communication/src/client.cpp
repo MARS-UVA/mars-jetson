@@ -123,8 +123,8 @@ class udpClient : public rclcpp::Node
     }
 
     void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
-    uint32_t front_arm_control = msg->front_arm_control;
-    uint32_t back_arm_control = msg->back_arm_control;
+    uint32_t front_arm_control = static_cast<uint32_t>(msg->front_arm_control);
+    uint32_t back_arm_control = static_cast<uint32_t>(msg->back_arm_control);
     std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &front_arm_control, 4);
     std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &back_arm_control, 4);
   }
