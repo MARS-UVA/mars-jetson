@@ -56,6 +56,10 @@ class DigDumpActionServer : public rclcpp::Node
     double move_time;
     double actuator_extend_length;
 
+    // tracker for current actuator position as a pointer to update while on another thread
+    double *current_front_actuator_position;
+    double *current_back_actuator_position;
+
     teleop_msgs::msg::MotorChanges lower_msg;
     teleop_msgs::msg::MotorChanges raise_msg;
     teleop_msgs::msg::MotorChanges dig_msg;
@@ -64,6 +68,8 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges stop_msg;
 
     void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg);
+
+    void actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg);
 
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);

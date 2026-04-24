@@ -15,10 +15,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     "arm_control_state", 10, std::bind(&DigDumpActionServer::arm_control_callback, this, std::placeholders::_1)
   );
   position_sub_ = this->create_subscription<serial_msgs::msg::Position>(
-    "position", 10, [](serial_msgs::msg::Position::SharedPtr msg) {
-      (void)msg;
-      // Position callback currently does nothing but is set up for future use if needed
-    }
+    "position", 10, std::bind(&DigDumpActionServer::actuator_position_callback, this, std::placeholders::_1
   );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
@@ -81,6 +78,12 @@ void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmContro
   back_arm_control_state = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
 }
 
+void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
+  RCLCPP_WARN(this->get_logger(), "Received actuator position update: %f", msg->position);
+  *current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
+  *current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
+}
+
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
 //Tested and should work now but perhaps not the most elegant solution.
 rclcpp_action::GoalResponse DigDumpActionServer::handle_goal(
@@ -119,6 +122,8 @@ void DigDumpActionServer::execute(
   double dig_time = this->get_parameter("dig_time").as_double();
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
+  double actuator_extend_length = this->get_parameter("actuator_extend_length").as_double();
+
 
   teleop_msgs::msg::SetMotor msg;
 
@@ -167,7 +172,7 @@ void DigDumpActionServer::execute(
     case 1: {
       // Dig Autonomy
       double elapsed_time = 0.0;
-      while (elapsed_time < dig_arm_movement_time) {
+      while (*current_front_actuator_position < actuator_extend_length && *current_back_actuator_position < actuator_extend_length) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -193,7 +198,7 @@ void DigDumpActionServer::execute(
       motor_publisher_->publish(stop_msg);
 
       elapsed_time = 0.0;
-      while (elapsed_time < dig_arm_movement_time) {
+      while (*current_front_actuator_position > 0.05 && *current_back_actuator_position > 0.05) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
