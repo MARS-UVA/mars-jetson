@@ -15,7 +15,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     "arm_control_state", 10, std::bind(&DigDumpActionServer::arm_control_callback, this, std::placeholders::_1)
   );
   position_sub_ = this->create_subscription<serial_msgs::msg::Position>(
-    "position", 10, std::bind(&DigDumpActionServer::actuator_position_callback, this, std::placeholders::_1
+    "position", 10, std::bind(&DigDumpActionServer::actuator_position_callback, this, std::placeholders::_1)
   );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
