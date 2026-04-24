@@ -83,8 +83,8 @@ void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmContro
 }
 
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
-  RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
-  RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
+  //RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
+  //RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
   *(this->current_front_actuator_position) = msg->front_actuator_position; // Update the current actuator position
   *(this->current_back_actuator_position) = msg->back_actuator_position; // Update the current actuator position
 }
@@ -141,14 +141,14 @@ void DigDumpActionServer::execute(
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
 
   if (!back_arm_control_state) {
-    RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
+    //RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
     dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
     drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
     drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
     drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
     drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
   } else {
-    RCLCPP_INFO(this->get_logger(), "Back arm control state is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
+    //RCLCPP_INFO(this->get_logger(), "Back arm control state is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
     dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
     drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
     drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
@@ -183,7 +183,7 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
+        //RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
         motor_publisher_->publish(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
