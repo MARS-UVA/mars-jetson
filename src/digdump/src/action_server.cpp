@@ -14,7 +14,12 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   arm_control_sub_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
     "arm_control_state", 10, std::bind(&DigDumpActionServer::arm_control_callback, this, std::placeholders::_1)
   );
-
+  position_sub_ = this->create_subscription<serial_msgs::msg::Position>(
+    "position", 10, [](serial_msgs::msg::Position::SharedPtr msg) {
+      (void)msg;
+      // Position callback currently does nothing but is set up for future use if needed
+    }
+  );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
 
@@ -31,10 +36,12 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   drive_speed = declare_with_desc("drive_speed", 1, "The speed at which the robot drives during the dump autonomy routine from 0-127");
 
   // Time parameters are in seconds
-  dig_arm_movement_time = declare_with_desc("dig_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dig autonomy routine");
   dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
   dump_time = declare_with_desc("dump_time", 5.0, "The amount of time the front drums spend spinning during the dump autonomy routine");
   move_time = declare_with_desc("move_time", 5.0, "The amount of time the robot spends driving during the dump autonomy routine");
+
+  // Actuator extend length is from 0.0-1.0 where 1.0 is fully extended
+  actuator_extend_length = declare_with_desc("actuator_extend_length", 0.0, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended");
 
   teleop_msgs::msg::SetMotor msg;
 
@@ -109,7 +116,6 @@ void DigDumpActionServer::execute(
 {
   goal_active_ = true;
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
-  double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
   double dig_time = this->get_parameter("dig_time").as_double();
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();

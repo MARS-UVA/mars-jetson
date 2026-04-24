@@ -33,10 +33,10 @@ def generate_launch_description():
                     'dig_speed': 100,
                     'dump_speed': 127,
                     'drive_speed': 30,
-                    'dig_arm_movement_time': 20.0,
                     'dig_time': 3.0,
                     'dump_time': 6.0,
                     'move_time': 5.0,
+                    'actuator_extend_length': 0.5,
                 }],
                 respawn=True
             )

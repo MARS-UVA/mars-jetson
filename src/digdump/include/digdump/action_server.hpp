@@ -8,6 +8,7 @@
 #include "teleop_msgs/msg/set_motor.hpp"
 #include "teleop_msgs/msg/motor_changes.hpp"
 #include "teleop_msgs/msg/arm_control.hpp"
+#include "serial_msgs/msg/position.hpp"
 
 class DigDumpActionServer : public rclcpp::Node
 {
@@ -21,15 +22,16 @@ class DigDumpActionServer : public rclcpp::Node
     rcl_interfaces::msg::ParameterDescriptor dig_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dig_arm_movement_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_descriptor;
 
 
   private:
     rclcpp_action::Server<DigDump>::SharedPtr action_server_;
     rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr arm_control_sub_;
+    rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr position_sub_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
     
@@ -49,10 +51,10 @@ class DigDumpActionServer : public rclcpp::Node
     int dump_speed;
     int drive_speed;
 
-    double dig_arm_movement_time;
     double dig_time;
     double dump_time;
     double move_time;
+    double actuator_extend_length;
 
     teleop_msgs::msg::MotorChanges lower_msg;
     teleop_msgs::msg::MotorChanges raise_msg;
