@@ -34,7 +34,7 @@ class udpClient : public rclcpp::Node
         "robot_state", 10, std::bind(&udpClient::robot_state_callback, this, _1)
       );
       armControlSubscription_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
-        "arm_control", 10, std::bind(&udpClient::arm_control_callback, this, _1)
+        "arm_control_state", 10, std::bind(&udpClient::arm_control_callback, this, _1)
       );
     }
     ~udpClient() {
