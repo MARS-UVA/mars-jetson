@@ -7,6 +7,7 @@ from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
+import Jetson.GPIO as GPIO
 
 TESTING = False
 
@@ -21,6 +22,9 @@ TELEOP_MODE = 0
 DIG_MODE = 1
 DUMP_MODE = 2
 ESTOP = 3
+
+SET_PIN = 7
+RESET_PIN = 11
 
 INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
 
@@ -78,6 +82,10 @@ class SerialNode(Node):
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
+        
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], GPIO.LOW) # toggle set button on
 
     def publish_robot_state(self):
         msg = UInt8()
@@ -88,10 +96,16 @@ class SerialNode(Node):
         new_state = robot_state_msg.data
         if self.mode == ESTOP:
             if new_state == ESTOP:
+                GPIO.output(RESET_PIN, GPIO.LOW) # toggle set button on
+                GPIO.output(SET_PIN, GPIO.HIGH)
+                
                 self.mode = TELEOP_MODE
         else:
             self.mode = new_state
             if new_state == ESTOP:
+                GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
+                GPIO.output(RESET_PIN, GPIO.HIGH)
+
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
             
