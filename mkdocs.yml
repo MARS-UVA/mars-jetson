@@ -8,6 +8,10 @@ theme:
 nav:
   - Home: index.md
   - Setup: setup.md
+  - Networking: networking.md
   - DigDump: digdump.md
   - Teleop: teleop.md
   - Messages: messages.md
+  - GStreamer: gstreamer.md
+  - SerialNode: serialnode.md
+  - Startup: startup.md

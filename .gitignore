@@ -35,4 +35,4 @@ assets/**/*.ply
 !assets/ply_samples/*.ply
 
 # don't commit the mkdocs documentation site
-site/
+/site
