@@ -7,7 +7,7 @@ theme:
 
 nav:
   - Home: index.md
-  - Setup: setup.md
+  - WebpageSetup: setup.md
   - Networking: networking.md
   - DigDump: digdump.md
   - Teleop: teleop.md
