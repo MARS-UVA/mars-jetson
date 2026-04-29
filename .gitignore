@@ -17,6 +17,10 @@ log
 
 # Also ignore Python virtual environments
 .venv
+/venv
+
+# Site files get removed
+/site
 
 # macOS filesystem files
 .DS_Store
