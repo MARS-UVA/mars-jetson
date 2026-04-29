@@ -65,6 +65,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#teleop" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -307,6 +312,26 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teleop
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -324,6 +349,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#available-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#teleop_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        teleop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="teleop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -454,6 +554,72 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#available-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#teleop_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        teleop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="teleop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -470,9 +636,74 @@
 
 
 
-  <h1>Teleop</h1>
-
-
+<h1 id="teleop">teleop</h1>
+<p>The <code>teleop</code> package provides a ROS node which processes human input, publishing motor queries for a different node to send to the motors themselves.</p>
+<p>This package has primarily been tested on ROS 2 Jazzy, but it likely also supports Humble.</p>
+<h2 id="available-nodes">Available nodes</h2>
+<h3 id="teleop_1"><code>teleop</code></h3>
+<p>How to execute:</p>
+<pre><code class="language-shell">ros2 run teleop teleop --ros-args linear_axis:=VALUE -p turn_axis:=VALUE -p full_forward_magnitude:=VALUE [-p shape:=VALUE [-p deadband:=VALUE]]
+</code></pre>
+<p>Executable name: <code>teleop</code></p>
+<h4 id="topics">Topics</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Message type</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/teleop</code></td>
+<td><code>teleop_msgs/MotorChanges</code></td>
+<td>This node publishes data to this topic to indicate how the motor currents need to change.</td>
+</tr>
+<tr>
+<td><code>/human_input_state</code></td>
+<td><code>teleop_msgs/HumanInputState</code></td>
+<td>This node subscribes to this topic to obtain human inputs.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="parameters">Parameters</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linear_axis</code></td>
+<td><code>string</code> (read-only)</td>
+<td><strong>Required.</strong> The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted.</td>
+</tr>
+<tr>
+<td><code>turn_axis</code></td>
+<td><code>string</code> (read-only)</td>
+<td><strong>Required.</strong> The axis of the gamepad's inputs which controls linear velocity. Must be one of left_x, left_y, right_x, right_y, left_x_inverted, left_y_inverted, right_x_inverted, right_y_inverted</td>
+</tr>
+<tr>
+<td><code>full_forward_magnitude</code></td>
+<td><code>double</code></td>
+<td><strong>Required.</strong> The magnitude of both wheel's speeds when the user inputs completely forward. This affects the amount of wheel speed which will be devoted to turning. 0 indicates the robot can only spin in place, and 1 indicates the robot can only move forward and backward. Must be between 0 and 1.</td>
+</tr>
+<tr>
+<td><code>shape</code></td>
+<td><code>double</code></td>
+<td>A parameter describing the shape of the curve that converts axis inputs into speeds. The axis input is raised to this power (keeping the sign), so 1 is linear. Must be positive (default: 1).</td>
+</tr>
+<tr>
+<td><code>deadband</code></td>
+<td><code>double</code></td>
+<td>Minimum gamepad axis input below which the input is assumed to be 0 (default: 0.0).</td>
+</tr>
+</tbody>
+</table>
 
 
 

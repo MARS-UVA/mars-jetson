@@ -65,6 +65,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#serial_msgs" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -389,6 +394,24 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SerialNode
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -405,6 +428,67 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#serial_msgs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_msgs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serial_nodeserial_handlerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_node/serial_handler.py:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serial_nodenodepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_node/node.py:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mux-multiplexer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mux (Multiplexer) System
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -455,6 +539,58 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#serial_msgs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_msgs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serial_nodeserial_handlerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_node/serial_handler.py:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serial_nodenodepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serial_node/node.py:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mux-multiplexer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mux (Multiplexer) System
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -472,7 +608,158 @@
 
   <h1>SerialNode</h1>
 
-
+<p>Ethan Edwards; February 15th, 2026; serial_node &amp; serial_msgs</p>
+<h3 id="serial_msgs">serial_msgs</h3>
+<p>Now has three different .msg files:</p>
+<ul>
+<li><strong>CurrentBusVoltage.msg</strong> (header 0x01) ⚡  </li>
+<li>float32 front_left_wheel_current #amps  </li>
+<li>float32 back_left_wheel_current  </li>
+<li>float32 front_right_wheel_current  </li>
+<li>float32 back_right_wheel_current  </li>
+<li>float32 front_drum_current  </li>
+<li>float32 back_drum_current  </li>
+<li>float32 front_actuator_current  </li>
+<li>float32 back_actuator_current  </li>
+<li>float32 main_battery_voltage #volts  </li>
+<li>float32 aux_battery_voltage  </li>
+<li><strong>Temperature.msg</strong> (header 0x02) 🔥  </li>
+<li>float32 front_left_wheel_temperature #°C  </li>
+<li>float32 back_left_wheel_temperature  </li>
+<li>float32 front_right_wheel_temperature  </li>
+<li>float32 back_right_wheel_temperature  </li>
+<li>float32 front_drum_temperature  </li>
+<li>float32 back_drum_temperature  </li>
+<li><strong>Position.msg</strong> (header 0x03) 🌎  </li>
+<li>float32 front_actuator_position # calibrated position  </li>
+<li>float32 back_actuator_position</li>
+</ul>
+<p>The messages are created via the following <a href="https://github.com/MARS-UVA/ESP32S3_25-26/blob/main/ESP-Projects/main/user_libs/uart/serial_feedback_format.md">documentation</a>.</p>
+<p>Each line is a <strong>float32</strong> to account for the four bytes of data for each data piece; first four bytes aren’t written in the message files as they are covered by <strong>serial_node</strong> in order to extract the <strong>header</strong> (documented later). ✍️</p>
+<h3 id="serial_nodeserial_handlerpy">serial_node/serial_handler.py:</h3>
+<p><strong>send</strong> function:<br />
+Writes bytes to Serial to be read later by <strong>readMsg</strong>.</p>
+<p><strong>readMsg</strong> function:<br />
+<strong>readMsg</strong> function accounts for <strong>three different message types</strong>. The message is read from the <strong>self.SER</strong> (Serial) object. The <strong>header</strong> is stored within the <strong>first four bytes</strong>, and is saved to the variable <strong>self.currentHeader</strong> if self.currentHeader is zero (aka, doesn’t have a header stored right now). The actual header info is stored within the byte at <strong>index 1</strong> (as seen in the above documentation), and <strong>readMsg</strong> checks for a message of a <strong>certain length</strong> (either 8 bytes, 24 bytes, or 40 bytes) depending on the header.  📖<br />
+When a full message is received, it is read and returned with the header as a <strong>tuple</strong> of <strong>(header, feedback)</strong>, where header is <strong>4 bytes</strong>, and feedback is a <strong>list</strong> of <strong>4 byte pairs</strong> (to match the .msg file sizes). 📋</p>
+<h3 id="serial_nodenodepy">serial_node/node.py:</h3>
+<p>__init__:<br />
+Subscribes to MotorChanges (from teleop)<br />
+Creates three publishers:</p>
+<ul>
+<li><strong>current_bus_voltage_publisher</strong>  </li>
+<li><strong>temperature_publisher</strong>  </li>
+<li><strong>position_publisher</strong></li>
+</ul>
+<p>Creates timer to run <strong>sendCurrents</strong> and <strong>readFeedback</strong>.</p>
+<p><strong>listener_callback</strong> function:<br />
+Receives a message and stores it as data within the node.</p>
+<p><strong>sendCurrent</strong> function:<br />
+Send data to be written via <strong>serial_node/serial_handler.py</strong>.</p>
+<p><strong>readFeedback</strong> function:<br />
+The <strong>readFeedback</strong> function takes a tuple pair <strong>(header, feedback)</strong> from the <strong>readMsg</strong> function in <strong>serial_node/serial_handler.py</strong>. Using the header (acquired by header[1]), it pairs the feedback with one of the msg classes from <strong>serial_msgs</strong> and publishes it to the publisher. 🐫<br />
+If the header is 0x00 or nonexistent, it sends “no data” to the logger. 😵</p>
+<h3 id="mux-multiplexer-system">Mux (Multiplexer) System</h3>
+<p>The serial node acts as a <strong>multiplexer</strong> that controls which input source gets to drive the motors at any given time. It manages this through a <strong>robot state machine</strong> with four modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TELEOP_MODE</code></td>
+<td>0</td>
+<td>Manual teleop control — motors driven by <code>teleop_buffer_</code></td>
+</tr>
+<tr>
+<td><code>DIG_MODE</code></td>
+<td>1</td>
+<td>Dig autonomy — motors driven by <code>digdump_buffer_</code></td>
+</tr>
+<tr>
+<td><code>DUMP_MODE</code></td>
+<td>2</td>
+<td>Dump autonomy — motors driven by <code>digdump_buffer_</code></td>
+</tr>
+<tr>
+<td><code>ESTOP</code></td>
+<td>3</td>
+<td>Emergency stop — all motors sent <code>MOTOR_STILL</code> (127)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How it works:</strong></p>
+<p>The node subscribes to two independent motor command sources:
+- <strong><code>teleop</code></strong> topic — manual controller input, writes to <code>teleop_buffer_</code>
+- <strong><code>digdump_autonomy</code></strong> topic — autonomy commands (dig or dump), writes to <code>digdump_buffer_</code></p>
+<p>Both buffers are always updated by incoming messages regardless of the current mode. However, <code>sendCurrents</code> (running at 20 Hz) <strong>only forwards the buffer that matches the active mode</strong> to the ESP32 over serial. This means:
+- In <code>TELEOP_MODE</code> → only <code>teleop_buffer_</code> is sent
+- In <code>DIG_MODE</code> or <code>DUMP_MODE</code> → only <code>digdump_buffer_</code> is sent (shared buffer since dig and dump are mutually exclusive)
+- In <code>ESTOP</code> → a constant stop message (<code>[127]*8</code>) is sent, ignoring both buffers</p>
+<p><strong>State transitions</strong> are controlled via the <code>robot_state/toggle</code> topic (UInt8):
+- Send <code>ESTOP</code> messages to toggle/untoggle the <code>ESTOP</code> state
+- From any non-ESTOP mode, sending <code>ESTOP</code> immediately stops all motors and <strong>resets both buffers</strong>
+- From any non-ESTOP mode, sending a different mode value switches to that mode directly</p>
+<p>The current mode is published at 10 Hz on the <code>robot_state</code> topic so other nodes can react to the active mode.</p>
+<p><strong>Topic summary:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Type</th>
+<th>Direction</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>teleop</code></td>
+<td><code>MotorChanges</code></td>
+<td>Subscribe</td>
+<td>Manual motor commands</td>
+</tr>
+<tr>
+<td><code>digdump_autonomy</code></td>
+<td><code>MotorChanges</code></td>
+<td>Subscribe</td>
+<td>Autonomy motor commands</td>
+</tr>
+<tr>
+<td><code>robot_state/toggle</code></td>
+<td><code>UInt8</code></td>
+<td>Subscribe</td>
+<td>Mode change requests</td>
+</tr>
+<tr>
+<td><code>robot_state</code></td>
+<td><code>UInt8</code></td>
+<td>Publish</td>
+<td>Current mode broadcast</td>
+</tr>
+<tr>
+<td><code>current_bus_voltage</code></td>
+<td><code>CurrentBusVoltage</code></td>
+<td>Publish</td>
+<td>Motor current &amp; battery voltage feedback</td>
+</tr>
+<tr>
+<td><code>temperature</code></td>
+<td><code>Temperature</code></td>
+<td>Publish</td>
+<td>Motor temperature feedback</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>Position</code></td>
+<td>Publish</td>
+<td>Actuator position feedback</td>
+</tr>
+</tbody>
+</table>
 
 
 

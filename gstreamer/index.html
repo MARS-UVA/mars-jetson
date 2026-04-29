@@ -65,6 +65,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#gstreamer-node" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -361,6 +366,26 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GStreamer
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -378,6 +403,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#available-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available Nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webrtc_stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webrtc_stream
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="webrtc_stream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -454,6 +543,61 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#available-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available Nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webrtc_stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webrtc_stream
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="webrtc_stream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -470,9 +614,72 @@
 
 
 
-  <h1>GStreamer</h1>
-
-
+<h1 id="gstreamer-node">GStreamer Node</h1>
+<p>This package contains the node we're using to stream video to the UI.
+The node subscribes to a rostopic that publishes images from the webcam,
+and feeds those images into a webrtc stream.\
+GStreamer 1.22 or later is required.</p>
+<h2 id="available-nodes">Available Nodes</h2>
+<h3 id="webrtc_stream"><code>webrtc_stream</code></h3>
+<p>How to run:\
+<code>ros2 run gstreamer webrtc_stream</code></p>
+<h4 id="parameters">Parameters</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>signaling_url</code></td>
+<td><code>string</code></td>
+<td>The url of the signaling server (example: <code>"ws://172.26.38.226:6767"</code>)</td>
+</tr>
+<tr>
+<td><code>video_topic</code></td>
+<td><code>string</code></td>
+<td>The name of the topic the node subscribes to for video frames (default: <code>/camera/image_raw</code>)</td>
+</tr>
+<tr>
+<td><code>bitrate</code></td>
+<td><code>int</code></td>
+<td>The bitrate of the video stream (default: <code>1800000</code>)</td>
+</tr>
+<tr>
+<td><code>stream_height</code></td>
+<td><code>int</code></td>
+<td>The height of the output video stream (default: <code>480</code>)</td>
+</tr>
+<tr>
+<td><code>stream_width</code></td>
+<td><code>int</code></td>
+<td>The width of the output video stream (default: <code>640</code>)</td>
+</tr>
+<tr>
+<td>#### Topics</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Name</td>
+<td>Message Type</td>
+<td>Behavior</td>
+</tr>
+<tr>
+<td>----</td>
+<td>------------</td>
+<td>--------</td>
+</tr>
+<tr>
+<td><code>video_topic</code> parameter</td>
+<td><code>sensor_msgs/Image</code></td>
+<td>The node subscribes to this topic to get the frames for the video stream</td>
+</tr>
+</tbody>
+</table>
 
 
 
