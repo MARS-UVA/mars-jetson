@@ -16,7 +16,10 @@ log
 .devcontainer
 
 # Also ignore Python virtual environments
-.venv
+/venv
+
+# Ignore site files from mkdocks
+/site
 
 # macOS filesystem files
 .DS_Store
