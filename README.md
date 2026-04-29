@@ -1,4 +1,5 @@
 # MARS ROS2 Development Repository
+To view the full documentation, go to mars-uva.github.io/mars-jetson
 
 **main branch is behind feature branches due to independent feature development, please refer to each branch for implementation and documentation**\
 This repository is still in development and documentation is only available for each feature branch. The main branch is behind feature branches and accordingly, please see a feature branch's README.md file for instructions on building and to see implementations:
