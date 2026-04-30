@@ -16,7 +16,7 @@ How to run:\
 ### Test:
 
 First, run net\_node. Open a second terminal, and try publishing the following message.  
-ros2 topic pub \--once /position serial\_msgs/msg/Position "{front\_actuator\_position: "0x0000", back\_actuator\_position: "0x0000"}"
+`ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0000", back_actuator_position: "0x0000"}"`
 
 ## **client.cpp:**
 
