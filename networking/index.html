@@ -324,15 +324,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#net_node" class="md-nav__link">
+  <a href="#udp_client" class="md-nav__link">
     <span class="md-ellipsis">
       
-        net_node
+        udp_client
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="net_node">
+    <nav class="md-nav" aria-label="udp_client">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -340,6 +340,78 @@
     <span class="md-ellipsis">
       
         Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#udp_server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        udp_server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="udp_server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topics_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
       
     </span>
   </a>
@@ -413,7 +485,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
+  <a href="#functions_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -648,15 +720,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#net_node" class="md-nav__link">
+  <a href="#udp_client" class="md-nav__link">
     <span class="md-ellipsis">
       
-        net_node
+        udp_client
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="net_node">
+    <nav class="md-nav" aria-label="udp_client">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -664,6 +736,78 @@
     <span class="md-ellipsis">
       
         Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#udp_server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        udp_server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="udp_server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topics_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
       
     </span>
   </a>
@@ -737,7 +881,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
+  <a href="#functions_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -783,9 +927,9 @@
 <h1 id="network-communication-node">Network Communication Node</h1>
 <p>This package contains the code for sending and receiving data to and from the UI</p>
 <h2 id="available-nodes">Available Nodes</h2>
-<h3 id="net_node"><code>net_node</code></h3>
+<h3 id="udp_client"><code>udp_client</code></h3>
 <p>How to run:\
-<code>ros2 run network_communication net_node</code></p>
+<code>ros2 run network_communication udp_client</code></p>
 <h4 id="topics">Topics</h4>
 <table>
 <thead>
@@ -811,11 +955,97 @@
 <td><code>serial_msgs/Position</code></td>
 <td>The node subscribes to this topic to get actuator position feedback</td>
 </tr>
+<tr>
+<td>robot_state</td>
+<td><code>std_msgs/UInt8</code></td>
+<td>The node subscribes to robot_state from the serial_node to get mux node state feedback</td>
+</tr>
+<tr>
+<td>arm_control_state</td>
+<td><code>teleop_msgs/ArmControl</code></td>
+<td>The node subscribes to this topic to get the current arm being controlled by teleop to send back as feedback</td>
+</tr>
 </tbody>
 </table>
+<h4 id="variables">Variables</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FeedbackByteIndices</td>
+<td>enum</td>
+<td>Contains the indices for all the positions inside of the buffer</td>
+</tr>
+<tr>
+<td>connection_headers</td>
+<td>struct</td>
+<td>Contains the client file descriptor and the address of the control station</td>
+</tr>
+<tr>
+<td>buffer</td>
+<td>unsigned char[]</td>
+<td>Contains the data to be sent over the Socket</td>
+</tr>
+<tr>
+<td>timer_</td>
+<td>rclcpp::TimerBase::SharedPtr</td>
+<td>A wall timer to call the timer_callback function after a set time passes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="functions">Functions</h4>
+<p><strong>create_connection_headers(int port)</strong>:\
+Pulls the <strong>CONTROL_STATION_IP</strong> environment variable and fills the <strong>connection_headers</strong> variable with the socket file descriptor and the control_station_addr with a given port.</p>
+<p><strong>client_send</strong>:\
+Given a <strong>buffer's data</strong>, attempt sending it over the socket stored in <strong>connection_headers</strong>. TODO: put fields into the message header.</p>
+<p><strong>current_bus_callback</strong>:\
+Given a message to topic <code>current_bus_voltage</code>, fill <strong>buffer</strong> with the message data.</p>
+<p><strong>temperature_callback</strong>:\
+Given a message to topic <code>temperature</code>, fill <strong>buffer</strong> with the message data.</p>
+<p><strong>position_callback</strong>:\
+Given a message to topic <code>posiiton</code>, fill <strong>buffer</strong> with the message data.</p>
+<p><strong>robot_state_callback</strong>:\
+Given a message to topic <code>robot_state</code>, fill <strong>buffer</strong> with the message data.</p>
+<p><strong>arm_control_callback</strong>:\
+Given a message to topic <code>arm_control_state</code>, fill <strong>buffer</strong> with the message data.</p>
+<p><strong>timer_callback</strong>:\
+Sends the current buffer data through the <strong>client_send</strong> function.</p>
+<h3 id="udp_server"><code>udp_server</code></h3>
+<p>How to run:\
+<code>ros2 run network_communication udp_server</code></p>
+<h4 id="topics_1">Topics</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Message Type</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>robot_state/toggle</td>
+<td><code>std_msgs/UInt8</code></td>
+<td>The node publishes to this topic to update the mux node state</td>
+</tr>
+<tr>
+<td>human_input_state</td>
+<td><code>teleop_msgs/HumanInputState</code></td>
+<td>The node publishes to this topic to send controller inputs to the teleop node</td>
+</tr>
+</tbody>
+</table>
+<h4 id="variables_1">Variables</h4>
+<h4 id="functions_1">Functions</h4>
 <h3 id="test">Test:</h3>
 <p>First, run net_node. Open a second terminal, and try publishing the following message.<br />
-ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0000", back_actuator_position: "0x0000"}"</p>
+<code>ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0000", back_actuator_position: "0x0000"}"</code></p>
 <h2 id="clientcpp"><strong>client.cpp:</strong></h2>
 <p><strong>ConnectionHeaders</strong><br />
 {<br />
@@ -862,7 +1092,7 @@ Runs <strong>timer_callback</strong> every 10ms and publishes to <strong>human_i
 </ul>
 <p><strong>unsigned char* buffer</strong>:<br />
 Stores the data received from the subscriptions. Indexes are stored in <strong>main.hpp</strong> within FeedbackByte Indices.</p>
-<h3 id="functions">Functions</h3>
+<h3 id="functions_2">Functions</h3>
 <p><strong>current_bus_voltage_callback</strong>:<br />
 Updates buffer with data received from <strong>current_bus_voltage publisher</strong>, then runs <strong>client.cpp/client_send</strong>.</p>
 <p><strong>temperature_callback</strong>:<br />
