@@ -7,6 +7,8 @@ theme:
 
 nav:
   - Home: index.md
+  - Startup: startup.md
+  - Troubleshooting: troubleshooting.md
   - WebpageSetup: setup.md
   - Networking: networking.md
   - DigDump: digdump.md
@@ -14,4 +16,4 @@ nav:
   - Messages: messages.md
   - GStreamer: gstreamer.md
   - SerialNode: serialnode.md
-  - Startup: startup.md
+  
