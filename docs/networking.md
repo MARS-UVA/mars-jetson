@@ -82,9 +82,23 @@ Given an **int action_type**, send the associated goal to the DigDump action ser
 Assuming a goal is running, cancels the goal asynchronously.
 
 **runServer**: <br>
-Starts the server. TODO: Better documentation here.
+Starts the server, and listens for new messages. TODO: Better documentation here.
 
 ### Test:
 
-First, run `udp_client`. Open a second terminal, and try publishing the following message.  
-`ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0010", back_actuator_position: "0x0010"}"`
+#### UDP Client Test
+Make sure the **CONTROL_STATION_IP** environment variable is set before running the `udp_client`.
+To test `udp_client`, run `udp_client` using the command listed above. Open a second terminal, and try publishing the following message.  
+<br>
+`ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0010", back_actuator_position: "0x0010"}"` 
+<br>
+<br>
+Assuming the Control Station is running with a compatible branch, the Actuator Position graph should update.
+
+#### UDP Server Test
+Open two terminals. On one terminal, run the `udp_server` node. On the other, run:
+<br>
+`ros2 topic echo /human_input_state`
+<br>
+<br>
+Run the control station with a compatible branch, connect a controller. The topic `/human_input_state` should have data being published.
