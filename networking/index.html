@@ -432,6 +432,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Test:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#udp-client-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDP Client Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#udp-server-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDP Server Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -756,6 +784,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Test:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#udp-client-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDP Client Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#udp-server-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDP Server Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -944,10 +1000,23 @@ Given an <strong>int action_type</strong>, send the associated goal to the DigDu
 <p><strong>cancel_goal</strong>: <br>
 Assuming a goal is running, cancels the goal asynchronously.</p>
 <p><strong>runServer</strong>: <br>
-Starts the server. TODO: Better documentation here.</p>
+Starts the server, and listens for new messages. TODO: Better documentation here.</p>
 <h3 id="test">Test:</h3>
-<p>First, run <code>udp_client</code>. Open a second terminal, and try publishing the following message.<br />
-<code>ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0010", back_actuator_position: "0x0010"}"</code></p>
+<h4 id="udp-client-test">UDP Client Test</h4>
+<p>Make sure the <strong>CONTROL_STATION_IP</strong> environment variable is set before running the <code>udp_client</code>.
+To test <code>udp_client</code>, run <code>udp_client</code> using the command listed above. Open a second terminal, and try publishing the following message.<br />
+<br>
+<code>ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0010", back_actuator_position: "0x0010"}"</code> 
+<br>
+<br>
+Assuming the Control Station is running with a compatible branch, the Actuator Position graph should update.</p>
+<h4 id="udp-server-test">UDP Server Test</h4>
+<p>Open two terminals. On one terminal, run the <code>udp_server</code> node. On the other, run:
+<br>
+<code>ros2 topic echo /human_input_state</code>
+<br>
+<br>
+Run the control station with a compatible branch, connect a controller. The topic <code>/human_input_state</code> should have data being published.</p>
 
 
 
