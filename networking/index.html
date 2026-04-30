@@ -439,78 +439,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#clientcpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        client.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#frame_sendercpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        frame_sender.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#net_nodecpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        net_node.cpp:
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="net_node.cpp:">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Initialization:
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Functions
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#servercpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        server.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -835,78 +763,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#clientcpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        client.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#frame_sendercpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        frame_sender.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#net_nodecpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        net_node.cpp:
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="net_node.cpp:">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Initialization:
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Functions
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#servercpp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        server.cpp:
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -928,7 +784,7 @@
 <p>This package contains the code for sending and receiving data to and from the UI</p>
 <h2 id="available-nodes">Available Nodes</h2>
 <h3 id="udp_client"><code>udp_client</code></h3>
-<p>How to run:\
+<p>How to run: <br>
 <code>ros2 run network_communication udp_client</code></p>
 <h4 id="topics">Topics</h4>
 <table>
@@ -1000,24 +856,24 @@
 </tbody>
 </table>
 <h4 id="functions">Functions</h4>
-<p><strong>create_connection_headers(int port)</strong>:\
+<p><strong>create_connection_headers(int port)</strong>: <br>
 Pulls the <strong>CONTROL_STATION_IP</strong> environment variable and fills the <strong>connection_headers</strong> variable with the socket file descriptor and the control_station_addr with a given port.</p>
-<p><strong>client_send</strong>:\
+<p><strong>client_send</strong>: <br>
 Given a <strong>buffer's data</strong>, attempt sending it over the socket stored in <strong>connection_headers</strong>. TODO: put fields into the message header.</p>
-<p><strong>current_bus_callback</strong>:\
+<p><strong>current_bus_callback</strong>: <br>
 Given a message to topic <code>current_bus_voltage</code>, fill <strong>buffer</strong> with the message data.</p>
-<p><strong>temperature_callback</strong>:\
+<p><strong>temperature_callback</strong>: <br>
 Given a message to topic <code>temperature</code>, fill <strong>buffer</strong> with the message data.</p>
-<p><strong>position_callback</strong>:\
+<p><strong>position_callback</strong>: <br>
 Given a message to topic <code>posiiton</code>, fill <strong>buffer</strong> with the message data.</p>
-<p><strong>robot_state_callback</strong>:\
+<p><strong>robot_state_callback</strong>: <br>
 Given a message to topic <code>robot_state</code>, fill <strong>buffer</strong> with the message data.</p>
-<p><strong>arm_control_callback</strong>:\
+<p><strong>arm_control_callback</strong>: <br>
 Given a message to topic <code>arm_control_state</code>, fill <strong>buffer</strong> with the message data.</p>
-<p><strong>timer_callback</strong>:\
+<p><strong>timer_callback</strong>: <br>
 Sends the current buffer data through the <strong>client_send</strong> function.</p>
 <h3 id="udp_server"><code>udp_server</code></h3>
-<p>How to run:\
+<p>How to run: <br>
 <code>ros2 run network_communication udp_server</code></p>
 <h4 id="topics_1">Topics</h4>
 <table>
@@ -1042,74 +898,56 @@ Sends the current buffer data through the <strong>client_send</strong> function.
 </tbody>
 </table>
 <h4 id="variables_1">Variables</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>server_active</td>
+<td>bool</td>
+<td>Stores whether the server is active</td>
+</tr>
+<tr>
+<td>current_action_state</td>
+<td>uint8_t</td>
+<td>Stores the current action state, 0 = teleop, 1 = dig, 2 = dump, 3 = estop</td>
+</tr>
+<tr>
+<td>client_ptr_</td>
+<td>rclcpp_action::Client<DigDump>::SharedPtr</td>
+<td>Contains a pointer to the <code>DigDump Action Client</code></td>
+</tr>
+<tr>
+<td>action_timer_</td>
+<td>rclcpp::TimerBase::SharedPtr</td>
+<td>A wall timer to call the action_timer_callback</td>
+</tr>
+<tr>
+<td>server_thread_</td>
+<td>std::thread</td>
+<td>A thread that runs the udp server</td>
+</tr>
+</tbody>
+</table>
 <h4 id="functions_1">Functions</h4>
+<p><strong>action_timer_callback</strong>: <br>
+If there is an action_update, update current_action_state and send the new goal.</p>
+<p><strong>goal_response_callback</strong>: <br>
+When the DigDump action_server sends a goal_response, store the goal_handle if the goal was accepted.</p>
+<p><strong>send_goal</strong>: <br>
+Given an <strong>int action_type</strong>, send the associated goal to the DigDump action serer</p>
+<p><strong>cancel_goal</strong>: <br>
+Assuming a goal is running, cancels the goal asynchronously.</p>
+<p><strong>runServer</strong>: <br>
+Starts the server. TODO: Better documentation here.</p>
 <h3 id="test">Test:</h3>
-<p>First, run net_node. Open a second terminal, and try publishing the following message.<br />
-<code>ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0000", back_actuator_position: "0x0000"}"</code></p>
-<h2 id="clientcpp"><strong>client.cpp:</strong></h2>
-<p><strong>ConnectionHeaders</strong><br />
-{<br />
-    int client_socket_fd;<br />
-    struct sockaddr_in control_station_addr;<br />
-} <br />
-Stores client socket file descriptor and the socket_address for the control station in a struct.</p>
-<p><strong>create_connection_headers</strong> function:<br />
-Pass in a port, and return a <strong>ConnectionHeaders</strong> struct.</p>
-<p><strong>DataHeader</strong><br />
-{<br />
-    uint16_t packetToSend;<br />
-    uint16_t totalPacketsToSend;<br />
-    uint16_t fragmentSize;<br />
-    uint32_t crc;<br />
-}<br />
-Stores the current packet to send, how many packets to send, and the size of the packet to send. Also stores the crc to check data corruption.</p>
-<p><strong>HEADER_SIZE sizeof(DataHeader):</strong><br />
-Stores the size of DataHeader.</p>
-<p><strong>crc32bit</strong> function:<br />
-Creates a crc32bit to check if there was corrupted data.</p>
-<p><strong>client_send</strong> function:<br />
-Pass in the data (stored as a buffer), the size of the data, and the port to send it through to. Creates a port using <strong>create_connection_headers</strong> to send the data to the control-station.<br />
-Currently has mostly deprecated code to account for multiple packets being sent for image data (currently only one packet is sent).</p>
-<h2 id="frame_sendercpp"><strong>frame_sender.cpp:</strong></h2>
-<p>Deprecated. Purpose was to send image frames which is no longer necessary.</p>
-<h2 id="net_nodecpp"><strong>net_node.cpp:</strong></h2>
-<h3 id="initialization">Initialization:</h3>
-<p><strong>create_publisher (“human_input_state”)</strong>:<br />
-Publishes the current human_input_state.</p>
-<p><strong>create_wall_timer</strong>:<br />
-Runs <strong>timer_callback</strong> every 10ms and publishes to <strong>human_input_state</strong>.</p>
-<p>Subscribes to:</p>
-<ul>
-<li><strong>current_bus_voltage</strong>  </li>
-<li>serial_msgs/CurrentBusVoltage.msg  </li>
-<li>Runs <strong>current_bus_voltage_callback</strong> on reception  </li>
-<li><strong>temperature</strong>  </li>
-<li>serial_msgs/Temperature.msg  </li>
-<li>Runs <strong>temperature_callback</strong> on reception  </li>
-<li><strong>position</strong>  </li>
-<li>serial_msgs/Position.msg  </li>
-<li>Runs <strong>position_callback</strong> on reception</li>
-</ul>
-<p><strong>unsigned char* buffer</strong>:<br />
-Stores the data received from the subscriptions. Indexes are stored in <strong>main.hpp</strong> within FeedbackByte Indices.</p>
-<h3 id="functions_2">Functions</h3>
-<p><strong>current_bus_voltage_callback</strong>:<br />
-Updates buffer with data received from <strong>current_bus_voltage publisher</strong>, then runs <strong>client.cpp/client_send</strong>.</p>
-<p><strong>temperature_callback</strong>:<br />
-Updates buffer with data received from <strong>temperature publisher</strong>, then runs <strong>client.cpp/client_send</strong>.</p>
-<p><strong>position_callback</strong>:<br />
-Updates buffer with data received from <strong>position publisher</strong>, then runs <strong>client.cpp/client_send</strong>.</p>
-<p><strong>timer_callback</strong>:<br />
-Somehow gets data? Then publishes it to <strong>human_input_state</strong>.</p>
-<h2 id="servercpp"><strong>server.cpp:</strong></h2>
-<p><strong>ThreadInfo</strong> {<br />
-char client_message[100000];<br />
-    bool flag;<br />
-}<br />
-client_message: possibly new data that is extractable<br />
-flag: if data is new, true</p>
-<p><strong>create_server</strong> function:<br />
-Opens a server, and while the server is running, gets data. If data is set to <strong>ThreadInfo-&gt;client_message</strong>, set flag to true for other files to know to receive new data.</p>
+<p>First, run <code>udp_client</code>. Open a second terminal, and try publishing the following message.<br />
+<code>ros2 topic pub --once /position serial_msgs/msg/Position "{front_actuator_position: "0x0010", back_actuator_position: "0x0010"}"</code></p>
 
 
 
