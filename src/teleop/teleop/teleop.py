@@ -209,15 +209,15 @@ class TeleopNode(Node):
         if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
             if not self.arms_raising:
                 self.arms_raising = True
-                raise_arms(120, self.front_arm_control, self.back_arm_control, motor_msg)
+                raise_arms(120, True, True, motor_msg)
             elif self.arms_raising:
                 self.arms_raising = False
-                raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
+                raise_arms(0, True, True, motor_msg)
 
         if self.arms_raising:
             if abs(rightStickY) > 0.2:
                 self.arms_raising = False
-                raise_arms(120 * rightStickY, self.front_arm_control, self.back_arm_control, motor_msg)
+                raise_arms(0, True, True, motor_msg)
         # Raise Bucket Drum Arm(s)
         if not self.arms_raising:
             if abs(rightStickY) > 0.2:
