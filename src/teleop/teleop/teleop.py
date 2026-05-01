@@ -163,6 +163,8 @@ class TeleopNode(Node):
             self._motor_publisher.publish(stop_motors())
             self.cruise_control = False
             self.arms_raising = False
+            self.digging = False
+            self.dumping = False
             return
         wheel_speeds = self.__drive_control_strategy.get_wheel_speeds(human_input_state.gamepad_state) #spin wheels
 
@@ -173,14 +175,20 @@ class TeleopNode(Node):
         if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
             self.front_arm_control = True
             self.back_arm_control = True
+            self.digging = False
+            self.dumping = False
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
             self.front_arm_control = True
             self.back_arm_control = False
+            self.digging = False
+            self.dumping = False
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         elif gamepad_state.b_pressed and not self.prev_gamepad_state.b_pressed:
             self.front_arm_control = False
             self.back_arm_control = True
+            self.digging = False
+            self.dumping = False
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         
         self._arm_control_state_publisher.publish(ArmControl(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control))
@@ -200,22 +208,25 @@ class TeleopNode(Node):
             self.dumping = False
 
         if self.dumping:
-            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = False)
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = False)
         elif self.digging:
-            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = True)
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = True)
 
-        if gamepad_state.dl_pressed and not self.prev_gamepad_state.dd_pressed:
+        if gamepad_state.dl_pressed and not self.prev_gamepad_state.dl_pressed:
             self.get_logger().info("bucket drum full throttle backwards")
             self.dumping = not self.dumping
             self.digging = False
-        elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dl_pressed:
+        elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dr_pressed:
             self.get_logger().info("bucket drum full throttle forward")
             self.digging = not self.digging
             self.dumping = False
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
+            self.digging = False
+            self.dumping = False
         self.get_logger().info(f'Calculated: {wheel_speeds}')
+        
         
         rightStickY = gamepad_state.right_stick.y
 
