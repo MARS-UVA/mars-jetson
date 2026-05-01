@@ -85,8 +85,7 @@ class SerialNode(Node):
         
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
-        GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
-        GPIO.output(RESET_PIN, GPIO.HIGH)
+        self.gpio_estop()
 
 
     def publish_robot_state(self):
@@ -98,15 +97,13 @@ class SerialNode(Node):
         new_state = robot_state_msg.data
         if self.mode == ESTOP:
             if new_state == ESTOP:
-                GPIO.output(RESET_PIN, GPIO.LOW) # toggle set button on
-                GPIO.output(SET_PIN, GPIO.HIGH)
+                self.gpio_unestop()
                 
                 self.mode = TELEOP_MODE
         else:
             self.mode = new_state
             if new_state == ESTOP:
-                GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
-                GPIO.output(RESET_PIN, GPIO.HIGH)
+                self.gpio_estop()
 
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
@@ -180,7 +177,14 @@ class SerialNode(Node):
                 self.position_publisher.publish(mf)
         else:
             self.get_logger().debug("no data")
-        
+    
+    def gpio_estop(self):
+        GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
+        GPIO.output(RESET_PIN, GPIO.HIGH)
+
+    def gpio_unestop(self):
+        GPIO.output(RESET_PIN, GPIO.LOW) # toggle set button on
+        GPIO.output(SET_PIN, GPIO.HIGH)
 
 def main(args=None):
     rclpy.init(args=args)
