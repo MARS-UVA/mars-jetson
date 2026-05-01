@@ -9,7 +9,7 @@ from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
 import Jetson.GPIO as GPIO
 
-TESTING = True
+TESTING = False
 
 NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
