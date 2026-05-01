@@ -18,7 +18,8 @@ class DigDumpActionServer : public rclcpp::Node
 
     rcl_interfaces::msg::ParameterDescriptor lower_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor raise_speed_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dig_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_speed_lowering_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_speed_lowered_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_arm_movement_time_descriptor;
@@ -45,7 +46,8 @@ class DigDumpActionServer : public rclcpp::Node
 
     // Parameter values
     int actuator_speed;
-    int dig_speed;
+    int dig_speed_lowering;
+    int dig_speed_lowered;
     int dump_speed;
     int drive_speed;
 

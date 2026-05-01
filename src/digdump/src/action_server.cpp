@@ -26,7 +26,8 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
 
   // Speed is from 0-127 where 0 is stopped and 127 is maximum speed
   actuator_speed = declare_with_desc("actuator_speed", 1, "The speed at which the arms lower/raise during dig/dump autonomy routine from 0-127");
-  dig_speed = declare_with_desc("dig_speed", 1, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
+  dig_speed_lowering = declare_with_desc("dig_speed_lowering", 1, "The speed at which the front drums spin during the dig autonomy routine while arms are lowering from 0-127");
+  dig_speed_lowered = declare_with_desc("dig_speed_lowered", 1, "The speed at which the front drums spin during the dig autonomy routine while the arms are lowered from 0-127");
   dump_speed = declare_with_desc("dump_speed", 1, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
   drive_speed = declare_with_desc("drive_speed", 1, "The speed at which the robot drives during the dump autonomy routine from 0-127");
 
@@ -118,11 +119,12 @@ void DigDumpActionServer::execute(
 
   lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
   lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
-  lower_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  lower_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  lower_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed_lowering").as_int() + 127;
+  lower_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed_lowering").as_int() + 127;
   raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
   raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed_lowered").as_int() + 127;
+  dig_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed_lowered").as_int() + 127;
 
   if (!back_arm_control_state) {
     RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
