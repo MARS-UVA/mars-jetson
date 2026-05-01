@@ -175,21 +175,12 @@ class TeleopNode(Node):
         if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
             self.front_arm_control = True
             self.back_arm_control = True
-            self.digging = False
-            self.dumping = False
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
             self.front_arm_control = True
             self.back_arm_control = False
-            self.digging = False
-            self.dumping = False
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         elif gamepad_state.b_pressed and not self.prev_gamepad_state.b_pressed:
             self.front_arm_control = False
             self.back_arm_control = True
-            self.digging = False
-            self.dumping = False
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
         
         self._arm_control_state_publisher.publish(ArmControl(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control))
         
