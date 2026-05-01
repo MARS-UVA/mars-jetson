@@ -67,6 +67,7 @@ class TeleopNode(Node):
         self.prev_gamepad_state : GamepadState = GamepadState()
         self.front_arm_control = True
         self.back_arm_control = True
+        self.arms_raising = False
         self.MAX_EMPTY_UPDATES = 30
         self.emptyUpdatesSent = 0
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -204,13 +205,21 @@ class TeleopNode(Node):
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
         rightStickY = gamepad_state.right_stick.y
+
+        if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
+            if not self.arms_raising:
+                self.arms_raising = True
+                raise_arms(120, self.front_arm_control, self.back_arm_control, motor_msg)
+            elif self.arms_raising:
+                self.arms_raising = False
+                raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
+
         # Raise and Lower Bucket Drum Arm(s)
-        if rightStickY > 0.2:
-            raise_arms(+15, self.front_arm_control, self.back_arm_control, motor_msg)     
-        elif rightStickY < -0.2:
-            raise_arms(-15, self.front_arm_control, self.back_arm_control, motor_msg)
-        else:
-            raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
+        if not self.arms_raising:
+            if abs(rightStickY) > 0.2:
+                raise_arms(120 * rightStickY, self.front_arm_control, self.back_arm_control, motor_msg)     
+            else:
+                raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
         
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
