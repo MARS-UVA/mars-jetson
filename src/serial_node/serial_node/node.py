@@ -85,7 +85,9 @@ class SerialNode(Node):
         
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
-        GPIO.output([SET_PIN, RESET_PIN], GPIO.LOW) # toggle set button on
+        GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
+        GPIO.output(RESET_PIN, GPIO.HIGH)
+
 
     def publish_robot_state(self):
         msg = UInt8()
