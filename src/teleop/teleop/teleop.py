@@ -68,6 +68,8 @@ class TeleopNode(Node):
         self.front_arm_control = True
         self.back_arm_control = True
         self.arms_raising = False
+        self.dumping = False
+        self.digging = False
         self.MAX_EMPTY_UPDATES = 30
         self.emptyUpdatesSent = 0
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -188,18 +190,28 @@ class TeleopNode(Node):
         if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum backwards
             self.get_logger().info("bucket drum -15")
             increment_drum_spin(-15, self.front_arm_control, self.back_arm_control, motor_msg)
+            self.digging = False
+            self.dumping = False
             
         elif gamepad_state.rb_pressed and  not self.prev_gamepad_state.rb_pressed: #spin bucket drum forward
             self.get_logger().info("bucket drum +15")
             increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+            self.digging = False
+            self.dumping = False
+
+        if self.dumping:
+            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = False)
+        elif self.digging:
+            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = True)
 
         if gamepad_state.dl_pressed and not self.prev_gamepad_state.dd_pressed:
             self.get_logger().info("bucket drum full throttle backwards")
-            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = False)
+            self.dumping = not self.dumping
+            self.digging = False
         elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dl_pressed:
             self.get_logger().info("bucket drum full throttle forward")
-            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = True)
-
+            self.digging = not self.digging
+            self.dumping = False
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
             stop_drum_spin(self.front_arm_control, self.back_arm_control, motor_msg)
