@@ -9,7 +9,7 @@ from teleop_msgs.msg import HumanInputState, MotorChanges, SetMotor, GamepadStat
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, stop_drum_spin, increment_drum_spin#, bucket_drum_speed_cruise_control
+from .motor_queries import wheel_speed_to_motor_queries, raise_arms, stop_motors, stop_drum_spin, increment_drum_spin, max_drum_spin#, bucket_drum_speed_cruise_control
 
 
 class TeleopNode(Node):
@@ -190,6 +190,13 @@ class TeleopNode(Node):
         elif gamepad_state.rb_pressed and  not self.prev_gamepad_state.rb_pressed: #spin bucket drum forward
             self.get_logger().info("bucket drum +15")
             increment_drum_spin(+15, self.front_arm_control, self.back_arm_control, motor_msg)
+
+        if gamepad_state.dl_pressed and not self.prev_gamepad_state.dd_pressed:
+            self.get_logger().info("bucket drum full throttle backwards")
+            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = False)
+        elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dl_pressed:
+            self.get_logger().info("bucket drum full throttle forward")
+            max_drum_spin(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control, msg = motor_msg, forward = True)
 
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
