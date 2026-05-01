@@ -24,7 +24,7 @@ def bucket_actuator_speed(human_input: HumanInputState) -> SetMotor:
 
 # Raises the arms of the robot
 def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: MotorChanges) -> None:
-    arm_velocity = 127 + velocity
+    arm_velocity = int(127 + velocity)
     if front_arm:
         msg.changes.append(SetMotor(index=SetMotor.ARM_FRONT_ACTUATOR, velocity=arm_velocity))
     if back_arm:

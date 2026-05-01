@@ -206,25 +206,24 @@ class TeleopNode(Node):
         
         rightStickY = gamepad_state.right_stick.y
 
-        if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
-            if not self.arms_raising:
-                self.arms_raising = True
-                raise_arms(120, True, True, motor_msg)
-            elif self.arms_raising:
-                self.arms_raising = False
-                raise_arms(0, True, True, motor_msg)
 
         if self.arms_raising:
-            if abs(rightStickY) > 0.2:
-                self.arms_raising = False
-                raise_arms(0, True, True, motor_msg)
+            raise_arms(120, True, True, motor_msg)
+
+        if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
+            self.arms_raising = not self.arms_raising
+        
         # Raise Bucket Drum Arm(s)
         if not self.arms_raising:
             if abs(rightStickY) > 0.2:
                 raise_arms(120 * rightStickY, self.front_arm_control, self.back_arm_control, motor_msg)     
             else:
                 raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
-        
+        else:
+            if abs(rightStickY) > 0.2:
+                self.arms_raising = False
+                raise_arms(0, True, True, motor_msg)
+
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
             # self._motor_publisher.publish(stop_motors()) #this happens on the next tick anyway
