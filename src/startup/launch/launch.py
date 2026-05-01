@@ -30,7 +30,8 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{
                     'actuator_speed': 127,
-                    'dig_speed': 100,
+                    'dig_speed_lowering': 100,
+                    'dig_speed_lowered': 75,
                     'dump_speed': 127,
                     'drive_speed': 30,
                     'dig_arm_movement_time': 20.0,
