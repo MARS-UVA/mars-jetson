@@ -214,7 +214,11 @@ class TeleopNode(Node):
                 self.arms_raising = False
                 raise_arms(0, self.front_arm_control, self.back_arm_control, motor_msg)
 
-        # Raise and Lower Bucket Drum Arm(s)
+        if self.arms_raising:
+            if abs(rightStickY) > 0.2:
+                self.arms_raising = False
+                raise_arms(120 * rightStickY, self.front_arm_control, self.back_arm_control, motor_msg)
+        # Raise Bucket Drum Arm(s)
         if not self.arms_raising:
             if abs(rightStickY) > 0.2:
                 raise_arms(120 * rightStickY, self.front_arm_control, self.back_arm_control, motor_msg)     
