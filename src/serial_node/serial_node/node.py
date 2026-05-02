@@ -8,7 +8,6 @@ from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
 import Jetson.GPIO as GPIO
-import asyncio
 
 TESTING = False
 
