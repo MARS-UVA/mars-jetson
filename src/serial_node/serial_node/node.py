@@ -8,6 +8,7 @@ from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
 import Jetson.GPIO as GPIO
+import asyncio
 
 TESTING = False
 
@@ -34,7 +35,7 @@ class SerialNode(Node):
         super().__init__('serial_mux')
 
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
-        self.mode = TELEOP_MODE
+        self.mode = ESTOP
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
@@ -82,9 +83,9 @@ class SerialNode(Node):
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
-        
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+
+        self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
+        self.gpio_cleanup_timer.cancel()
         self.gpio_estop()
 
 
@@ -179,12 +180,21 @@ class SerialNode(Node):
             self.get_logger().debug("no data")
     
     def gpio_estop(self):
-        GPIO.output(SET_PIN, GPIO.LOW) # toggle reset button on
-        GPIO.output(RESET_PIN, GPIO.HIGH)
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
+        self.gpio_cleanup_timer.reset()
+
 
     def gpio_unestop(self):
-        GPIO.output(RESET_PIN, GPIO.LOW) # toggle set button on
-        GPIO.output(SET_PIN, GPIO.HIGH)
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
+        self.gpio_cleanup_timer.reset()
+
+    def clean_up_gpio(self):
+        GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low
+        self.gpio_cleanup_timer.cancel()
 
 def main(args=None):
     rclpy.init(args=args)
