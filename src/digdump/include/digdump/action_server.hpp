@@ -17,16 +17,17 @@ class DigDumpActionServer : public rclcpp::Node
   public:
     explicit DigDumpActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-    rcl_interfaces::msg::ParameterDescriptor lower_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_speed_aerial_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_speed_ground_descriptor;
     rcl_interfaces::msg::ParameterDescriptor raise_speed_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dig_speed_lowering_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dig_speed_lowered_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor dig_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_aerial_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_ground_descriptor;
 
 
   private:
@@ -47,16 +48,17 @@ class DigDumpActionServer : public rclcpp::Node
     rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr cancel_sub_;
 
     // Parameter values
-    int actuator_speed;
-    int dig_speed_lowering;
-    int dig_speed_lowered;
+    int actuator_speed_aerial;
+    int actuator_speed_ground;
+    int dig_speed;
     int dump_speed;
     int drive_speed;
 
     double dig_time;
     double dump_time;
     double move_time;
-    double actuator_extend_length;
+    double actuator_extend_length_aerial;
+    double actuator_extend_length_ground;
 
     // tracker for current actuator position as a pointer to update while on another thread
     double *current_front_actuator_position;

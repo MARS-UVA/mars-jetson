@@ -27,9 +27,9 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   };
 
   // Speed is from 0-127 where 0 is stopped and 127 is maximum speed
-  actuator_speed = declare_with_desc("actuator_speed", 1, "The speed at which the arms lower/raise during dig/dump autonomy routine from 0-127");
-  dig_speed_lowering = declare_with_desc("dig_speed_lowering", 1, "The speed at which the front drums spin during the dig autonomy routine while arms are lowering from 0-127");
-  dig_speed_lowered = declare_with_desc("dig_speed_lowered", 1, "The speed at which the front drums spin during the dig autonomy routine while the arms are lowered from 0-127");
+  actuator_speed_aerial = declare_with_desc("actuator_speed_aerial", 1, "The speed at which the arms lower during dig autonomy routine before reaching ground from 0-127");
+  actuator_speed_ground = declare_with_desc("actuator_speed_ground", 1, "The speed at which the arms lower during dig autonomy routine after reaching ground from 0-127");
+  dig_speed = declare_with_desc("dig_speed", 1, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
   dump_speed = declare_with_desc("dump_speed", 1, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
   drive_speed = declare_with_desc("drive_speed", 1, "The speed at which the robot drives during the dump autonomy routine from 0-127");
 
@@ -39,7 +39,8 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   move_time = declare_with_desc("move_time", 5.0, "The amount of time the robot spends driving during the dump autonomy routine");
 
   // Actuator extend length is from 0.0-1.0 where 1.0 is fully extended
-  actuator_extend_length = declare_with_desc("actuator_extend_length", 0.0, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended");
+  actuator_extend_length_aerial = declare_with_desc("actuator_extend_length_aerial", 0.5, "The length that the actuator extends during the dig autonomy routine from 0.0-1.0 where 1.0 is fully extended-- should be the ground position");
+  actuator_extend_length_ground = declare_with_desc("actuator_extend_length_ground", 0.75, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended-- should be fully extended");
 
   // Initialize current actuator position pointers
   current_front_actuator_position = new double(0.0);
@@ -128,7 +129,8 @@ void DigDumpActionServer::execute(
   double dig_time = this->get_parameter("dig_time").as_double();
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
-  double actuator_extend_length = this->get_parameter("actuator_extend_length").as_double();
+  double actuator_extend_length_aerial = this->get_parameter("actuator_extend_length_aerial").as_double();
+  double actuator_extend_length_ground = this->get_parameter("actuator_extend_length_ground").as_double();
 
 
   teleop_msgs::msg::SetMotor msg;
@@ -179,7 +181,7 @@ void DigDumpActionServer::execute(
     case 1: {
       // Dig Autonomy
       double elapsed_time = 0.0;
-      while (*current_front_actuator_position < actuator_extend_length && *current_back_actuator_position < actuator_extend_length) {
+      while (*current_front_actuator_position < actuator_extend_length_aerial && *current_back_actuator_position < actuator_extend_length_aerial) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -191,6 +193,23 @@ void DigDumpActionServer::execute(
         elapsed_time += 0.1;
       }
       motor_publisher_->publish(stop_msg);
+
+      // Update lower msg to have slower actuator speed after reaching ground
+      lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+      lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+
+      elapsed_time = 0.0;
+      while (*current_front_actuator_position < actuator_extend_length_ground && *current_back_actuator_position < actuator_extend_length_ground) {
+        if (goal_handle->is_canceling()) {
+          goal_active_ = false;
+          cancel_current_goal(state, goal_handle);
+          return;
+        }
+        //RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
+        motor_publisher_->publish(lower_msg);
+        loop_rate.sleep();
+        elapsed_time += 0.1;
+      }
 
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
