@@ -7,9 +7,13 @@ from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
-import Jetson.GPIO as GPIO
 
 TESTING = False
+
+if not TESTING:
+    import Jetson.GPIO as GPIO
+
+
 
 NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
@@ -82,10 +86,11 @@ class SerialNode(Node):
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
-
-        self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
-        self.gpio_cleanup_timer.cancel()
-        self.gpio_estop()
+        
+        if not TESTING:
+            self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
+            self.gpio_cleanup_timer.cancel()
+            self.gpio_estop()
 
 
     def publish_robot_state(self):
