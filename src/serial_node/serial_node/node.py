@@ -7,6 +7,7 @@ from teleop_msgs.msg import MotorChanges
 from serial_msgs.msg import CurrentBusVoltage
 from serial_msgs.msg import Position
 from serial_msgs.msg import Temperature
+import Jetson.GPIO as GPIO
 
 TESTING = False
 
@@ -22,6 +23,9 @@ DIG_MODE = 1
 DUMP_MODE = 2
 ESTOP = 3
 
+SET_PIN = 7
+RESET_PIN = 11
+
 INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
 
 class SerialNode(Node):
@@ -30,7 +34,7 @@ class SerialNode(Node):
         super().__init__('serial_mux')
 
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
-        self.mode = TELEOP_MODE
+        self.mode = ESTOP
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
@@ -79,6 +83,11 @@ class SerialNode(Node):
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
 
+        self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
+        self.gpio_cleanup_timer.cancel()
+        self.gpio_estop()
+
+
     def publish_robot_state(self):
         msg = UInt8()
         msg.data = self.mode
@@ -88,10 +97,14 @@ class SerialNode(Node):
         new_state = robot_state_msg.data
         if self.mode == ESTOP:
             if new_state == ESTOP:
+                self.gpio_unestop()
+                
                 self.mode = TELEOP_MODE
         else:
             self.mode = new_state
             if new_state == ESTOP:
+                self.gpio_estop()
+
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
             
@@ -164,7 +177,23 @@ class SerialNode(Node):
                 self.position_publisher.publish(mf)
         else:
             self.get_logger().debug("no data")
-        
+    
+    def gpio_estop(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
+        self.gpio_cleanup_timer.reset()
+
+
+    def gpio_unestop(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
+        self.gpio_cleanup_timer.reset()
+
+    def clean_up_gpio(self):
+        GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low
+        self.gpio_cleanup_timer.cancel()
 
 def main(args=None):
     rclpy.init(args=args)

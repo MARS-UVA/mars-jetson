@@ -20,6 +20,10 @@ source install/setup.bash
 
 export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 
+export JETSON_MODEL_NAME=JETSON_ORIN_NANO
+sudo busybox devmem 0x02448030 w 0x40a
+sudo busybox devmem 0x02430098 w 0x05
+
 # Launch everything
 # run realsense executable in parallel
 #ros2 launch startup launch.py
