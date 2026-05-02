@@ -147,6 +147,7 @@ void DigDumpActionServer::execute(
   if (!back_arm_control_state) {
     //RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
     dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
+    dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127;
     drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
     drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
     drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
@@ -154,6 +155,7 @@ void DigDumpActionServer::execute(
   } else {
     //RCLCPP_INFO(this->get_logger(), "Back arm control state is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
     dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
+    dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127;
     drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
     drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
     drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
