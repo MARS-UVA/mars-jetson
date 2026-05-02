@@ -74,17 +74,6 @@ class SerialHandler:
 		data_bytes = bytes(self.serial_buffer.popleft() for _ in range(num_data_bytes))
 		feedback = [f[0] for f in struct.iter_unpack("f", data_bytes)]
 		return (header, feedback)
-		
-		# deprecated readMSG code:
-		"""
-		if(self.SER.in_waiting<40): return []
-		elif(self.SER.in_waiting>80): self.SER.read((self.SER.in_waiting//40)*40)
-		
-		feedback = list(struct.iter_unpack("f",self.SER.read(36))) # tuple of: fl, fr, bl, br, ldrum, rdrum, la, ra, actuator height
-		feedback = [i[0] for i in feedback]
-		return (header, feedback)
-		"""
-
 
 if __name__ == "__main__":
 	import sys
