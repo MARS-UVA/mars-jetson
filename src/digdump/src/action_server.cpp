@@ -135,12 +135,12 @@ void DigDumpActionServer::execute(
 
   teleop_msgs::msg::SetMotor msg;
 
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
-  lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int()*-1;
+  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int()*-1;
+  lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int()*-1;
   lower_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed_lowering").as_int() + 127;
   lower_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed_lowering").as_int() + 127;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
-  raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed").as_int();
+  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int();
+  raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int();
   dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed_lowered").as_int() + 127;
   dig_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed_lowered").as_int() + 127;
 
