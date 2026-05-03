@@ -153,6 +153,7 @@ class SerialNode(Node):
             self.esp_working_publisher.publish(UInt8(data=1))
         except Exception as e:
             self.get_logger().error(f"Error occurred while writing to serial port: {e}")
+            self.mode = ESTOP
             self.esp_working_publisher.publish(UInt8(data=0))
 
     def readFeedback(self):
