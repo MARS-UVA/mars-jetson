@@ -8,6 +8,7 @@ from collections import deque
 START = 255 # start byte preceding every message
 class SerialHandler:
 	def __init__(self):
+		self.SER = None
 		try:
 			self.SER = serial.Serial("/dev/ttyUSB0", 2000000, timeout = None)
 		except serial.SerialException as e:
@@ -22,23 +23,27 @@ class SerialHandler:
 	def setBytes(self, b):
 		self.totalDataBytes = b
 		
-	def setPort(self, port, baud):
-		self.SER.close()
-		self.SER = serial.Serial(port,baud,timeout = None)
+	def setPort(self, port="/dev/ttyUSB0", baud=2000000, logger=None):
+		if self.SER: # shouldn't throw error if connection no longer exists
+			self.SER.close()
+		try:
+			self.SER = serial.Serial(port,baud,timeout = None)
+			if logger:
+				logger.warn(f"Reset port to {port} {baud}")
+		except serial.SerialException as e:
+			pass
 
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
 	def send(self, header, data, logger = None): #messageType can be anything
-		# print("sending")
-		mnum = (1<<8*self.bytesPerMotor)-1 #make sure each send is within maxbyte
-		# assert 0 <= header <= mnum
 		self.SER.write(bytes([START]))
 		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
 		# logger.warn(f"Wrate {data}")
 		self.SER.write(bytes(data)) # write the data to serial port
-		#logger.warn(f"Wrote {data} to Nucleo")
+		#logger.warn(f"Wrote {data}")
 
 	def readMsg(self, logger=None):
-		logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
+		if logger:
+			logger.info(f'Serial bytes in waiting: {self.SER.in_waiting}')
 		self.serial_buffer.extend(self.SER.read(self.SER.in_waiting))
 
 		while (len(self.serial_buffer) >= 4 and not (self.serial_buffer[0] == 0xFF and self.serial_buffer[2] == 0x00 and self.serial_buffer[3] == 0x00)): # check first three bytes
@@ -52,7 +57,8 @@ class SerialHandler:
 		num_data_bytes = 0
 		match header:
 			case 0x00:
-				logger.info("no data")
+				if logger:
+					logger.info("no data")
 				return (0, [])
 			case 0x01:
 				num_data_bytes = 40 # fl, fr, bl, br, ldrum, rdrum, fa, ba, mbat, auxbat
@@ -61,7 +67,8 @@ class SerialHandler:
 			case 0x03:
 				num_data_bytes = 8 # fa, ba
 			case _:
-				logger.info(f"unknown header: {header}")
+				if logger:
+					logger.info(f"unknown header: {header}")
 				self.serial_buffer.popleft()
 				return (0, [])
 	
