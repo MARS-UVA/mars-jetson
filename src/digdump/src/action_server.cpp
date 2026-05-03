@@ -183,7 +183,25 @@ void DigDumpActionServer::execute(
     case 1: {
       // Dig Autonomy
       double elapsed_time = 0.0;
-      while (std::max(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_aerial) {
+      // While both arms aren't at the bottom position, keep lowering
+      while (std::max(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
+        
+        // if the actuator has reached the ground state, slow down the lowering speed
+        if (*current_front_actuator_position >= actuator_extend_length_aerial) {
+          lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+        }
+        if (*current_back_actuator_position >= actuator_extend_length_aerial) {
+          lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+        }
+
+        // If the actuator has fully extended, set the velocity to 0 for that specific actuator
+        if (*current_front_actuator_position >= actuator_extend_length_ground) {
+          lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127;
+        }
+        if (*current_back_actuator_position >= actuator_extend_length_ground) {
+          lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127;
+        }
+
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -195,23 +213,6 @@ void DigDumpActionServer::execute(
         elapsed_time += 0.1;
       }
       motor_publisher_->publish(stop_msg);
-
-      // Update lower msg to have slower actuator speed after reaching ground
-      lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
-      lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
-
-      elapsed_time = 0.0;
-      while (std::min(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
-        if (goal_handle->is_canceling()) {
-          goal_active_ = false;
-          cancel_current_goal(state, goal_handle);
-          return;
-        }
-        //RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
-        motor_publisher_->publish(lower_msg);
-        loop_rate.sleep();
-        elapsed_time += 0.1;
-      }
 
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
