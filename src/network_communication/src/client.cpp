@@ -36,6 +36,9 @@ class udpClient : public rclcpp::Node
       armControlSubscription_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
         "arm_control_state", 10, std::bind(&udpClient::arm_control_callback, this, _1)
       );
+      espWorkingSubscription_ = this->create_subscription<std_msgs::msg::UInt8>(
+        "esp_working", 10, std::bind(&udpClient::esp_working_callback, this, _1)
+      );
     }
     ~udpClient() {
       delete[] buffer;
@@ -123,11 +126,16 @@ class udpClient : public rclcpp::Node
     }
 
     void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
-    uint32_t front_arm_control = static_cast<uint32_t>(msg->front_arm_control);
-    uint32_t back_arm_control = static_cast<uint32_t>(msg->back_arm_control);
-    std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &front_arm_control, 4);
-    std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &back_arm_control, 4);
-  }
+      uint32_t front_arm_control = static_cast<uint32_t>(msg->front_arm_control);
+      uint32_t back_arm_control = static_cast<uint32_t>(msg->back_arm_control);
+      std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &front_arm_control, 4);
+      std::memcpy(&buffer[FeedbackByteIndices::BACK_ARM_CONTROL], &back_arm_control, 4);
+    }
+
+    void esp_working_callback(const std_msgs::msg::UInt8::SharedPtr msg) {
+      uint32_t esp_working = static_cast<uint32_t>(msg->data);
+      std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
+    }
 
     void timer_callback() {
       client_send(buffer, FEEDBACK_PACKET_LENGTH);
@@ -142,6 +150,7 @@ class udpClient : public rclcpp::Node
     rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
     rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr armControlSubscription_;
+    rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr espWorkingSubscription_;
 };
 
 int main(int argc, char * argv[])
