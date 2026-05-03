@@ -184,7 +184,7 @@ void DigDumpActionServer::execute(
       // Dig Autonomy
       double elapsed_time = 0.0;
       // While both arms aren't at the bottom position, keep lowering
-      while (std::max(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
+      while (std::min(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
         
         // if the actuator has reached the ground state, slow down the lowering speed
         if (current_front_actuator_position >= actuator_extend_length_aerial) {
