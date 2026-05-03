@@ -174,11 +174,11 @@ class TeleopNode(Node):
         elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
             self.front_arm_control = True
             self.back_arm_control = False
-            stop_drum_spin(front_arm=False, back_arm=True, msg=motor_msg)
+            # stop_drum_spin(front_arm=False, back_arm=True, msg=motor_msg)
         elif gamepad_state.b_pressed and not self.prev_gamepad_state.b_pressed:
             self.front_arm_control = False
             self.back_arm_control = True
-            stop_drum_spin(front_arm=True, back_arm=False, msg=motor_msg)
+            # stop_drum_spin(front_arm=True, back_arm=False, msg=motor_msg)
         
         self._arm_control_state_publisher.publish(ArmControl(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control))
         
