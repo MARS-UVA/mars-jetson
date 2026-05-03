@@ -102,13 +102,15 @@ class SerialNode(Node):
         new_state = robot_state_msg.data
         if self.mode == ESTOP:
             if new_state == ESTOP:
-                self.gpio_unestop()
+                if not TESTING:
+                    self.gpio_unestop()
                 
                 self.mode = TELEOP_MODE
         else:
             self.mode = new_state
             if new_state == ESTOP:
-                self.gpio_estop()
+                if not TESTING:
+                    self.gpio_estop()
 
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
