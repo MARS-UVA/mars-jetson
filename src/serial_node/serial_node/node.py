@@ -81,6 +81,11 @@ class SerialNode(Node):
             topic='temperature',
             qos_profile=qos
         )
+        self.esp_working_publisher = self.create_publisher(
+            msg_type=UInt8,
+            topic='esp_working',
+            qos_profile=qos
+        )
         self.teleop_sub_  # prevent unused variable warning
         self.send_timer = self.create_timer(1/SEND_HZ, self.sendCurrents)
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
@@ -143,8 +148,13 @@ class SerialNode(Node):
 
         self.get_logger().info(f"Sending currents: {buffer}")
         if TESTING: return
-        self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
-        
+        try:
+            self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
+            self.esp_working_publisher.publish(UInt8(data=1))
+        except Exception as e:
+            self.get_logger().error(f"Error occurred while writing to serial port: {e}")
+            self.esp_working_publisher.publish(UInt8(data=0))
+
     def readFeedback(self):
         if TESTING: return
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
