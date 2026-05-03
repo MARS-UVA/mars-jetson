@@ -228,7 +228,7 @@ void DigDumpActionServer::execute(
       motor_publisher_->publish(stop_msg);
 
       elapsed_time = 0.0;
-      while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.05) {
+      while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.5) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
