@@ -1,4 +1,6 @@
 #include <thread>
+#include <algorithm>
+
 #include "autonomy_msgs/action/autonomous_actions.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -61,8 +63,8 @@ class DigDumpActionServer : public rclcpp::Node
     double actuator_extend_length_ground;
 
     // tracker for current actuator position as a pointer to update while on another thread
-    double *current_front_actuator_position;
-    double *current_back_actuator_position;
+    double current_front_actuator_position;
+    double current_back_actuator_position;
 
     teleop_msgs::msg::MotorChanges lower_msg;
     teleop_msgs::msg::MotorChanges raise_msg;

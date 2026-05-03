@@ -20,13 +20,14 @@ find_package(serial_msgs REQUIRED)
 include_directories(include)
 
 add_executable(action_server src/action_server.cpp)
-ament_target_dependencies(action_server
-  rclcpp
-  std_msgs
-  teleop_msgs
-  rclcpp_action
-  autonomy_msgs
-  serial_msgs)
+target_link_libraries(action_server PUBLIC
+  ${autonomy_msgs_TARGETS}
+  ${serial_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${teleop_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -42,9 +42,9 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   actuator_extend_length_aerial = declare_with_desc("actuator_extend_length_aerial", 0.5, "The length that the actuator extends during the dig autonomy routine from 0.0-1.0 where 1.0 is fully extended-- should be the ground position");
   actuator_extend_length_ground = declare_with_desc("actuator_extend_length_ground", 0.75, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended-- should be fully extended");
 
-  // Initialize current actuator position pointers
-  current_front_actuator_position = new double(0.0);
-  current_back_actuator_position = new double(0.0);
+  // Initialize current actuator position, thread will have access but no safety locks are in place
+  current_front_actuator_position = 0.0;
+  current_back_actuator_position = 0.0;
 
   teleop_msgs::msg::SetMotor msg;
 
@@ -87,8 +87,8 @@ void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmContro
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
   //RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
   //RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
-  *(this->current_front_actuator_position) = msg->front_actuator_position; // Update the current actuator position
-  *(this->current_back_actuator_position) = msg->back_actuator_position; // Update the current actuator position
+  this->current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
+  this->current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
 }
 
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
@@ -183,7 +183,7 @@ void DigDumpActionServer::execute(
     case 1: {
       // Dig Autonomy
       double elapsed_time = 0.0;
-      while (*current_front_actuator_position < actuator_extend_length_aerial && *current_back_actuator_position < actuator_extend_length_aerial) {
+      while (std::max(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_aerial) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -201,7 +201,7 @@ void DigDumpActionServer::execute(
       lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
 
       elapsed_time = 0.0;
-      while (*current_front_actuator_position < actuator_extend_length_ground && *current_back_actuator_position < actuator_extend_length_ground) {
+      while (std::min(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -227,7 +227,7 @@ void DigDumpActionServer::execute(
       motor_publisher_->publish(stop_msg);
 
       elapsed_time = 0.0;
-      while (*current_front_actuator_position > 0.05 && *current_back_actuator_position > 0.05) {
+      while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.05) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
