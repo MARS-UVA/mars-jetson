@@ -19,7 +19,10 @@ class udpClient : public rclcpp::Node
 
       buffer = new unsigned char[FEEDBACK_PACKET_LENGTH]();
 
+      last_time_read = 0;
+
       timer_ = this->create_wall_timer(10ms, std::bind(&udpClient::timer_callback, this));
+      esp_check_timer_ = this->create_wall_timer(1000ms, std::bind(&udpClient::esp_check_timer_callback, this));
 
       currentBusSubscription_ = this->create_subscription<serial_msgs::msg::CurrentBusVoltage>(
         "current_bus_voltage", 10, std::bind(&udpClient::current_bus_callback, this, _1)
@@ -39,6 +42,8 @@ class udpClient : public rclcpp::Node
       espWorkingSubscription_ = this->create_subscription<std_msgs::msg::UInt8>(
         "esp_working", 10, std::bind(&udpClient::esp_working_callback, this, _1)
       );
+
+      robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
     }
     ~udpClient() {
       delete[] buffer;
@@ -89,6 +94,7 @@ class udpClient : public rclcpp::Node
 
     void current_bus_callback(const serial_msgs::msg::CurrentBusVoltage::SharedPtr msg) {
       RCLCPP_DEBUG(this->get_logger(), "Received current bus voltage feedback packet");
+      last_time_read = this->get_clock()->now().nanoseconds();
 
       std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_CURRENT], &msg->front_left_wheel_current, 4);
       std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_CURRENT], &msg->back_left_wheel_current, 4);
@@ -104,6 +110,7 @@ class udpClient : public rclcpp::Node
 
     void temperature_callback(const serial_msgs::msg::Temperature::SharedPtr msg) {
       RCLCPP_DEBUG(this->get_logger(), "Received temperature feedback packet");
+      last_time_read = this->get_clock()->now().nanoseconds();
 
       std::memcpy(&buffer[FeedbackByteIndices::FRONT_LEFT_WHEEL_TEMPERATURE], &msg->front_left_wheel_temperature, 4);
       std::memcpy(&buffer[FeedbackByteIndices::BACK_LEFT_WHEEL_TEMPERATURE], &msg->back_left_wheel_temperature, 4);
@@ -115,6 +122,8 @@ class udpClient : public rclcpp::Node
 
     void position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
       RCLCPP_DEBUG(this->get_logger(), "Received position feedback packet");
+      last_time_read = this->get_clock()->now().nanoseconds();
+      
       std::memcpy(&buffer[FeedbackByteIndices::FRONT_ACTUATOR_POSITION], &msg->front_actuator_position, 4);
       std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
     }
@@ -136,21 +145,44 @@ class udpClient : public rclcpp::Node
       uint32_t esp_working = static_cast<uint32_t>(msg->data);
       std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
     }
+    void esp_check_timer_callback() {
+      if (this->get_clock()->now().nanoseconds() - last_time_read > 2e9) {
+        RCLCPP_WARN(this->get_logger(), "Haven't received feedback in 2000ms, assuming esp offline");
+        uint32_t esp_working = 0;
+        std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
+        if (buffer[FeedbackByteIndices::ROBOT_STATE] != 3) {
+          uint32_t state_data = 3; // ESTOP
+          std_msgs::msg::UInt8 msg;
+          msg.data = static_cast<uint8_t>(state_data);
+          robot_state_toggle_publisher_->publish(msg); // Publish ESTOP if not already in ESTOP
+          std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state_data, 4);
+        }
+      } else {
+        RCLCPP_DEBUG(this->get_logger(), "Received feedback within 2000ms, assuming esp online");
+        uint32_t esp_working = 1;
+        std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
+      }
+    }
 
     void timer_callback() {
+      
       client_send(buffer, FEEDBACK_PACKET_LENGTH);
     }
 
     ConnectionHeaders connection_headers;
     unsigned char* buffer;
 
+    int64_t last_time_read;
+
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr esp_check_timer_;
     rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr robot_state_subscriber_;
     rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
     rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr armControlSubscription_;
     rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr espWorkingSubscription_;
+    rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
 };
 
 int main(int argc, char * argv[])
