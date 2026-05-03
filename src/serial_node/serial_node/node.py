@@ -147,7 +147,9 @@ class SerialNode(Node):
             buffer = self.STOP_MSG
 
         self.get_logger().info(f"Sending currents: {buffer}")
-        if TESTING: return
+        if TESTING: 
+            self.esp_working_publisher.publish(UInt8(data=1))
+            return
         try:
             self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
             self.esp_working_publisher.publish(UInt8(data=1))
