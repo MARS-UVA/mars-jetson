@@ -146,8 +146,8 @@ class udpClient : public rclcpp::Node
       std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
     }
     void esp_check_timer_callback() {
-      if (this->get_clock()->now().nanoseconds() - last_time_read > 2e9) {
-        RCLCPP_WARN(this->get_logger(), "Haven't received feedback in 2000ms, assuming esp offline");
+      if (this->get_clock()->now().nanoseconds() - last_time_read > 5e9) {
+        RCLCPP_WARN(this->get_logger(), "Haven't received feedback in 5000ms, assuming esp offline");
         uint32_t esp_working = 0;
         std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
         if (buffer[FeedbackByteIndices::ROBOT_STATE] != 3) {
@@ -158,7 +158,7 @@ class udpClient : public rclcpp::Node
           std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state_data, 4);
         }
       } else {
-        RCLCPP_DEBUG(this->get_logger(), "Received feedback within 2000ms, assuming esp online");
+        RCLCPP_DEBUG(this->get_logger(), "Received feedback within 5000ms, assuming esp online");
         uint32_t esp_working = 1;
         std::memcpy(&buffer[FeedbackByteIndices::ESP_WORKING], &esp_working, 4);
       }
