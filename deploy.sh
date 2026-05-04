@@ -18,7 +18,9 @@ colcon build --symlink-install --packages-ignore zed_components zed_wrapper zed_
 # Source the setup file
 source install/setup.bash
 
-export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export FASTDDS_BUILTIN_TRANSPORTS=SHM
+# export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 
 export JETSON_MODEL_NAME=JETSON_ORIN_NANO
 sudo busybox devmem 0x02448030 w 0x40a
@@ -29,6 +31,8 @@ sudo busybox devmem 0x02430098 w 0x05
 #ros2 launch startup launch.py
 # ~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
 # OBSTACLE_DETECT_PID=$!
+
+docker compose up -d
 
 ros2 launch startup launch.py
 
