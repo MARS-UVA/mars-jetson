@@ -5,7 +5,11 @@ services:
       dockerfile: docker/gstreamer.Dockerfile
     network_mode: host
     user: "1000:1000"
+    volumes:
+      - /dev/shm:/dev/shm:rw
     environment:
       - ROS_DOMAIN_ID=0
       - CONTROL_STATION_IP="192.168.50.101"
-      - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - FASTDDS_BUILTIN_TRANSPORTS=SHM
+      # - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
