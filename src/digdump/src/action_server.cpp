@@ -187,10 +187,10 @@ void DigDumpActionServer::execute(
       while (std::min(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
         
         // if the actuator has reached the ground state, slow down the lowering speed
-        if (current_front_actuator_position >= actuator_extend_length_aerial) {
+        if (current_front_actuator_position >= actuator_extend_length_aerial && current_front_actuator_position < actuator_extend_length_ground) {
           lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
         }
-        if (current_back_actuator_position >= actuator_extend_length_aerial) {
+        if (current_back_actuator_position >= actuator_extend_length_aerial && current_back_actuator_position < actuator_extend_length_ground) {
           lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
         }
 
