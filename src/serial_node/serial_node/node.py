@@ -20,6 +20,7 @@ MOTOR_CURRENT_MSG = 0
 SEND_HZ = 20
 READ_HZ = 20
 ROBOT_STATE_HZ = 10
+CHECK_ESTOP_HZ = 10
 MOTOR_STILL = 127
 
 TELEOP_MODE = 0
@@ -29,6 +30,7 @@ ESTOP = 3
 
 SET_PIN = 7
 RESET_PIN = 11
+ESTOP_FEEDBACK_PIN = 33
 
 INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
 
@@ -89,12 +91,17 @@ class SerialNode(Node):
         self.teleop_sub_  # prevent unused variable warning
         self.send_timer = self.create_timer(1/SEND_HZ, self.sendCurrents)
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
+        self.check_estop_timer = self.create_timer(1/CHECK_ESTOP_HZ, self.check_estop_state)
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
         
         if not TESTING:
             self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
             self.gpio_cleanup_timer.cancel()
+            GPIO.setmode(GPIO.BOARD)
+            GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+            GPIO.setup(ESTOP_FEEDBACK_PIN, GPIO.IN)
+
             self.gpio_estop()
 
 
@@ -102,9 +109,25 @@ class SerialNode(Node):
         msg = UInt8()
         msg.data = self.mode
         self.robot_state_pub_.publish(msg)
+
+    def check_estop_state(self):
+        estop_state = GPIO.input(ESTOP_FEEDBACK_PIN)
+
+        if estop_state != GPIO.LOW:
+            return
+
+        if self.mode == ESTOP:
+            return
+
+        self.get_logger().warn(f"ESTOP STATE: {estop_state}, CURRENT MODE: {INT2MODE[self.mode]}")
+        self._change_robot_state_helper(ESTOP)
+            
     
     def change_robot_state(self, robot_state_msg):
         new_state = robot_state_msg.data
+        self._change_robot_state_helper(new_state)
+
+    def _change_robot_state_helper(self, new_state):
         if self.mode == ESTOP:
             if new_state == ESTOP:
                 if not TESTING:
@@ -195,18 +218,15 @@ class SerialNode(Node):
         else:
             self.get_logger().debug("no data")
     
+
     def gpio_estop(self):
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
         GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
         self.gpio_cleanup_timer.reset()
 
 
     def gpio_unestop(self):
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
         GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
-        self.gpio_cleanup_timer.reset()
+        # self.gpio_cleanup_timer.reset()
 
     def clean_up_gpio(self):
         GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low
