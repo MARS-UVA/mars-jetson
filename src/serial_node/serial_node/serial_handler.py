@@ -35,10 +35,7 @@ class SerialHandler:
 
 	# array format: [tl wheel, bl wheel, tr, br, drum, actuator]
 	def send(self, header, data, logger = None): #messageType can be anything
-		self.SER.write(bytes([START]))
-		self.SER.write(header.to_bytes(self.bytesPerMotor,byteorder="big"))
-		# logger.warn(f"Wrate {data}")
-		self.SER.write(bytes(data)) # write the data to serial port
+		self.SER.write(bytes([START]) + header.to_bytes(self.bytesPerMotor,byteorder="big") + bytes(data))
 		#logger.warn(f"Wrote {data}")
 
 	def readMsg(self, logger=None):
