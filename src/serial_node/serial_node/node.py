@@ -201,12 +201,11 @@ class SerialNode(Node):
         GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
         self.gpio_cleanup_timer.reset()
 
-
     def gpio_unestop(self):
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
         GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
-        self.gpio_cleanup_timer.reset()
+        # self.gpio_cleanup_timer.reset()
 
     def clean_up_gpio(self):
         GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low

@@ -30,6 +30,8 @@ sudo busybox devmem 0x02430098 w 0x05
 # ~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
 # OBSTACLE_DETECT_PID=$!
 
+sudo docker compose up -d
+
 ros2 launch startup launch.py
 
 # kill $OBSTACLE_DETECT_PID
