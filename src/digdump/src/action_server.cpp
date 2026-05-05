@@ -41,6 +41,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   // Actuator extend length is from 0.0-1.0 where 1.0 is fully extended
   actuator_extend_length_aerial = declare_with_desc("actuator_extend_length_aerial", 0.5, "The length that the actuator extends during the dig autonomy routine from 0.0-1.0 where 1.0 is fully extended-- should be the ground position");
   actuator_extend_length_ground = declare_with_desc("actuator_extend_length_ground", 0.75, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended-- should be fully extended");
+  actuator_dig_raise_length = declare_with_desc("actuator_dig_raise_length", 0.5, "The length that the actuator raises to after digging during the dig autonomy routine from 0.0-1.0 where 1.0 is fully extended-- should be enough to clear the drum from the ground but not fully retracted");
 
   // Initialize current actuator position, thread will have access but no safety locks are in place
   current_front_actuator_position = 0.0;
@@ -131,6 +132,7 @@ void DigDumpActionServer::execute(
   double move_time = this->get_parameter("move_time").as_double();
   double actuator_extend_length_aerial = this->get_parameter("actuator_extend_length_aerial").as_double();
   double actuator_extend_length_ground = this->get_parameter("actuator_extend_length_ground").as_double();
+  double actuator_dig_raise_length = this->get_parameter("actuator_dig_raise_length").as_double();
 
 
   teleop_msgs::msg::SetMotor msg;
@@ -228,7 +230,7 @@ void DigDumpActionServer::execute(
       motor_publisher_->publish(stop_msg);
 
       elapsed_time = 0.0;
-      while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.5) {
+      while (std::max(current_front_actuator_position, current_back_actuator_position) > actuator_dig_raise_length) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);

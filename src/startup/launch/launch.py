@@ -39,6 +39,7 @@ def generate_launch_description():
                     'move_time': 5.0,
                     'actuator_extend_length_aerial': 0.69,
                     'actuator_extend_length_ground': 0.85,
+                    'actuator_dig_raise_length': 0.5,
                 }],
                 respawn=True
             )

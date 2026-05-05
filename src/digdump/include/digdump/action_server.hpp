@@ -30,6 +30,7 @@ class DigDumpActionServer : public rclcpp::Node
     rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_aerial_descriptor;
     rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_ground_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_dig_raise_length_descriptor;
 
 
   private:
@@ -61,6 +62,7 @@ class DigDumpActionServer : public rclcpp::Node
     double move_time;
     double actuator_extend_length_aerial;
     double actuator_extend_length_ground;
+    double actuator_dig_raise_length;
 
     // tracker for current actuator position as a pointer to update while on another thread
     double current_front_actuator_position;
