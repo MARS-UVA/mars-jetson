@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip3 install --break-system-packages websockets asyncio
 
 COPY ./src /mars-jetson/src
+WORKDIR /mars-jetson
 
 RUN source /opt/ros/kilted/setup.bash && \
     colcon build --symlink-install \
