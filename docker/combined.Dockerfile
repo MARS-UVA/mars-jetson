@@ -8,6 +8,7 @@
 #     --privileged \
 #     --network host \
 #     -v /dev:/dev \
+#     -v /sys:/sys \
 #     -e CONTROL_STATION_IP=192.168.50.101 \
 #     mars-jetson:combined
 
@@ -22,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-opencv \
     python3-serial \
+    python3-websockets \
     busybox \
     gstreamer1.0-tools \
     gstreamer1.0-nice \
@@ -39,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-kilted-rclcpp-action \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --break-system-packages websockets asyncio
+RUN pip3 install Jetson.GPIO --break-system-packages
 
 COPY ./src /mars-jetson/src
 WORKDIR /mars-jetson
