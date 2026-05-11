@@ -1,4 +1,4 @@
-FROM ros:jazzy-ros-base
+FROM ros:humble-ros-base
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,22 +19,24 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-dev \
     python3-gst-1.0 \
     gir1.2-gst-plugins-bad-1.0 \
-    ros-jazzy-cv-bridge \
-    ros-jazzy-vision-opencv \
-    ros-jazzy-sensor-msgs \
+    ros-humble-cv-bridge \
+    ros-humble-vision-opencv \
+    ros-humble-sensor-msgs \
+    ros-humble-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python networking libs
-RUN pip3 install --break-system-packages websockets asyncio
+RUN pip3 install websockets asyncio
 
 # Create workspace
+RUN mkdir -p /ws/.ros && chown -R 1000:1000 /ws
 WORKDIR /ws
 
 # Copy required files into the container
 COPY ./src /ws/src
 
 # Build packages
-RUN source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer
+RUN source /opt/ros/humble/setup.bash && colcon build --packages-select gstreamer
 
 # Source ROS 2 and run startup
-ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && source install/setup.bash && ros2 launch gstreamer gstreamer_launch.py"]
+ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch gstreamer gstreamer_launch.py"]

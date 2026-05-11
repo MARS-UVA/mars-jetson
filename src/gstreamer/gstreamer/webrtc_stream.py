@@ -18,7 +18,8 @@ gi.require_version('GstSdp', '1.0')
 from gi.repository import Gst, GstWebRTC, GstSdp, GLib
 
 
-STUN_SERVER = "stun://stun.l.google.com:19302"
+# STUN_SERVER = "stun://stun.l.google.com:19302"
+STUN_SERVER = "NULL"
 FRAMERATE = 30
 
 class WebRTCNode(Node):
@@ -81,7 +82,7 @@ class WebRTCNode(Node):
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10
+            depth=3
         )
         self.create_subscription(Image, self.video_topic, self.image_callback, qos_profile)
         

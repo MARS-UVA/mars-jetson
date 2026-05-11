@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS xmlns="https://cyclonedds.org/schema">
+    <Domain id="any">
+        <General>
+            <NetworkInterfaceAddress>lo</NetworkInterfaceAddress>
+            <AllowMulticast>true</AllowMulticast>
+            <MaxMessageSize>65500B</MaxMessageSize>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <LeaseDuration>10s</LeaseDuration>
+        </Discovery>
+    </Domain>
+</CycloneDDS>

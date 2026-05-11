@@ -9,7 +9,7 @@ if [ $# -ge 1 ];
     then
         export CONTROL_STATION_IP=$1
     else 
-        export CONTROL_STATION_IP="192.168.50.101"
+        export CONTROL_STATION_IP="192.168.50.60"
 fi
 
 # Build the packages
@@ -18,9 +18,9 @@ colcon build --symlink-install --packages-ignore zed_components zed_wrapper zed_
 # Source the setup file
 source install/setup.bash
 
-export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
-
+# export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 export JETSON_MODEL_NAME=JETSON_ORIN_NANO
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 sudo busybox devmem 0x02448030 w 0x40a
 sudo busybox devmem 0x02430098 w 0x05
 

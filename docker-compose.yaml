@@ -3,9 +3,18 @@ services:
     build:
       context: .
       dockerfile: docker/gstreamer.Dockerfile
+    privileged: true
     network_mode: host
-    user: "1000:1000"
+    ipc: host
+    pid: host
+    user: 1000:1000
     environment:
       - ROS_DOMAIN_ID=0
-      - CONTROL_STATION_IP="192.168.50.101"
-      - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+      - CONTROL_STATION_IP="172.25.190.52"
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - LD_LIBRARY_PATH=/opt/ros/humble/lib:/ws/install/gstreamer/lib
+      - CYCLONEDDS_URI=file:///ws/cyclonedds.xml
+      - HOME=/ws
+    volumes:
+      - /dev/shm:/dev/shm
+      - ./cyclonedds.xml:/ws/cyclonedds.xml
