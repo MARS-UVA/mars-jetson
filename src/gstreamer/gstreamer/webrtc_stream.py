@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from cv_bridge import CvBridge
 import cv2
 import threading
@@ -81,7 +81,8 @@ class WebRTCNode(Node):
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10
+            durability=DurabilityPolicy.VOLATILE,
+            depth=1
         )
         self.create_subscription(Image, self.video_topic, self.image_callback, qos_profile)
         
@@ -94,6 +95,8 @@ class WebRTCNode(Node):
     def image_callback(self, msg):
         if self.appsrc is None:
             return
+
+        self.get_logger().warn(f"Sending new image data!")
 
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
