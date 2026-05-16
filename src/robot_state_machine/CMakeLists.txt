@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(teleop_msgs REQUIRED)
 
 add_executable(state_machine
   src/state_machine.cpp
@@ -17,6 +18,7 @@ add_executable(state_machine
 ament_target_dependencies(state_machine
   rclcpp
   std_msgs
+  teleop_msgs
 )
 
 target_include_directories(state_machine PUBLIC

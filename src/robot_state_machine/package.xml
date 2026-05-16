@@ -7,6 +7,7 @@
   <maintainer email="ethanvolcanic@gmail.com">ethan</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>teleop_msgs</depend>
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>

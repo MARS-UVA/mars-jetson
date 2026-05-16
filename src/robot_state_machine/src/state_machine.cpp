@@ -1,12 +1,35 @@
 #include "robot_state_machine/state_machine.hpp"
 
-class state_machine : public rclcpp::Node
-{
-    public:
-        state_machine() : Node("state_machine") {
-            RCLCPP_INFO(this->get_logger(), "State Machine Node has started.");
-        }
-};
+
+state_machine::state_machine(const rclcpp::NodeOptions & options) : rclcpp::Node("state_machine", options) {
+    RCLCPP_INFO(this->get_logger(), "State Machine Node has started.");
+
+    this->robot_state = RobotState::ESTOP; // Default is ESTOP
+    robot_state_toggle_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>(
+        "robot_state/toggle", 10, std::bind(&state_machine::robot_state_toggle_callback, this, std::placeholders::_1)
+    );
+    motor_command_subscriber_ = this->create_subscription<teleop_msgs::msg::MotorChanges>(
+        "motor_commands", 10, std::bind(&state_machine::motor_command_callback, this, std::placeholders::_1)
+    );
+    robot_state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 10);
+}
+
+void state_machine::robot_state_toggle_callback(const std_msgs::msg::UInt8::SharedPtr msg) {
+    RCLCPP_INFO(this->get_logger(), "Received robot state toggle message: %d", msg->data);
+    // Update robot state based on the received message and current state info
+    this->robot_state = static_cast<RobotState>(msg->data);
+}
+
+void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges::SharedPtr msg) {
+    RCLCPP_INFO(this->get_logger(), "Received motor command message.");
+    // Process motor command based on current state
+
+
+    if (this->robot_state == RobotState::TELEOP) {
+        // publish to motors
+
+    }
+}
 
 int main(int argc, char * argv[])
 {
