@@ -12,7 +12,8 @@ enum class RobotState {
     ESTOP = 1,
     DIG_ISOLATED = 2,
     DUMP_ISOLATED = 3,
-    BREADCRUMBING_TRAVERSAL = 4
+    BREADCRUMBING_RECORDING = 4,
+    BREADCRUMBING_EXECUTION = 5
     // Other states should be added here for the autonomous routines
     // TODO
 };
