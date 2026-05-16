@@ -83,7 +83,7 @@ void state_machine::reset_breadcrumbing_callback(const std::shared_ptr<robot_sta
         RCLCPP_INFO(this->get_logger(), "Resetting breadcrumbing data.");
         this->breadcrumbing_data.clear();
     } else {
-        RCLCPP_WARN(this->get_logger(), "Received reset breadcrumbing request with reset_breadcrumbing set to false. No action taken.");
+        RCLCPP_INFO(this->get_logger(), "Received reset breadcrumbing request with reset_breadcrumbing set to false. No action taken.");
     }
     response->success = "Breadcrumbing array size: " + std::to_string(this->breadcrumbing_data.size());
 
