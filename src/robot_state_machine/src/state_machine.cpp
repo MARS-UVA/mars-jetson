@@ -45,7 +45,14 @@ void state_machine::robot_state_toggle_callback(const std_msgs::msg::UInt8::Shar
     } else if (static_cast<RobotState>(msg->data) == RobotState::BREADCRUMBING_EXECUTION) {
         // TODO: Call action_server to run breadcrumbing execution routine with passed in breadcrumbing data
     }
-    this->robot_state = static_cast<RobotState>(msg->data);
+
+    if (this->robot_state == static_cast<RobotState>(msg->data)) {
+        RCLCPP_INFO(this->get_logger(), "Received state is the same as current state. Returning to TELEOP state.");
+        this->robot_state = RobotState::TELEOP;
+    } else {
+        RCLCPP_INFO(this->get_logger(), "Changing robot state to: %d", msg->data);
+        this->robot_state = static_cast<RobotState>(msg->data);
+    }
 }
 
 void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges::SharedPtr msg) {
