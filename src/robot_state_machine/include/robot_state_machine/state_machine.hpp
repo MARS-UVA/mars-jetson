@@ -1,5 +1,11 @@
 #pragma once
+
 #include <iostream>
+#include <chrono>
+#include <vector>
+#include <memory>
+#include <string>
+
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <teleop_msgs/msg/motor_changes.hpp>
@@ -18,6 +24,13 @@ enum class RobotState {
     // Other states should be added here for the autonomous routines
     // TODO
 };
+
+typedef struct {
+    // Add fields as necessary to track breadcrumbing data
+    // For example, you might want to store a vector of motor commands with timestamps
+    teleop_msgs::msg::MotorChanges motor_command;
+    rclcpp::Time timestamp;
+} BreadcrumbingDataPoint;
 
 class state_machine : public rclcpp::Node
 {
@@ -42,5 +55,5 @@ private:
         std::shared_ptr<robot_state_machine::srv::ResetBreadcrumbing::Response> response);
 
     RobotState robot_state;
-    std::vector<teleop_msgs::msg::MotorChanges> breadcrumbing_data; // Array to store motor commands for breadcrumbing 
+    std::vector<std::shared_ptr<BreadcrumbingDataPoint>> breadcrumbing_data; // Array to store motor commands for breadcrumbing 
 };

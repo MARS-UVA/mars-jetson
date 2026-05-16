@@ -46,6 +46,15 @@ void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges:
     if (this->robot_state == RobotState::TELEOP) {
         // publish to motors
         this->motor_command_verified_publisher_->publish(*msg);
+    } else if (this->robot_state == RobotState::BREADCRUMBING_RECORDING) {
+        // store motor command for breadcrumbing
+        this->motor_command_verified_publisher_->publish(*msg);
+        auto data_point = std::make_shared<BreadcrumbingDataPoint>();
+        data_point->motor_command = *msg;
+        data_point->timestamp = this->now();
+        this->breadcrumbing_data.push_back(data_point);
+    } else {
+        RCLCPP_WARN(this->get_logger(), "Received motor command in non-teleop, non-breadcrumbing state. Command ignored.");
     }
 }
 
