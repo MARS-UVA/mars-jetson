@@ -30,6 +30,7 @@ private:
     rclcpp::Subscription<teleop_msgs::msg::MotorChanges>::SharedPtr motor_command_subscriber_;
 
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_publisher_;
+    rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_command_verified_publisher_;
 
     void robot_state_toggle_callback(const std_msgs::msg::UInt8::SharedPtr msg);
     void motor_command_callback(const teleop_msgs::msg::MotorChanges::SharedPtr msg);

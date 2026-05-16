@@ -13,6 +13,7 @@ state_machine::state_machine(const rclcpp::NodeOptions & options) : rclcpp::Node
         "motor_commands", 10, std::bind(&state_machine::motor_command_callback, this, std::placeholders::_1)
     );
     robot_state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 10);
+    motor_command_verified_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("motor_commands_verified", 10);
 }
 
 void state_machine::timer_callback() {
@@ -36,7 +37,7 @@ void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges:
 
     if (this->robot_state == RobotState::TELEOP) {
         // publish to motors
-
+        this->motor_command_verified_publisher_->publish(*msg);
     }
 }
 
