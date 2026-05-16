@@ -35,6 +35,16 @@ void state_machine::timer_callback() {
 void state_machine::robot_state_toggle_callback(const std_msgs::msg::UInt8::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(), "Received robot state toggle message: %d", msg->data);
     // Update robot state based on the received message and current state info
+    if (this->robot_state == RobotState::ESTOP) {
+        if (static_cast<RobotState>(msg->data) != RobotState::ESTOP) {
+            RCLCPP_INFO(this->get_logger(), "Do not respond to state change request while in ESTOP. Ignoring message.");
+            return;
+        }
+    } else if (static_cast<RobotState>(msg->data) == RobotState::ESTOP) {
+        // TODO: Insert publisher to call activate button (trying to not have GPIO dependency in this node)
+    } else if (static_cast<RobotState>(msg->data) == RobotState::BREADCRUMBING_EXECUTION) {
+        // TODO: Call action_server to run breadcrumbing execution routine with passed in breadcrumbing data
+    }
     this->robot_state = static_cast<RobotState>(msg->data);
 }
 
@@ -47,7 +57,7 @@ void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges:
         // publish to motors
         this->motor_command_verified_publisher_->publish(*msg);
     } else if (this->robot_state == RobotState::BREADCRUMBING_RECORDING) {
-        // store motor command for breadcrumbing
+        // store motor command for breadcrumbing and publish to motors
         this->motor_command_verified_publisher_->publish(*msg);
         auto data_point = std::make_shared<BreadcrumbingDataPoint>();
         data_point->motor_command = *msg;
