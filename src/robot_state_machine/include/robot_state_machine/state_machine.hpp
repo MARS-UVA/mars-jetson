@@ -3,6 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <teleop_msgs/msg/motor_changes.hpp>
+#include "robot_state_machine/srv/reset_breadcrumbing.hpp"
 
 using namespace std::chrono_literals;
 
@@ -32,9 +33,14 @@ private:
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_command_verified_publisher_;
 
+    rclcpp::Service<robot_state_machine::srv::ResetBreadcrumbing>::SharedPtr reset_breadcrumbing_service_;
+
     void robot_state_toggle_callback(const std_msgs::msg::UInt8::SharedPtr msg);
     void motor_command_callback(const teleop_msgs::msg::MotorChanges::SharedPtr msg);
     void timer_callback();
+    void reset_breadcrumbing_callback(const std::shared_ptr<robot_state_machine::srv::ResetBreadcrumbing::Request> request,
+        std::shared_ptr<robot_state_machine::srv::ResetBreadcrumbing::Response> response);
 
     RobotState robot_state;
+    std::vector<teleop_msgs::msg::MotorChanges> breadcrumbing_data; // Array to store motor commands for breadcrumbing 
 };

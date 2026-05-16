@@ -10,15 +10,23 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(teleop_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+include_directories(include)
 
 add_executable(state_machine
   src/state_machine.cpp
 )
 
-ament_target_dependencies(state_machine
-  rclcpp
-  std_msgs
-  teleop_msgs
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ResetBreadcrumbing.srv"
+)
+
+target_link_libraries(state_machine PUBLIC
+  ${PROJECT_NAME}__rosidl_typesupport_cpp
+  ${teleop_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  rclcpp::rclcpp
 )
 
 target_include_directories(state_machine PUBLIC
@@ -26,15 +34,15 @@ target_include_directories(state_machine PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
-install(TARGETS state_machine
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+install(TARGETS 
+  state_machine
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()

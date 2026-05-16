@@ -5,15 +5,23 @@ state_machine::state_machine(const rclcpp::NodeOptions & options) : rclcpp::Node
     RCLCPP_INFO(this->get_logger(), "State Machine Node has started.");
 
     this->robot_state = RobotState::ESTOP; // Default is ESTOP
+    this->breadcrumbing_data = {}; // Initialize breadcrumbing data
+
     timer_ = this->create_wall_timer(10ms, std::bind(&state_machine::timer_callback, this));
+
     robot_state_toggle_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>(
         "robot_state/toggle", 10, std::bind(&state_machine::robot_state_toggle_callback, this, std::placeholders::_1)
     );
     motor_command_subscriber_ = this->create_subscription<teleop_msgs::msg::MotorChanges>(
         "motor_commands", 10, std::bind(&state_machine::motor_command_callback, this, std::placeholders::_1)
     );
+
     robot_state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 10);
     motor_command_verified_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("motor_commands_verified", 10);
+
+    reset_breadcrumbing_service_ = this->create_service<robot_state_machine::srv::ResetBreadcrumbing>(
+        "reset_breadcrumbing", std::bind(&state_machine::reset_breadcrumbing_callback, this, std::placeholders::_1, std::placeholders::_2)
+    );
 }
 
 void state_machine::timer_callback() {
@@ -39,6 +47,20 @@ void state_machine::motor_command_callback(const teleop_msgs::msg::MotorChanges:
         // publish to motors
         this->motor_command_verified_publisher_->publish(*msg);
     }
+}
+
+void state_machine::reset_breadcrumbing_callback(const std::shared_ptr<robot_state_machine::srv::ResetBreadcrumbing::Request> request,
+    std::shared_ptr<robot_state_machine::srv::ResetBreadcrumbing::Response> response) {
+    RCLCPP_INFO(this->get_logger(), "Received reset breadcrumbing service call.");
+    // Reset breadcrumbing data and state
+    if (request->reset_breadcrumbing) {
+        RCLCPP_INFO(this->get_logger(), "Resetting breadcrumbing data.");
+        this->breadcrumbing_data.clear();
+    } else {
+        RCLCPP_WARN(this->get_logger(), "Received reset breadcrumbing request with reset_breadcrumbing set to false. No action taken.");
+    }
+    response->success = "Breadcrumbing array size: " + std::to_string(this->breadcrumbing_data.size());
+
 }
 
 int main(int argc, char * argv[])
