@@ -5,6 +5,7 @@ state_machine::state_machine(const rclcpp::NodeOptions & options) : rclcpp::Node
     RCLCPP_INFO(this->get_logger(), "State Machine Node has started.");
 
     this->robot_state = RobotState::ESTOP; // Default is ESTOP
+    timer_ = this->create_wall_timer(10ms, std::bind(&state_machine::timer_callback, this));
     robot_state_toggle_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>(
         "robot_state/toggle", 10, std::bind(&state_machine::robot_state_toggle_callback, this, std::placeholders::_1)
     );
@@ -12,6 +13,14 @@ state_machine::state_machine(const rclcpp::NodeOptions & options) : rclcpp::Node
         "motor_commands", 10, std::bind(&state_machine::motor_command_callback, this, std::placeholders::_1)
     );
     robot_state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state", 10);
+}
+
+void state_machine::timer_callback() {
+    // Timer callback implementation
+    std_msgs::msg::UInt8 msg;
+    msg.data = static_cast<uint8_t>(this->robot_state);
+
+    this->robot_state_publisher_->publish(msg);
 }
 
 void state_machine::robot_state_toggle_callback(const std_msgs::msg::UInt8::SharedPtr msg) {
