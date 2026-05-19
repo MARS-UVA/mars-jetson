@@ -44,7 +44,15 @@ class udpServer : public rclcpp::Node
 
       // Cancel previous goal if one is active
       if (this->goal_handle) {
-        cancel_goal();
+        RCLCPP_WARN(this->get_logger(), "Already an active goal");
+        if (action == static_cast<int>(ActionTypes::EStop)) {
+          RCLCPP_WARN(this->get_logger(), "E-Stop requested, canceling current goal");
+          cancel_goal();
+        }
+        else if (action == current_action_state) {
+          RCLCPP_WARN(this->get_logger(), "Same action requested, canceling current goal");
+          cancel_goal();
+        }
       }
       // Set new action
       switch (action) {

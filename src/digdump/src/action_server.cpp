@@ -57,27 +57,6 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     drive_msg.changes.push_back(msg);
     stop_msg.changes.push_back(msg);
   }
-
-  cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
-  "cancel_command",
-  10,
-  [this](std_msgs::msg::UInt8::SharedPtr msg) {
-    if (msg->data == 1 && active_goal_) {
-      RCLCPP_WARN(this->get_logger(), "Manual cancel triggered");
-
-      auto result = std::make_shared<DigDump::Result>();
-      active_goal_->canceled(result);
-
-      goal_active_ = false;
-
-      auto state = std_msgs::msg::UInt8();
-      state.data = 0;
-      state_publisher_->publish(state);
-
-      motor_publisher_->publish(stop_msg);
-    }
-  }
-  );
 }
 
 void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
