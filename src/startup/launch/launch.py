@@ -36,9 +36,9 @@ def generate_launch_description():
                     'drive_speed': 30,
                     'dig_time': 3.0,
                     'dump_time': 6.0,
-                    'move_time': 5.0,
+                    'move_time': 6.0,
                     'actuator_extend_length_aerial': 0.69,
-                    'actuator_extend_length_ground': 0.85,
+                    'actuator_extend_length_ground': 0.9,
                 }],
                 respawn=True
             )

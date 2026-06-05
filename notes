@@ -1,0 +1,4 @@
+ros2 node list
+pkill -f v4l2_camera_node
+ros2 launch startup cameras.launch.py
+
