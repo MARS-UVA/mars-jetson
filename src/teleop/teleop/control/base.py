@@ -6,6 +6,7 @@ import math
 #from typing import Any, Self
 from ..signal_processing import Clamp
 from teleop_msgs.msg import GamepadState, StickPosition
+from geometry_msgs.msg import Twist
 Any = Self = None
 
 class WheelSpeeds:
@@ -127,6 +128,6 @@ class GamepadAxis(Enum):
 
 class DriveControlStrategy(abc.ABC):
     @abc.abstractmethod
-    def get_wheel_speeds(self, gamepad_state: GamepadState) -> WheelSpeeds:
-        """Gets speeds for the robot's wheels for the given gamepad state."""
+    def get_twist(self, gamepad_state: GamepadState) -> Twist:
+        """Gets the desired robot movement as a ``Twist`` message based on the given gamepad state."""
         pass

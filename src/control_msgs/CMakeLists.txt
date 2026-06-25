@@ -1,55 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
-project(network_communication)
+project(control_msgs)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
-# find_package(Catch2 3 REQUIRED)
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(teleop_msgs REQUIRED)
-find_package(control_msgs REQUIRED)
-find_package(serial_msgs REQUIRED)
-find_package(autonomy_msgs REQUIRED)
-
+find_package(rosidl_default_generators REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
-include_directories(include)
-
-add_executable(udp_server
-  src/server.cpp
-)
-add_executable(udp_client
-  src/client.cpp
-)
-
-ament_target_dependencies(udp_server 
-  rclcpp 
-  rclcpp_action
-  std_msgs 
-  teleop_msgs
-  autonomy_msgs
-)
-
-ament_target_dependencies(udp_client 
-  rclcpp 
-  rclcpp_action
-  std_msgs 
-  serial_msgs
-  control_msgs
-)
-
-install(TARGETS
-  udp_client
-  udp_server
-  DESTINATION lib/${PROJECT_NAME})
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -62,5 +23,13 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+    "msg/ArmDrumControl.msg"
+    "msg/ArmControlMode.msg"
+    "msg/RobotState.msg"
+)
+
+ament_export_dependencies(rosidl_default_runtime)
 
 ament_package()
