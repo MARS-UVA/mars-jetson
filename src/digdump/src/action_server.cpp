@@ -11,14 +11,15 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     std::bind(&DigDumpActionServer::handle_accepted, this,
               std::placeholders::_1));
 
-  arm_control_sub_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
-    "arm_control_state", 10, std::bind(&DigDumpActionServer::arm_control_callback, this, std::placeholders::_1)
+  arm_control_mode_sub_ = this->create_subscription<control_msgs::msg::ArmControlMode>(
+    "arm_control_mode", 10, std::bind(&DigDumpActionServer::arm_control_mode_callback, this, std::placeholders::_1)
   );
   position_sub_ = this->create_subscription<serial_msgs::msg::Position>(
     "position", 10, std::bind(&DigDumpActionServer::actuator_position_callback, this, std::placeholders::_1)
   );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
-  motor_publisher_ = this->create_publisher<teleop_msgs::msg::MotorChanges>("digdump_autonomy", 1);
+  cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel/autonomy", 1);
+  arm_drum_control_pub_ = this->create_publisher<control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
 
   auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
     rcl_interfaces::msg::ParameterDescriptor desc;
@@ -27,11 +28,11 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   };
 
   // Speed is from 0-127 where 0 is stopped and 127 is maximum speed
-  actuator_speed_aerial = declare_with_desc("actuator_speed_aerial", 1, "The speed at which the arms lower during dig autonomy routine before reaching ground from 0-127");
-  actuator_speed_ground = declare_with_desc("actuator_speed_ground", 1, "The speed at which the arms lower during dig autonomy routine after reaching ground from 0-127");
-  dig_speed = declare_with_desc("dig_speed", 1, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
-  dump_speed = declare_with_desc("dump_speed", 1, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
-  drive_speed = declare_with_desc("drive_speed", 1, "The speed at which the robot drives during the dump autonomy routine from 0-127");
+  actuator_speed_aerial = declare_with_desc("actuator_speed_aerial", 1.0, "The speed at which the arms lower during dig autonomy routine before reaching ground from 0-127");
+  actuator_speed_ground = declare_with_desc("actuator_speed_ground", 1.0, "The speed at which the arms lower during dig autonomy routine after reaching ground from 0-127");
+  dig_speed = declare_with_desc("dig_speed", 1.0, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
+  dump_speed = declare_with_desc("dump_speed", 1.0, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
+  drive_speed = declare_with_desc("drive_speed", 1.0, "The speed at which the robot drives during the dump autonomy routine from 0-127");
 
   // Time parameters are in seconds
   dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
@@ -57,10 +58,35 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     drive_msg.changes.push_back(msg);
     stop_msg.changes.push_back(msg);
   }
+  cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
+  "cancel_command",
+  10,
+  [this](std_msgs::msg::UInt8::SharedPtr msg) {
+    if (msg->data == 1 && active_goal_) {
+      RCLCPP_WARN(this->get_logger(), "Manual cancel triggered");
+
+      auto result = std::make_shared<DigDump::Result>();
+      active_goal_->canceled(result);
+
+      goal_active_ = false;
+
+      auto state = std_msgs::msg::UInt8();
+      state.data = 0;
+      state_publisher_->publish(state);
+
+      publish_command(stop_msg);
+    }
+  }
+  );
 }
 
-void DigDumpActionServer::arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
-  back_arm_control_state = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
+void DigDumpActionServer::publish_command(const TwistArmDrumControl & command) {
+  cmd_vel_publisher_->publish(command.twist);
+  arm_drum_control_pub_->publish(command.arm_drum_control);
+}
+
+void DigDumpActionServer::arm_control_mode_callback(const control_msgs::msg::ArmControlMode::SharedPtr msg) {
+  back_arm_control_mode = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
 }
 
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
@@ -112,37 +138,29 @@ void DigDumpActionServer::execute(
   double actuator_extend_length_ground = this->get_parameter("actuator_extend_length_ground").as_double();
 
 
-  teleop_msgs::msg::SetMotor msg;
+  lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
+  lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
+  lower_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
+  lower_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
 
-  lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int()*-1;
-  lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int()*-1;
-  lower_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  lower_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  raise_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int();
-  raise_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_aerial").as_int();
-  dig_msg.changes[msg.SPIN_FRONT_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
-  dig_msg.changes[msg.SPIN_BACK_DRUM].velocity = this->get_parameter("dig_speed").as_int() + 127;
+  raise_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double();
+  raise_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double();
 
-  if (!back_arm_control_state) {
-    //RCLCPP_INFO(this->get_logger(), "Back arm control state is false, setting dump_msg to spin front drum and drive_msg to drive forward");
-    dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
-    dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127;
-    drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-    drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-    drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
-    drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = this->get_parameter("drive_speed").as_int() + 127;
+  dig_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double();
+  dig_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double();
+
+  if (!back_arm_control_mode) {
+    RCLCPP_INFO(this->get_logger(), "Back arm control mode is false, setting dump_msg to spin front drum and drive_msg to drive forward");
+    dump_msg.arm_drum_control.front_drum_speed = this->get_parameter("dump_speed").as_double();
+    drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
   } else {
-    //RCLCPP_INFO(this->get_logger(), "Back arm control state is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
-    dump_msg.changes[msg.SPIN_BACK_DRUM].velocity = 127 - this->get_parameter("dump_speed").as_int();
-    dump_msg.changes[msg.SPIN_FRONT_DRUM].velocity = 127;
-    drive_msg.changes[msg.FRONT_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
-    drive_msg.changes[msg.FRONT_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
-    drive_msg.changes[msg.BACK_LEFT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
-    drive_msg.changes[msg.BACK_RIGHT_DRIVE_MOTOR].velocity = 127 - this->get_parameter("drive_speed").as_int();
+    RCLCPP_INFO(this->get_logger(), "Back arm control mode is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
+    dump_msg.arm_drum_control.back_drum_speed = this->get_parameter("dump_speed").as_double();
+    drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double()*-1;
   }
 
+  drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
 
-  std::cout<<lower_msg.changes.size()<<std::endl;
   rclcpp::Rate loop_rate(10);
   const int action_type = goal_handle->get_goal()->index;
   auto feedback = std::make_shared<DigDump::Feedback>();
@@ -186,12 +204,11 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        //RCLCPP_WARN(this->get_logger(), "Current actuator positions: front position %f, back position %f", *current_front_actuator_position, *current_back_actuator_position);
-        motor_publisher_->publish(lower_msg);
+        publish_command(lower_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-      motor_publisher_->publish(stop_msg);
+      publish_command(lower_msg);
 
       elapsed_time = 0.0;
       while (elapsed_time < dig_time) {
@@ -200,11 +217,11 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        motor_publisher_->publish(dig_msg);
+        publish_command(dig_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-      motor_publisher_->publish(stop_msg);
+      publish_command(stop_msg);
 
       elapsed_time = 0.0;
       while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.5) {
@@ -213,11 +230,11 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        motor_publisher_->publish(raise_msg);
+        publish_command(raise_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-      motor_publisher_->publish(stop_msg);
+      publish_command(stop_msg);
       break;
     }
     case 2: {
@@ -230,11 +247,11 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        motor_publisher_->publish(drive_msg);
+        publish_command(drive_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-      motor_publisher_->publish(stop_msg);
+      publish_command(stop_msg);
 
       // Spin drums in reverse
       elapsed_time = 0.0;
@@ -244,11 +261,11 @@ void DigDumpActionServer::execute(
           cancel_current_goal(state, goal_handle);
           return;
         }
-        motor_publisher_->publish(dump_msg);
+        publish_command(dump_msg);
         loop_rate.sleep();
         elapsed_time += 0.1;
       }
-      motor_publisher_->publish(stop_msg);
+      publish_command(stop_msg);
       break;
     }
     default: {
@@ -256,7 +273,7 @@ void DigDumpActionServer::execute(
       RCLCPP_ERROR(rclcpp::get_logger("server"),
                "Invalid action_type received: %d", action_type);
 
-      motor_publisher_->publish(stop_msg);
+      publish_command(stop_msg);
 
       auto state = std_msgs::msg::UInt8();
       state.data = 0;
@@ -287,7 +304,7 @@ void DigDumpActionServer::cancel_current_goal(
   const std::shared_ptr<DigDumpGoalHandle> goal_handle)
 {
   state.data = 0;
-  motor_publisher_->publish(stop_msg);
+  publish_command(stop_msg);
   state_publisher_->publish(state);
   auto result = std::make_shared<DigDump::Result>();
   goal_handle->canceled(result);

@@ -1,216 +1,63 @@
 import rclpy
-from rclpy.node import Node, QoSProfile
-from rclpy.qos import QoSHistoryPolicy, QoSReliabilityPolicy, Duration
+from rclpy.node import Node
+from rclpy.qos import QoSProfile
 from serial_node.serial_handler import SerialHandler
-from std_msgs.msg import String, UInt8
-from teleop_msgs.msg import MotorChanges
-from serial_msgs.msg import CurrentBusVoltage
-from serial_msgs.msg import Position
-from serial_msgs.msg import Temperature
+from serial_node.feedback_mappings import FEEDBACK_PACKETS, TELEOP_HEADER
+from serial_msgs.msg import MotorCommands
 
-TESTING = False
-
-if not TESTING:
-    import Jetson.GPIO as GPIO
-
-
-
-NUM_MOTORS = 8
-MOTOR_CURRENT_MSG = 0
-SEND_HZ = 20
-READ_HZ = 20
-ROBOT_STATE_HZ = 10
-MOTOR_STILL = 127
-
-TELEOP_MODE = 0
-DIG_MODE = 1
-DUMP_MODE = 2
-ESTOP = 3
-
-SET_PIN = 7
-RESET_PIN = 11
-
-INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
+RECV_HZ = 20
 
 class SerialNode(Node):
-
     def __init__(self):
-        super().__init__('serial_mux')
+        super().__init__('serial_node')
 
-        qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
-        self.mode = ESTOP
-        self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
-        self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
-        self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
+        self.declare_parameter('port', '/dev/ttyUSB0')
+        self.declare_parameter('baudrate', 115200)
+        self.declare_parameter('mock_serial', 0)
+        port = self.get_parameter('port').get_parameter_value().string_value
+        baudrate = self.get_parameter('baudrate').get_parameter_value().integer_value
+        mock_serial = self.get_parameter('mock_serial').get_parameter_value().integer_value != 0
+        self.get_logger().info(f"SerialNode parameters: port={port}, baudrate={baudrate}, mock_serial={mock_serial}")
 
-        self.teleop_sub_ = self.create_subscription(
-            msg_type = MotorChanges,
-            topic = 'teleop',
-            callback = self.update_teleop_buffer,
-            qos_profile = qos) #1 queued message
-        self.digdump_sub_ = self.create_subscription(
-            msg_type = MotorChanges, 
-            topic = 'digdump_autonomy',
-            callback = self.update_digdump_buffer,
-            qos_profile = qos)
-        self.robot_state_sub_ = self.create_subscription(
-            msg_type = UInt8,
-            topic = 'robot_state/toggle',
-            callback = self.change_robot_state,
-            qos_profile = qos
-        )
+        self.serial_handler = SerialHandler(port=port, baudrate=baudrate, mock_serial=mock_serial)
 
-        # feedback
-        self.robot_state_pub_ = self.create_publisher(
-            msg_type = UInt8,
-            topic = 'robot_state',
-            qos_profile = qos
-        )
-        self.current_bus_voltage_publisher = self.create_publisher(
-            msg_type=CurrentBusVoltage,
-            topic='current_bus_voltage',
-            qos_profile=qos
-        )
-        self.position_publisher = self.create_publisher(
-            msg_type=Position,
-            topic='position',
-            qos_profile=qos
-        )
-        self.temperature_publisher = self.create_publisher(
-            msg_type=Temperature,
-            topic='temperature',
-            qos_profile=qos
-        )
-        self.esp_working_publisher = self.create_publisher(
-            msg_type=UInt8,
-            topic='esp_working',
-            qos_profile=qos
-        )
-        self.teleop_sub_  # prevent unused variable warning
-        self.send_timer = self.create_timer(1/SEND_HZ, self.sendCurrents)
-        self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
-        self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
-        self.serial_handler = SerialHandler()
+        self.motor_command_subscriber = self.create_subscription(MotorCommands, '/motor_commands', self.motor_command_callback, QoSProfile(depth=10))
+        self.timer = self.create_timer(1.0 / RECV_HZ, self.read_serial_data)
+
+        self.feedback_packet_map = {(packet['header'], packet['length']): packet for packet in FEEDBACK_PACKETS}
+        self.feedback_publishers = {
+            packet['header']: self.create_publisher(packet['msg_type'], packet['topic'], QoSProfile(depth=10)) for packet in FEEDBACK_PACKETS
+        }
+
+        self.get_logger().info("SerialNode has been initialized.")
         
-        if not TESTING:
-            self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
-            self.gpio_cleanup_timer.cancel()
-            self.gpio_estop()
+    def read_serial_data(self):
+        packet = self.serial_handler.read(logger=self.get_logger())
 
-
-    def publish_robot_state(self):
-        msg = UInt8()
-        msg.data = self.mode
-        self.robot_state_pub_.publish(msg)
-    
-    def change_robot_state(self, robot_state_msg):
-        new_state = robot_state_msg.data
-        if self.mode == ESTOP:
-            if new_state == ESTOP:
-                if not TESTING:
-                    self.gpio_unestop()
-                
-                self.mode = TELEOP_MODE
-        else:
-            self.mode = new_state
-            if new_state == ESTOP:
-                if not TESTING:
-                    self.gpio_estop()
-
-                self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
-                self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
-            
-        self.get_logger().warn(f"CHANGING MODE: {INT2MODE[self.mode]}")
-
-    def update_buffer(self, buffer, motor_updates):
-        for change in motor_updates.changes:
-            buffer[change.index] = change.velocity
-        for add in motor_updates.adds:
-            newVel = buffer[add.index] + add.vel_increment
-            self.get_logger().info(f"{add.index}: {'+' if add.vel_increment>0 else ''}{add.vel_increment}")
-            newVel = max(0, newVel)
-            newVel = min(254, newVel)
-            buffer[add.index] = newVel
-    
-    def update_teleop_buffer(self, motor_updates):
-        self.update_buffer(self.teleop_buffer_, motor_updates)
-        
-    def update_digdump_buffer(self, motor_updates):
-        self.update_buffer(self.digdump_buffer_, motor_updates)
-        
-    def sendCurrents(self):
-        if self.mode == TELEOP_MODE:
-            buffer = self.teleop_buffer_
-        elif self.mode == DIG_MODE or self.mode == DUMP_MODE:
-            buffer = self.digdump_buffer_
-        elif self.mode == ESTOP:
-            buffer = self.STOP_MSG
-
-        self.get_logger().info(f"Sending currents: {buffer}")
-        if TESTING: 
+        if not packet:
             return
-        try:
-            self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
-        except Exception as e:
-            self.get_logger().error(f"Error occurred while writing to serial port: {e}")
-            self.mode = ESTOP
+        
+        self.parse_publish_serial_data(*packet)
 
-    def readFeedback(self):
-        if TESTING: return
-        header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
-        self.get_logger().info(f"Received header: {header}, feedback: {feedback}")
-        if header:
-            if header == 0x00:
-                self.get_logger().info("no data")
-            elif header == 0x01:
-                mf = CurrentBusVoltage( 
-                    front_left_wheel_current = feedback[0],
-                    back_left_wheel_current = feedback[1],
-                    front_right_wheel_current = feedback[2],
-                    back_right_wheel_current = feedback[3],
-                    front_drum_current = feedback[4],
-                    back_drum_current = feedback[5],
-                    front_actuator_current = feedback[6],
-                    back_actuator_current = feedback[7],
-                    main_battery_voltage = feedback[8],
-                    aux_battery_voltage = feedback[9]
-                )
-                self.current_bus_voltage_publisher.publish(mf) 
-            elif header == 0x02:
-                mf = Temperature(
-                    front_left_wheel_temperature = feedback[0],
-                    back_left_wheel_temperature = feedback[1],
-                    front_right_wheel_temperature = feedback[2],
-                    back_right_wheel_temperature = feedback[3],
-                    front_drum_temperature = feedback[4],
-                    back_drum_temperature = feedback[5]
-                )
-                self.temperature_publisher.publish(mf)
-            elif header == 0x03:
-                mf = Position(
-                    front_actuator_position = feedback[0],
-                    back_actuator_position = feedback[1]
-                )
-                self.position_publisher.publish(mf)
-        else:
-            self.get_logger().debug("no data")
+    def parse_publish_serial_data(self, header, data):
+        key = (header, len(data))
+        if key not in self.feedback_packet_map:
+            self.get_logger().warning(f"Received unknown packet format: header {hex(header)}, length {len(data)} bytes")
+            return None
+
+        packet_info = self.feedback_packet_map.get(key, None)
+
+        parsed_data = packet_info['parser'](data)
+        msg = packet_info['msg_type'](**parsed_data)
     
-    def gpio_estop(self):
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
-        GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
-        self.gpio_cleanup_timer.reset()
+        self.feedback_publishers[packet_info['header']].publish(msg)
+        self.get_logger().debug(f"Published Feedback: {packet_info['msg_type']} - {packet_info['topic']}")
 
-    def gpio_unestop(self):
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
-        GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
-        # self.gpio_cleanup_timer.reset()
-
-    def clean_up_gpio(self):
-        GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low
-        self.gpio_cleanup_timer.cancel()
-
+    def motor_command_callback(self, msg):
+        self.get_logger().debug(f"Received MotorCommands: {msg.motor_commands}")
+        payload = bytes(msg.motor_commands)
+        self.serial_handler.write(header=TELEOP_HEADER, payload=payload)
+        
 def main(args=None):
     rclpy.init(args=args)
 

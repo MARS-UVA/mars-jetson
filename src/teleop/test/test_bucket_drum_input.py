@@ -1,5 +1,5 @@
 from teleop.motor_queries import bucket_actuator_speed, bucket_drum_speed_cruise_control
-from teleop_msgs.msg import HumanInputState, SetMotor
+from teleop_msgs.msg import HumanInputState
 
 
 def test_dpad_up_causes_actuator_up() -> None:

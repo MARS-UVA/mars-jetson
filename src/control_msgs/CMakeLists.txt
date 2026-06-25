@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(teleop_msgs)
+project(control_msgs)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -25,9 +25,9 @@ if(BUILD_TESTING)
 endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-    "msg/GamepadState.msg"
-    "msg/HumanInputState.msg"
-    "msg/StickPosition.msg"
+    "msg/ArmDrumControl.msg"
+    "msg/ArmControlMode.msg"
+    "msg/RobotState.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
