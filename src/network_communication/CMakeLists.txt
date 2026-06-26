@@ -13,7 +13,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(teleop_msgs REQUIRED)
-find_package(control_msgs REQUIRED)
+find_package(robot_control_msgs REQUIRED)
 find_package(serial_msgs REQUIRED)
 find_package(autonomy_msgs REQUIRED)
 
@@ -42,7 +42,7 @@ ament_target_dependencies(udp_client
   rclcpp_action
   std_msgs 
   serial_msgs
-  control_msgs
+  robot_control_msgs
 )
 
 install(TARGETS

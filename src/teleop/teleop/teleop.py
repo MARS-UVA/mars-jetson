@@ -9,9 +9,10 @@ from teleop_msgs.msg import HumanInputState, GamepadState
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin
+from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin, create_joint_state_message
 from geometry_msgs.msg import Twist
-from control_msgs.msg import RobotState, ArmDrumControl, ArmControlMode
+from robot_control_msgs.msg import RobotState, ArmControlMode
+from sensor_msgs.msg import JointState
 
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""
@@ -125,9 +126,9 @@ class TeleopNode(Node):
             topic='cmd_vel/teleop',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
-        self._arm_drum_control_publisher = self.create_publisher(
-            msg_type=ArmDrumControl,
-            topic='arm_drum_control/teleop',
+        self._arm_drum_state_publisher = self.create_publisher(
+            msg_type=JointState,
+            topic='arm_drum_state/teleop',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
         self._arm_control_mode_publisher = self.create_publisher(
@@ -145,7 +146,7 @@ class TeleopNode(Node):
         self.timer = self.create_timer(2, self.__stopped_motors)
         self.cruise_control = False
         self.cmd_vel = Twist()
-        self.arm_drum_control = ArmDrumControl()
+        self.arm_drum_state = create_joint_state_message()
         self.robot_state = RobotState()
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
@@ -194,26 +195,26 @@ class TeleopNode(Node):
         if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
             self.front_arm_control = True
             self.back_arm_control = True
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_state)
         elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
             self.front_arm_control = True
             self.back_arm_control = False
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_state)
         elif gamepad_state.b_pressed and not self.prev_gamepad_state.b_pressed:
             self.front_arm_control = False
             self.back_arm_control = True
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_state)
 
         self._arm_control_mode_publisher.publish(ArmControlMode(front_arm_control = self.front_arm_control, back_arm_control = self.back_arm_control))
 
         # Spin Bucket Drum(s)
         if gamepad_state.lb_pressed and not self.prev_gamepad_state.lb_pressed: #spin bucket drum backwards
             self.get_logger().info("bucket drum -15")
-            increment_drum_spin(-0.1, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            increment_drum_spin(-0.1, self.front_arm_control, self.back_arm_control, self.arm_drum_state)
             
         elif gamepad_state.rb_pressed and not self.prev_gamepad_state.rb_pressed: #spin bucket drum forward
             self.get_logger().info("bucket drum +15")
-            increment_drum_spin(+0.1, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            increment_drum_spin(+0.1, self.front_arm_control, self.back_arm_control, self.arm_drum_state)
 
         if gamepad_state.dl_pressed and not self.prev_gamepad_state.dl_pressed:
             self.get_logger().info("bucket drum full throttle backwards")
@@ -223,7 +224,7 @@ class TeleopNode(Node):
             max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = True)
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
-            stop_drum_spin(True, True, self.arm_drum_control)
+            stop_drum_spin(True, True, self.arm_drum_state)
         self.get_logger().info(f'Calculated: {wheel_speeds}')
         
         
@@ -254,13 +255,13 @@ class TeleopNode(Node):
 
         self._cmd_vel_publisher.publish(self.cmd_vel)
         self.get_logger().info(f'Published: {self.cmd_vel.linear.x}, {self.cmd_vel.angular.z}')
-        self._arm_drum_control_publisher.publish(self.arm_drum_control)
+        self._arm_drum_state_publisher.publish(self.arm_drum_state)
 
         self.prev_gamepad_state = gamepad_state
     
     def __stopped_motors(self) -> None:
         self._cmd_vel_publisher.publish(Twist())
-        self._arm_drum_control_publisher.publish(ArmDrumControl())
+        self._arm_drum_state_publisher.publish(create_joint_state_message())
 
     def __add_parameter_event_handlers(self) -> None:
         try:

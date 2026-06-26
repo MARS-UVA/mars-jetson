@@ -5,8 +5,8 @@
 #include <serial_msgs/msg/current_bus_voltage.hpp>
 #include <serial_msgs/msg/position.hpp>
 #include <serial_msgs/msg/temperature.hpp>
-#include <control_msgs/msg/arm_control_mode.hpp>
-#include <control_msgs/msg/robot_state.hpp>
+#include <robot_control_msgs/msg/arm_control_mode.hpp>
+#include <robot_control_msgs/msg/robot_state.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 
 #include <vector>

@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
 from topic_tools_interfaces.srv import MuxSelect
-from control_msgs.msg import RobotState
+from robot_control_msgs.msg import RobotState
 from std_msgs.msg import UInt8
 from rclpy.client import Client
 
@@ -58,13 +58,13 @@ class RobotStateControllerNode(Node):
         """Control the robot's state based on the current state."""
         if self.state == TELEOP_MODE:
             self.send_mux_request('cmd_vel/teleop', self.cmd_vel_mux_client_)
-            self.send_mux_request('arm_drum_control/teleop', self.arm_drum_mux_client_)
+            self.send_mux_request('arm_drum_state/teleop', self.arm_drum_mux_client_)
         elif self.state == DIG_MODE or self.state == DUMP_MODE:
             self.send_mux_request('cmd_vel/autonomy', self.cmd_vel_mux_client_)
-            self.send_mux_request('arm_drum_control/autonomy', self.arm_drum_mux_client_)
+            self.send_mux_request('arm_drum_state/autonomy', self.arm_drum_mux_client_)
         elif self.state == ESTOP_MODE:
             self.send_mux_request('cmd_vel/teleop', self.cmd_vel_mux_client_)
-            self.send_mux_request('arm_drum_control/teleop', self.arm_drum_mux_client_)
+            self.send_mux_request('arm_drum_state/teleop', self.arm_drum_mux_client_)
         self.robot_state_publisher_.publish(RobotState(state=self.state))
 
     def send_mux_request(self, topic: str, mux_client: Client) -> None:

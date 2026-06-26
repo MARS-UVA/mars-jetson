@@ -91,7 +91,7 @@ def generate_launch_description():
                 executable='mux',
                 name='arm_drum_mux',
                 output='screen',
-                arguments=['/arm_drum_control', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
+                arguments=['/arm_drum_state', '/arm_drum_state/teleop', '/arm_drum_state/autonomy'],
                 respawn=True
             )
     robot_state_controller = Node(
