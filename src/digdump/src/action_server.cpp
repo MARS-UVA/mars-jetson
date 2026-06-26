@@ -11,13 +11,13 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     std::bind(&DigDumpActionServer::handle_accepted, this,
               std::placeholders::_1));
 
-  arm_control_mode_sub_ = this->create_subscription<control_msgs::msg::ArmControlMode>(
+  arm_control_mode_sub_ = this->create_subscription<robot_control_msgs::msg::ArmControlMode>(
     "arm_control_mode", 10, std::bind(&DigDumpActionServer::arm_control_mode_callback, this, std::placeholders::_1)
   );
 
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel/autonomy", 1);
-  arm_drum_control_pub_ = this->create_publisher<control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
+  arm_drum_states_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("arm_drum_state/autonomy", 1);
 
   auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
     rcl_interfaces::msg::ParameterDescriptor desc;
@@ -57,15 +57,27 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     }
   }
   );
+
+  create_joint_state_message(lower_msg.arm_drum_state);
+  create_joint_state_message(raise_msg.arm_drum_state);
+  create_joint_state_message(dig_msg.arm_drum_state);
+  create_joint_state_message(dump_msg.arm_drum_state);
+  create_joint_state_message(drive_msg.arm_drum_state);
+  create_joint_state_message(stop_msg.arm_drum_state);
 }
 
 void DigDumpActionServer::publish_command(const TwistArmDrumControl & command) {
   cmd_vel_publisher_->publish(command.twist);
-  arm_drum_control_pub_->publish(command.arm_drum_control);
+  arm_drum_states_pub_->publish(command.arm_drum_state);
 }
 
-void DigDumpActionServer::arm_control_mode_callback(const control_msgs::msg::ArmControlMode::SharedPtr msg) {
+void DigDumpActionServer::arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg) {
   back_arm_control_mode = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
+}
+
+void DigDumpActionServer::create_joint_state_message(sensor_msgs::msg::JointState & msg) {
+  msg.name = JOINT_NAMES;
+  msg.velocity = std::vector<double>(msg.name.size(), 0.0);
 }
 
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
@@ -108,23 +120,23 @@ void DigDumpActionServer::execute(
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
 
-  lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
-  lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
-  lower_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
-  lower_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
+  lower_msg.arm_drum_state.velocity[JointIndex::FRONT_ARM_IDX] = this->get_parameter("actuator_speed").as_double()*-1;
+  lower_msg.arm_drum_state.velocity[JointIndex::BACK_ARM_IDX] = this->get_parameter("actuator_speed").as_double()*-1;
+  lower_msg.arm_drum_state.velocity[JointIndex::FRONT_DRUM_IDX] = this->get_parameter("dig_speed").as_double()*-1;
+  lower_msg.arm_drum_state.velocity[JointIndex::BACK_DRUM_IDX] = this->get_parameter("dig_speed").as_double()*-1;
 
-  raise_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double();
-  raise_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double();
+  raise_msg.arm_drum_state.velocity[JointIndex::FRONT_ARM_IDX] = this->get_parameter("actuator_speed").as_double();
+  raise_msg.arm_drum_state.velocity[JointIndex::BACK_ARM_IDX] = this->get_parameter("actuator_speed").as_double();
 
-  dig_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double();
+  dig_msg.arm_drum_state.velocity[JointIndex::FRONT_DRUM_IDX] = this->get_parameter("dig_speed").as_double();
 
   if (!back_arm_control_mode) {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is false, setting dump_msg to spin front drum and drive_msg to drive forward");
-    dump_msg.arm_drum_control.front_drum_speed = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_state.velocity[JointIndex::FRONT_DRUM_IDX] = this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
   } else {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
-    dump_msg.arm_drum_control.back_drum_speed = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_state.velocity[JointIndex::BACK_DRUM_IDX] = this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double()*-1;
   }
 

@@ -4,13 +4,29 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "control_msgs/msg/arm_drum_control.hpp"
-#include "control_msgs/msg/arm_control_mode.hpp"
+#include "robot_control_msgs/msg/arm_control_mode.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+
+enum JointIndex {
+    FRONT_ARM_IDX,
+    BACK_ARM_IDX,
+    FRONT_DRUM_IDX,
+    BACK_DRUM_IDX,
+};
+
+// 2. Map the names to the exact same positions
+const std::vector<std::string> JOINT_NAMES = {
+    "front_arm",
+    "back_arm",
+    "front_drum",
+    "back_drum"
+};
+
 
 struct TwistArmDrumControl {
   geometry_msgs::msg::Twist twist;
-  control_msgs::msg::ArmDrumControl arm_drum_control;
+  sensor_msgs::msg::JointState arm_drum_state;
 };
 
 class DigDumpActionServer : public rclcpp::Node
@@ -33,10 +49,10 @@ class DigDumpActionServer : public rclcpp::Node
 
   private:
     rclcpp_action::Server<DigDump>::SharedPtr action_server_;
-    rclcpp::Subscription<control_msgs::msg::ArmControlMode>::SharedPtr arm_control_mode_sub_;
+    rclcpp::Subscription<robot_control_msgs::msg::ArmControlMode>::SharedPtr arm_control_mode_sub_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
-    rclcpp::Publisher<control_msgs::msg::ArmDrumControl>::SharedPtr arm_drum_control_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr arm_drum_states_pub_;
     
     //Parameter to track if a goal is currently active. Used to prevent accepting new goals while one is active
     bool goal_active_ = false;
@@ -66,10 +82,12 @@ class DigDumpActionServer : public rclcpp::Node
     TwistArmDrumControl drive_msg;
     TwistArmDrumControl stop_msg;
 
-    control_msgs::msg::ArmDrumControl lower_arm_drum_msg;
-    control_msgs::msg::ArmDrumControl raise_arm_drum_msg;
+    sensor_msgs::msg::JointState lower_arm_drum_msg;
+    sensor_msgs::msg::JointState raise_arm_drum_msg;
 
-    void arm_control_mode_callback(const control_msgs::msg::ArmControlMode::SharedPtr msg);
+    void create_joint_state_message(sensor_msgs::msg::JointState & msg);
+
+    void arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg);
 
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);
