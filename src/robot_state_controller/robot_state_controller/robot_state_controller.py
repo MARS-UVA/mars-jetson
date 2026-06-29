@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
 from topic_tools_interfaces.srv import MuxSelect
-from control_msgs.msg import RobotState
+from robot_control_msgs.msg import RobotState
 from std_msgs.msg import UInt8
 from rclpy.client import Client
 

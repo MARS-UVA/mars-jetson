@@ -1,4 +1,4 @@
-from control_msgs.msg import ArmDrumControl
+from robot_control_msgs.msg import ArmDrumControl
 from geometry_msgs.msg import Twist
 
 def clamp(value: float, min_value: float, max_value: float) -> float:

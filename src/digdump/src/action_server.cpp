@@ -11,13 +11,13 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
     std::bind(&DigDumpActionServer::handle_accepted, this,
               std::placeholders::_1));
 
-  arm_control_mode_sub_ = this->create_subscription<control_msgs::msg::ArmControlMode>(
+  arm_control_mode_sub_ = this->create_subscription<robot_control_msgs::msg::ArmControlMode>(
     "arm_control_mode", 10, std::bind(&DigDumpActionServer::arm_control_mode_callback, this, std::placeholders::_1)
   );
 
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel/autonomy", 1);
-  arm_drum_control_pub_ = this->create_publisher<control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
+  arm_drum_control_pub_ = this->create_publisher<robot_control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
 
   auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
     rcl_interfaces::msg::ParameterDescriptor desc;
@@ -64,7 +64,7 @@ void DigDumpActionServer::publish_command(const TwistArmDrumControl & command) {
   arm_drum_control_pub_->publish(command.arm_drum_control);
 }
 
-void DigDumpActionServer::arm_control_mode_callback(const control_msgs::msg::ArmControlMode::SharedPtr msg) {
+void DigDumpActionServer::arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg) {
   back_arm_control_mode = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
 }
 

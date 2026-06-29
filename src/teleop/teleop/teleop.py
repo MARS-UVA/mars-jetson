@@ -11,7 +11,7 @@ from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
 from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin
 from geometry_msgs.msg import Twist
-from control_msgs.msg import RobotState, ArmDrumControl, ArmControlMode
+from robot_control_msgs.msg import RobotState, ArmDrumControl, ArmControlMode
 
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""

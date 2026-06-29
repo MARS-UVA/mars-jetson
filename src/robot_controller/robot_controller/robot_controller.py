@@ -3,7 +3,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
-from control_msgs.msg import ArmDrumControl
+from robot_control_msgs.msg import ArmDrumControl
 from serial_msgs.msg import MotorCommands
 
 from geometry_msgs.msg import Twist
