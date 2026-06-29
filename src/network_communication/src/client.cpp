@@ -30,11 +30,11 @@ class udpClient : public rclcpp::Node
       positionSubscription_ = this->create_subscription<serial_msgs::msg::Position>(
         "position", 10, std::bind(&udpClient::position_callback, this, _1)
       );
-      robot_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt8>(
+      robot_state_subscriber_ = this->create_subscription<robot_control_msgs::msg::RobotState>(
         "robot_state", 10, std::bind(&udpClient::robot_state_callback, this, _1)
       );
-      armControlSubscription_ = this->create_subscription<teleop_msgs::msg::ArmControl>(
-        "arm_control_state", 10, std::bind(&udpClient::arm_control_callback, this, _1)
+      armControlSubscription_ = this->create_subscription<robot_control_msgs::msg::ArmControlMode>(
+        "arm_control_mode", 10, std::bind(&udpClient::arm_control_callback, this, _1)
       );
     }
     ~udpClient() {
@@ -116,13 +116,13 @@ class udpClient : public rclcpp::Node
       std::memcpy(&buffer[FeedbackByteIndices::BACK_ACTUATOR_POSITION], &msg->back_actuator_position, 4);
     }
 
-    void robot_state_callback(const std_msgs::msg::UInt8::SharedPtr state) {
+    void robot_state_callback(const robot_control_msgs::msg::RobotState::SharedPtr state) {
       RCLCPP_DEBUG(this->get_logger(), "Received robot state feedback packet");
-      uint32_t state_data = static_cast<uint32_t>(state->data);
+      uint32_t state_data = static_cast<uint32_t>(state->state);
       std::memcpy(&buffer[FeedbackByteIndices::ROBOT_STATE], &state_data, 4);
     }
 
-    void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg) {
+    void arm_control_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg) {
     uint32_t front_arm_control = msg->front_arm_control;
     uint32_t back_arm_control = msg->back_arm_control;
     std::memcpy(&buffer[FeedbackByteIndices::FRONT_ARM_CONTROL], &front_arm_control, 4);
@@ -137,11 +137,11 @@ class udpClient : public rclcpp::Node
     unsigned char* buffer;
 
     rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr robot_state_subscriber_;
+    rclcpp::Subscription<robot_control_msgs::msg::RobotState>::SharedPtr robot_state_subscriber_;
     rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;
-    rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr armControlSubscription_;
+    rclcpp::Subscription<robot_control_msgs::msg::ArmControlMode>::SharedPtr armControlSubscription_;
 };
 
 int main(int argc, char * argv[])
