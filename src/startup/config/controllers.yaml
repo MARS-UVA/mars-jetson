@@ -1,0 +1,57 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 500 # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    base_controller:
+      type: diff_drive_controller/DiffDriveController
+
+    arm_drum_controller:
+      type: arm_drum_controller/ArmDrumController
+
+base_controller:
+  ros__parameters:
+    left_wheel_names:
+      - front_left_wheel_joint
+      - rear_left_wheel_joint
+    right_wheel_names:
+      - front_right_wheel_joint
+      - rear_right_wheel_joint
+    wheel_separation: 3.0
+    wheel_radius: 0.1778
+    cmd_vel_timeout: 0.5
+    enable_odom_tf: true
+    odom_frame_id: odom
+    base_frame_id: frame_assembly
+    publish_rate: 50.0
+    publish_limited_velocity: true
+    linear:
+      x:
+        has_velocity_limits: true
+        max_velocity: 4.0           # Bumps up your top straight-line speed ceiling
+        has_acceleration_limits: true
+        max_acceleration: 8.0
+      
+      angular:
+        z:
+          has_velocity_limits: true
+          max_velocity: 5.0           # Allows the wheels to spin faster during a turn
+          has_acceleration_limits: true
+          max_acceleration: 10.0
+
+arm_drum_controller:
+  ros__parameters:
+    front_arm_joints:
+      - front_arm_joint
+    back_arm_joints:
+      - rear_arm_joint
+    front_drum_joints:
+      - front_left_drum_joint
+      - front_right_drum_joint
+    back_drum_joints:
+      - rear_left_drum_joint
+      - rear_right_drum_joint
+    command_timeout: 0.5
+    

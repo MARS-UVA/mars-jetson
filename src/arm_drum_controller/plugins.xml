@@ -1,0 +1,9 @@
+<library path="arm_drum_controller">
+  <class name="arm_drum_controller/ArmDrumController" 
+         type="arm_drum_controller::ArmDrumController" 
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Custom velocity forwarding controller parsing structured ArmDrumControl messages.
+    </description>
+  </class>
+</library>

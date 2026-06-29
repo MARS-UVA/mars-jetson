@@ -21,8 +21,8 @@ def update_joint_velocity(joint_name: str, velocity: float, msg: JointState) -> 
         raise ValueError(f"Joint name '{joint_name}' not found in joint_map.")
 
 # Raises the arms of the robot
-def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: JointState) -> None:
-    velocity = clamp(velocity, -1.0, 1.0)
+def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: ArmDrumControl) -> None:
+    velocity = clamp(velocity, -2.0, 2.0)
     if front_arm:
         update_joint_velocity(FRONT_ARM_NAME, velocity, msg)
     if back_arm:

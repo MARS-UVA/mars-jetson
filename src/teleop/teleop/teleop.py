@@ -240,9 +240,9 @@ class TeleopNode(Node):
         # Raise Bucket Drum Arm(s)
         if not self.arms_raising:
             if rightStickY > 0.2:
-                raise_arms(+1.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+                raise_arms(+2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
             elif rightStickY < -0.2:
-                raise_arms(-1.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+                raise_arms(-2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
             else:
                 raise_arms(0.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         else:

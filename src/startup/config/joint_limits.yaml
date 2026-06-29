@@ -1,0 +1,69 @@
+front_left_wheel_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+front_right_wheel_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+rear_left_wheel_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+rear_right_wheel_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+front_arm_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 50
+    effort: 1000
+
+rear_arm_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 50
+    effort: 1000
+
+front_left_drum_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+front_right_drum_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+rear_left_drum_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
+
+rear_right_drum_joint:
+  limit:
+    lower: -3.14
+    upper: 3.14
+    velocity: 23
+    effort: 200
