@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+
+  <!-- MuJoCo Config -->
+  <!-- Mujoco compiler options -->
+  <xacro:arg name="mujoco_model_path" default="/tmp/mujoco" />
+  <xacro:arg name="autolimits" default="true" />
+  <xacro:arg name="balanceinertia" default="true" />
+  <!-- Mujoco options -->
+  <xacro:arg name="integrator" default="implicitfast" />
+  <xacro:arg name="gravity" default="0 0 -9.81" />
+  <xacro:arg name="impratio" default="1" />
+  <xacro:arg name="integrator" default="implicitfast" />
+  <xacro:arg name="cone" default="elliptic" />
+  <xacro:arg name="solver" default="Newton" />
+  <xacro:arg name="noslip_iterations" default="3" />
+  <xacro:arg name="multiccd" default="disable" />
+
+  <xacro:arg name="use_sim" default="true" />
+  <xacro:arg name="mujoco_effort" default="false" /> <!-- position actuators must be defined before using them -->
+
+  <link name="world"/>
+  <joint name="world_joint" type="floating">
+    <parent link="world"/>
+    <child link="frame_assembly"/>
+    <origin xyz="0 0 0.0" rpy="0 0 2.00"/>
+  </joint>
+
+  <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
+
+  <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
+  <xacro:robot_ros2_control use_sim="$(arg use_sim)" mujoco_effort="$(arg mujoco_effort)" />
+
+  <xacro:if value="$(arg use_sim)">
+      <mujoco>
+          <compiler meshdir="$(arg mujoco_model_path)/meshes" 
+                    discardvisual="false" 
+                    autolimits="$(arg autolimits)" 
+                    balanceinertia="$(arg balanceinertia)"
+          />
+          <option integrator="$(arg integrator)" 
+                  gravity="$(arg gravity)" 
+                  impratio="$(arg impratio)" 
+                  cone="$(arg cone)" 
+                  solver="$(arg solver)" 
+                  noslip_iterations="$(arg noslip_iterations)">
+              <flag multiccd="$(arg multiccd)" />
+          </option>
+          <!-- Create actuators to use position control -->
+          <xacro:unless value="$(arg mujoco_effort)">
+              <xacro:include filename="$(find startup)/urdf/robot/urdf/mujoco_actuators.urdf.xacro" />
+              <xacro:create_mujoco_actuators/>
+          </xacro:unless>
+          
+          <contact> 
+            <pair geom1="front_arm_collision_0" geom2="frame_assembly_collision_0" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
+            <pair geom1="rear_arm_collision_0" geom2="frame_assembly_collision_1" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
+          </contact>
+          <!-- <body name="front_arm" gravcomp="1" />
+          <body name="rear_arm" gravcomp="1" />
+          <body name="front_left_drum" gravcomp="1" />
+          <body name="front_right_drum" gravcomp="1" />
+          <body name="rear_left_drum" gravcomp="1" />
+          <body name="rear_right_drum" gravcomp="1" /> -->
+
+      </mujoco>
+  </xacro:if>
+</robot>

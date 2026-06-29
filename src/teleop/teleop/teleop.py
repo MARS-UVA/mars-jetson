@@ -220,9 +220,9 @@ class TeleopNode(Node):
         rightStickY = gamepad_state.right_stick.y
         # Raise and Lower Bucket Drum Arm(s)
         if rightStickY > 0.2:
-            raise_arms(+1.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            raise_arms(+2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         elif rightStickY < -0.2:
-            raise_arms(-1.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            raise_arms(-2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         else:
             raise_arms(0.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
 

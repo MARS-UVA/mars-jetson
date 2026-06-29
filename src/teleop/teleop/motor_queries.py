@@ -7,7 +7,7 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
 
 # Raises the arms of the robot
 def raise_arms(velocity, front_arm: bool, back_arm: bool, msg: ArmDrumControl) -> None:
-    velocity = clamp(velocity, -1.0, 1.0)
+    velocity = clamp(velocity, -2.0, 2.0)
     if front_arm:
         msg.front_arm_speed = velocity
     if back_arm:
