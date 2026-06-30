@@ -27,6 +27,7 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/ArmControlMode.msg"
     "msg/RobotState.msg"
+    "msg/ArmDrumControl.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
