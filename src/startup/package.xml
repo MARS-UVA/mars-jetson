@@ -8,6 +8,8 @@
   <license>TODO: License declaration</license>
 
   <depend>twist_stamper</depend>
+  <depend>topic_tools</depend>
+  <depend>ros2_controllers</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

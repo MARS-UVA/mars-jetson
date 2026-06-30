@@ -19,9 +19,7 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3-pip
 ENV SHELL /bin/bash
 
-# ********************************************************
-# * Anything else you want to do like clean up goes here *
-# ********************************************************
+RUN apt-get update && apt-get install -y libglfw3-dev libx11-dev xorg-dev libopencv-dev libpcl-dev libxkbcommon-dev
 
 # [Optional] Automatically source ROS setup script when a new shell is launched
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /home/$USERNAME/.bashrc
