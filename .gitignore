@@ -32,3 +32,6 @@ assets/**/*.ply
 !assets/ply_samples/*.ply
 
 MUJOCO_LOG.TXT
+
+# ignore devcontainer.json in lieu of the template
+.devcontainer/devcontainer.json
