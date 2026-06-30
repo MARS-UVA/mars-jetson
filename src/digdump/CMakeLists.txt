@@ -17,6 +17,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(robot_control_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(serial_msgs REQUIRED)
 
 include_directories(include)
 
@@ -28,7 +29,8 @@ ament_target_dependencies(action_server
   robot_control_msgs
   rclcpp_action
   geometry_msgs
-  autonomy_msgs)
+  autonomy_msgs
+  serial_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

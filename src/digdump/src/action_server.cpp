@@ -47,17 +47,6 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   current_front_actuator_position = 0.0;
   current_back_actuator_position = 0.0;
 
-  teleop_msgs::msg::SetMotor msg;
-
-  for (int i=0; i<8; i++) {
-    msg.index = i;
-    lower_msg.changes.push_back(msg);
-    raise_msg.changes.push_back(msg);
-    dig_msg.changes.push_back(msg);
-    dump_msg.changes.push_back(msg);
-    drive_msg.changes.push_back(msg);
-    stop_msg.changes.push_back(msg);
-  }
   cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
   "cancel_command",
   10,
@@ -101,6 +90,8 @@ void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Pos
   //RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
   this->current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
   this->current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
+}
+
 void DigDumpActionServer::create_joint_state_message(sensor_msgs::msg::JointState & msg) {
   msg.name = JOINT_NAMES;
   msg.velocity = std::vector<double>(msg.name.size(), 0.0);
@@ -195,18 +186,18 @@ void DigDumpActionServer::execute(
         
         // if the actuator has reached the ground state, slow down the lowering speed
         if (current_front_actuator_position >= actuator_extend_length_aerial && current_front_actuator_position < actuator_extend_length_ground) {
-          lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+          lower_msg.arm_drum_state.velocity[JointIndex::FRONT_ARM_IDX] = this->get_parameter("actuator_speed_ground").as_int()*-1;
         }
         if (current_back_actuator_position >= actuator_extend_length_aerial && current_back_actuator_position < actuator_extend_length_ground) {
-          lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127 + this->get_parameter("actuator_speed_ground").as_int()*-1;
+          lower_msg.arm_drum_state.velocity[JointIndex::BACK_ARM_IDX] = this->get_parameter("actuator_speed_ground").as_int()*-1;
         }
 
         // If the actuator has fully extended, set the velocity to 0 for that specific actuator
         if (current_front_actuator_position >= actuator_extend_length_ground) {
-          lower_msg.changes[msg.ARM_FRONT_ACTUATOR].velocity = 127;
+          lower_msg.arm_drum_state.velocity[JointIndex::FRONT_ARM_IDX] = 0;
         }
         if (current_back_actuator_position >= actuator_extend_length_ground) {
-          lower_msg.changes[msg.ARM_BACK_ACTUATOR].velocity = 127;
+          lower_msg.arm_drum_state.velocity[JointIndex::BACK_ARM_IDX] = 0;
         }
 
         if (goal_handle->is_canceling()) {

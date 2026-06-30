@@ -9,6 +9,7 @@
 #include "robot_control_msgs/msg/arm_control_mode.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "serial_msgs/msg/position.hpp"
 
 enum JointIndex {
     FRONT_ARM_IDX,
