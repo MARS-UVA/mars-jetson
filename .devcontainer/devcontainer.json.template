@@ -1,11 +1,11 @@
 {
     "name": "ROS 2 Development Container",
     "privileged": true,
-    "remoteUser": "${localEnv:USER}",
+    "remoteUser": "Your User",
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "USERNAME": "${localEnv:USER}"
+            "USERNAME": "Your User"
         }
     },
     "workspaceFolder": "/home/ws",
