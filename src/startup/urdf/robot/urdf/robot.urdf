@@ -2,7 +2,7 @@
   <link name="frame_assembly">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="30"/>
+      <mass value="40"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
     <visual>
@@ -109,8 +109,8 @@
     <parent link="frame_assembly"/>
     <child link="front_left_wheel"/>
     <axis xyz="0 0 -1"/>
-    <limit effort="10" velocity="10"/>
-    <dynamics damping="30.0" friction="50.0"/>
+    <limit effort="1000" velocity="10"/>
+    <dynamics damping="10.0" friction="1.0 0.005 0.0001"/>
   </joint>
 
   <link name="rear_left_wheel">
@@ -140,8 +140,8 @@
     <parent link="frame_assembly"/>
     <child link="rear_left_wheel"/>
     <axis xyz="0 0 -1"/>
-    <limit effort="10" velocity="10"/>
-    <dynamics damping="30.0" friction="50.0"/>
+    <limit effort="1000" velocity="10"/>
+    <dynamics damping="10.0" friction="20.0"/>
   </joint>
 
   <link name="rear_right_wheel">
@@ -171,8 +171,8 @@
     <parent link="frame_assembly"/>
     <child link="rear_right_wheel"/>
     <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
-    <dynamics damping="30.0" friction="50.0"/>
+    <limit effort="1000" velocity="10"/>
+    <dynamics damping="10.0" friction="20.0"/>
   </joint>
 
   <link name="front_right_wheel">
@@ -202,8 +202,8 @@
     <parent link="frame_assembly"/>
     <child link="front_right_wheel"/>
     <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
-    <dynamics damping="30.0" friction="50.0"/>
+    <limit effort="1000" velocity="10"/>
+    <dynamics damping="10.0" friction="20.0"/>
   </joint>
 
   <link name="front_arm">
@@ -236,7 +236,7 @@
     <axis xyz="0 0 -1"/>
     <limit effort="1000" velocity="1000"/>
     <!-- <limit effort="1000" velocity="1000" lower="-2" upper="0.4"/> -->
-    <dynamics damping="80.0" friction="700.0" armature="0.01" />
+    <dynamics damping="80.0" friction="700.0" />
   </joint>
 
   <link name="drum">
@@ -266,7 +266,7 @@
     <parent link="front_arm"/>
     <child link="drum"/>
     <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
+    <limit effort="1000" velocity="10"/>
   </joint>
 
   <link name="front_right_drum">
@@ -329,7 +329,7 @@
     <axis xyz="0 0 -1"/>
     <limit effort="1000" velocity="1000"/>
     <!-- <limit effort="1000" velocity="1000" lower="-2" upper="0.4"/> -->
-    <dynamics damping="80.0" friction="700.0" armature="0.01"/>
+    <dynamics damping="80.0" friction="700.0" />
   </joint>
 
   <link name="rear_right_drum">

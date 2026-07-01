@@ -15,7 +15,7 @@
     <!-- Calculate position feedback gain (kp) -->
     <xacro:property name="kp" value="${effort}" />
 
-    <!-- Create position actuator -->
+    <!-- Create velocity actuator -->
     <velocity
       name="vel_actuator_${joint}"
       joint="${joint}"

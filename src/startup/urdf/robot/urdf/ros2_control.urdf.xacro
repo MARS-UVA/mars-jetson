@@ -2,12 +2,15 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
 <xacro:macro name="robot_ros2_control" 
-             params="use_sim mujoco_effort">
+             params="use_sim mujoco_effort mujoco_model_path">
 
-  <ros2_control name="RobotHardwareSystem" type="system">
+  <ros2_control name="MujocoSystem" type="system">
     <hardware>
       <xacro:if value="$(arg use_sim)">
-        <plugin>mujoco_ros2_control/MujocoSystem</plugin>
+        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+        <param name="headless">false</param>
+        <!-- <param name="mujoco_model">${mujoco_model_path}</param> -->
+        <param name="sim_speed_factor">1.0</param>
       </xacro:if>
       <xacro:unless value="$(arg use_sim)">
         <plugin>mock_components/GenericSystem</plugin>

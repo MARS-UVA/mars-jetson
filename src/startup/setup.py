@@ -16,6 +16,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*')),
         (os.path.join('share', package_name, 'urdf', 'robot', 'urdf'), glob('urdf/robot/urdf/*')),
         (os.path.join('share', package_name, 'urdf', 'robot', 'assets'), glob('urdf/robot/assets/*')),
+        (os.path.join('share', package_name, 'urdf'), ['urdf/scene_info.xml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

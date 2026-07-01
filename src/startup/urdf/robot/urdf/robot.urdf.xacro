@@ -27,42 +27,60 @@
   </joint>
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
-
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
-  <xacro:robot_ros2_control use_sim="$(arg use_sim)" mujoco_effort="$(arg mujoco_effort)" />
 
-  <xacro:if value="$(arg use_sim)">
-      <mujoco>
-          <compiler meshdir="$(arg mujoco_model_path)/meshes" 
-                    discardvisual="false" 
-                    autolimits="$(arg autolimits)" 
-                    balanceinertia="$(arg balanceinertia)"
-          />
-          <option integrator="$(arg integrator)" 
-                  gravity="$(arg gravity)" 
-                  impratio="$(arg impratio)" 
-                  cone="$(arg cone)" 
-                  solver="$(arg solver)" 
-                  noslip_iterations="$(arg noslip_iterations)">
-              <flag multiccd="$(arg multiccd)" />
-          </option>
-          <!-- Create actuators to use position control -->
-          <xacro:unless value="$(arg mujoco_effort)">
-              <xacro:include filename="$(find startup)/urdf/robot/urdf/mujoco_actuators.urdf.xacro" />
-              <xacro:create_mujoco_actuators/>
-          </xacro:unless>
-          
-          <contact> 
-            <pair geom1="front_arm_collision_0" geom2="frame_assembly_collision_0" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
-            <pair geom1="rear_arm_collision_0" geom2="frame_assembly_collision_1" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
-          </contact>
-          <!-- <body name="front_arm" gravcomp="1" />
-          <body name="rear_arm" gravcomp="1" />
-          <body name="front_left_drum" gravcomp="1" />
-          <body name="front_right_drum" gravcomp="1" />
-          <body name="rear_left_drum" gravcomp="1" />
-          <body name="rear_right_drum" gravcomp="1" /> -->
+  <mujoco_inputs>
+    <raw_inputs>
+        <!-- <compiler meshdir="$(arg mujoco_model_path)/meshes" 
+                  discardvisual="false" 
+                  autolimits="$(arg autolimits)" 
+                  balanceinertia="$(arg balanceinertia)"
+        />
+        <option integrator="$(arg integrator)" 
+                gravity="$(arg gravity)" 
+                impratio="$(arg impratio)" 
+                cone="$(arg cone)" 
+                solver="$(arg solver)" 
+                noslip_iterations="$(arg noslip_iterations)">
+            <flag multiccd="$(arg multiccd)" />
+        </option> -->
+        <option integrator="implicitfast"/>
 
-      </mujoco>
-  </xacro:if>
+        <default>
+          <default class="visual">
+            <geom group="2" type="mesh" contype="0" conaffinity="0"/>
+          </default>
+          <default class="collision">
+            <geom group="3" type="mesh"/>
+          </default>
+        </default>
+
+        <!-- Create actuators to use position control -->
+        <xacro:include filename="$(find startup)/urdf/robot/urdf/mujoco_actuators.urdf.xacro" />
+        <xacro:create_mujoco_actuators/>
+        
+        <contact> 
+          <!-- <pair geom1="front_arm_collision_mesh0" geom2="frame_assembly_collision_mesh0" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
+          <pair geom1="rear_arm_collision_mesh0" geom2="frame_assembly_collision_mesh1" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/> -->
+        </contact>
+
+    </raw_inputs>
+
+    <processed_inputs>
+      <!-- <modify_element type="body" name="front_arm" gravcomp="1" />
+      <modify_element type="body" name="rear_arm" gravcomp="1" /> -->
+      <!-- <modify_element type="joint" name="front_arm_joint" armature="125.0" />
+      <modify_element type="joint" name="rear_arm_joint" armature="125.0" />
+      <modify_element type="joint" name="front_left_drum_joint" armature="125.0" />
+      <modify_element type="joint" name="front_right_drum_joint" armature="125.0" />
+      <modify_element type="joint" name="rear_left_drum_joint" armature="125.0" />
+      <modify_element type="joint" name="rear_right_drum_joint" armature="125.0" />
+      <modify_element type="joint" name="front_left_wheel_joint" armature="125.0" />
+      <modify_element type="joint" name="front_right_wheel_joint" armature="125.0" />
+      <modify_element type="joint" name="rear_left_wheel_joint" armature="125.0" />
+      <modify_element type="joint" name="rear_right_wheel_joint" armature="125.0" /> -->
+    </processed_inputs>
+  </mujoco_inputs>
+
+  <xacro:robot_ros2_control use_sim="$(arg use_sim)" mujoco_effort="$(arg mujoco_effort)" mujoco_model_path="$(arg mujoco_model_path)" />
 </robot>

@@ -8,11 +8,12 @@ from launch.substitutions import EnvironmentVariable
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.actions import (
-    DeclareLaunchArgument,
     LogInfo,
     RegisterEventHandler,
 )
-from launch.event_handlers import OnExecutionComplete, OnProcessStart, OnProcessExit
+from launch.event_handlers import OnProcessStart
+from launch.substitutions import PathJoinSubstitution
+from launch.actions import Shutdown
 import xacro
 
 def generate_launch_description():
@@ -39,18 +40,20 @@ def generate_launch_description():
 
     additional_files = []
     additional_files.append(os.path.join(get_package_share_directory("mujoco_ros2_control"), "mjcf", "scene.xml"))
+
     xacro2mjcf = Node(
         package="mujoco_ros2_control",
-        executable="xacro2mjcf.py",
-        parameters=[
-            {"robot_descriptions": [robot_description]},
-            {"input_files": additional_files},
-            {"output_file": mujoco_model_file},
-            {"mujoco_files_path": mujoco_model_path},
-            {"floating": True},
-            {"initial_position": "0 0 1.05"},
-            {"initial_orientation": "0 0 0"},
-        ],
+        executable="robot_description_to_mjcf.sh",
+        output="both",
+        emulate_tty=True,
+        arguments=[
+            "--robot_description",
+            robot_description,
+            "--scene",
+            PathJoinSubstitution([get_package_share_directory("startup"), "urdf", "scene_info.xml"]),
+            "--publish_topic",
+            "/mujoco_robot_description",
+        ],   
     )
 
     # Define the robot state publisher node
@@ -71,8 +74,9 @@ def generate_launch_description():
 
     mujoco = Node(
         package="mujoco_ros2_control",
-        executable="mujoco_ros2_control",
+        executable="ros2_control_node",
         parameters=[
+            { "use_sim_time": True},
             { "robot_description": robot_description},
             ros2_control_params_file,
             {"simulation_frequency": 500.0},
@@ -82,17 +86,8 @@ def generate_launch_description():
         ],
         remappings=[
             ('/controller_manager/robot_description', '/robot_description'),
-        ]
-    )
-
-    start_mujoco = RegisterEventHandler(
-        OnProcessExit(
-            target_action=xacro2mjcf,
-            on_exit=[
-                LogInfo(msg="Created mujoco xml, starting mujoco node..."),
-                mujoco
-            ],
-        )
+        ],
+        on_exit=Shutdown()
     )
 
     load_joint_state_broadcaster = Node(
@@ -250,7 +245,8 @@ def generate_launch_description():
         twist_stamper,
         robot_state_publisher,
         xacro2mjcf,
-        start_mujoco,
+        # start_mujoco,
+        mujoco,
         load_controllers
     ])
 
