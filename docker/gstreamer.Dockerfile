@@ -32,6 +32,7 @@ WORKDIR /ws
 
 # Copy required files into the container
 COPY ./src /ws/src
+COPY ./config.xml /ws/config.xml
 
 # Build packages
 RUN source /opt/ros/jazzy/setup.bash && colcon build --packages-select gstreamer

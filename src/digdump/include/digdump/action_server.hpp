@@ -1,4 +1,6 @@
 #include <thread>
+#include <algorithm>
+
 #include "autonomy_msgs/action/autonomous_actions.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -8,6 +10,7 @@
 #include "teleop_msgs/msg/set_motor.hpp"
 #include "teleop_msgs/msg/motor_changes.hpp"
 #include "teleop_msgs/msg/arm_control.hpp"
+#include "serial_msgs/msg/position.hpp"
 
 class DigDumpActionServer : public rclcpp::Node
 {
@@ -16,20 +19,23 @@ class DigDumpActionServer : public rclcpp::Node
   public:
     explicit DigDumpActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-    rcl_interfaces::msg::ParameterDescriptor lower_speed_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_speed_aerial_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_speed_ground_descriptor;
     rcl_interfaces::msg::ParameterDescriptor raise_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_speed_descriptor;
     rcl_interfaces::msg::ParameterDescriptor drive_speed_descriptor;
-    rcl_interfaces::msg::ParameterDescriptor dig_arm_movement_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dig_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor dump_time_descriptor;
     rcl_interfaces::msg::ParameterDescriptor move_time_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_aerial_descriptor;
+    rcl_interfaces::msg::ParameterDescriptor actuator_extend_length_ground_descriptor;
 
 
   private:
     rclcpp_action::Server<DigDump>::SharedPtr action_server_;
     rclcpp::Subscription<teleop_msgs::msg::ArmControl>::SharedPtr arm_control_sub_;
+    rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr position_sub_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<teleop_msgs::msg::MotorChanges>::SharedPtr motor_publisher_;
     
@@ -44,15 +50,21 @@ class DigDumpActionServer : public rclcpp::Node
     rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr cancel_sub_;
 
     // Parameter values
-    int actuator_speed;
+    int actuator_speed_aerial;
+    int actuator_speed_ground;
     int dig_speed;
     int dump_speed;
     int drive_speed;
 
-    double dig_arm_movement_time;
     double dig_time;
     double dump_time;
     double move_time;
+    double actuator_extend_length_aerial;
+    double actuator_extend_length_ground;
+
+    // tracker for current actuator position as a pointer to update while on another thread
+    double current_front_actuator_position;
+    double current_back_actuator_position;
 
     teleop_msgs::msg::MotorChanges lower_msg;
     teleop_msgs::msg::MotorChanges raise_msg;
@@ -62,6 +74,8 @@ class DigDumpActionServer : public rclcpp::Node
     teleop_msgs::msg::MotorChanges stop_msg;
 
     void arm_control_callback(const teleop_msgs::msg::ArmControl::SharedPtr msg);
+
+    void actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg);
 
     rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DigDump::Goal> goal);

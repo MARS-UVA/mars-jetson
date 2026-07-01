@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dds
+	xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+	<profiles>
+		<transport_descriptors>
+			<!-- Create a descriptor for the new transport -->
+			<transport_descriptor>
+				<transport_id>shm_transport</transport_id>
+				<type>SHM</type>
+				<segment_size>124000000</segment_size>
+				<maxMessageSize>8000000</maxMessageSize>
+			</transport_descriptor>
+		</transport_descriptors>
+		<!-- Default publisher profile -->
+		<publisher profile_name="default publisher profile" is_default_profile="true">
+			<qos>
+				<publishMode>
+					<kind>ASYNCHRONOUS</kind>
+				</publishMode>
+				<data_sharing>
+					<kind>AUTOMATIC</kind>
+				</data_sharing>
+			</qos>
+			<historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+		</publisher>
+		<!-- Default subscriber profile -->
+		<subscriber profile_name="default subscriber profile" is_default_profile="true">
+			<qos>
+				<data_sharing>
+					<kind>AUTOMATIC</kind>
+				</data_sharing>
+			</qos>
+			<historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+		</subscriber>
+		<participant profile_name="SHMParticipant" is_default_profile="true">
+			<rtps>
+				<userTransports>
+					<transport_id>shm_transport</transport_id>
+				</userTransports>
+				<useBuiltinTransports>false</useBuiltinTransports>
+			</rtps>
+		</participant>
+	</profiles>
+</dds>

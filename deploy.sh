@@ -2,6 +2,9 @@
 #Usage:
 #Option 1: ./deploy.sh
 #Option 2: ./deploy.sh <control station ip>
+
+rm /dev/shm/fastrtps_*
+
 cd ~/mars-jetson
 
 
@@ -9,7 +12,7 @@ if [ $# -ge 1 ];
     then
         export CONTROL_STATION_IP=$1
     else 
-        export CONTROL_STATION_IP="192.168.50.101"
+        export CONTROL_STATION_IP="192.168.50.60"
 fi
 
 # Build the packages
@@ -18,13 +21,25 @@ colcon build --symlink-install --packages-ignore zed_components zed_wrapper zed_
 # Source the setup file
 source install/setup.bash
 
-export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+# export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
+# export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+export FASTRTPS_DEFAULT_PROFILES_FILE=/home/mars/mars-jetson/config.xml
+export RMW_FASTRTPS_USE_QOS_FROM_XML=1
+
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export FASTDDS_BUILTIN_TRANSPORTS=SHM
+
+export JETSON_MODEL_NAME=JETSON_ORIN_NANO
+sudo busybox devmem 0x02448030 w 0x40a
+sudo busybox devmem 0x02430098 w 0x05
 
 # Launch everything
 # run realsense executable in parallel
 #ros2 launch startup launch.py
 # ~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
 # OBSTACLE_DETECT_PID=$!
+
+sudo docker compose up -d
 
 ros2 launch startup launch.py
 

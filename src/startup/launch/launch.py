@@ -29,14 +29,16 @@ def generate_launch_description():
                 name='digdump',
                 output='screen',
                 parameters=[{
-                    'actuator_speed': 127,
+                    'actuator_speed_aerial': 127,
+                    'actuator_speed_ground': 75,
                     'dig_speed': 100,
                     'dump_speed': 127,
                     'drive_speed': 30,
-                    'dig_arm_movement_time': 20.0,
                     'dig_time': 3.0,
                     'dump_time': 6.0,
-                    'move_time': 5.0,
+                    'move_time': 6.0,
+                    'actuator_extend_length_aerial': 0.69,
+                    'actuator_extend_length_ground': 0.9,
                 }],
                 respawn=True
             )

@@ -27,7 +27,7 @@ class udpServer : public rclcpp::Node
       robot_state_toggle_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 10);
       human_input_state_publisher_ = this->create_publisher<teleop_msgs::msg::HumanInputState>("human_input_state", 10);
       server_active = true;
-      current_action_state = 0;
+      current_action_state = static_cast<int>(ActionTypes::EStop);
 
       action_timer_ = this->create_wall_timer(10ms, std::bind(&udpServer::action_timer_callback, this));
 

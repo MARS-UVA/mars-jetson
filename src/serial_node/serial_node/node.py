@@ -10,6 +10,11 @@ from serial_msgs.msg import Temperature
 
 TESTING = False
 
+if not TESTING:
+    import Jetson.GPIO as GPIO
+
+
+
 NUM_MOTORS = 8
 MOTOR_CURRENT_MSG = 0
 SEND_HZ = 20
@@ -22,6 +27,9 @@ DIG_MODE = 1
 DUMP_MODE = 2
 ESTOP = 3
 
+SET_PIN = 7
+RESET_PIN = 11
+
 INT2MODE = ["TELEOP", "DIG AUTONOMY", "DUMP AUTONOMY", "ESTOPPED"]
 
 class SerialNode(Node):
@@ -30,7 +38,7 @@ class SerialNode(Node):
         super().__init__('serial_mux')
 
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE)
-        self.mode = TELEOP_MODE
+        self.mode = ESTOP
         self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS
         self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS # digdump shares buffer since both shouldn't run at same time
         self.STOP_MSG = [MOTOR_STILL]*NUM_MOTORS # DO NOT MODIFY
@@ -73,11 +81,22 @@ class SerialNode(Node):
             topic='temperature',
             qos_profile=qos
         )
+        self.esp_working_publisher = self.create_publisher(
+            msg_type=UInt8,
+            topic='esp_working',
+            qos_profile=qos
+        )
         self.teleop_sub_  # prevent unused variable warning
         self.send_timer = self.create_timer(1/SEND_HZ, self.sendCurrents)
         self.recv_timer = self.create_timer(1/READ_HZ, self.readFeedback)
         self.robot_state_timer = self.create_timer(1/ROBOT_STATE_HZ, self.publish_robot_state)
         self.serial_handler = SerialHandler()
+        
+        if not TESTING:
+            self.gpio_cleanup_timer = self.create_timer(0.1, self.clean_up_gpio)
+            self.gpio_cleanup_timer.cancel()
+            self.gpio_estop()
+
 
     def publish_robot_state(self):
         msg = UInt8()
@@ -88,10 +107,16 @@ class SerialNode(Node):
         new_state = robot_state_msg.data
         if self.mode == ESTOP:
             if new_state == ESTOP:
+                if not TESTING:
+                    self.gpio_unestop()
+                
                 self.mode = TELEOP_MODE
         else:
             self.mode = new_state
             if new_state == ESTOP:
+                if not TESTING:
+                    self.gpio_estop()
+
                 self.teleop_buffer_ = [MOTOR_STILL]*NUM_MOTORS # reset all buffers
                 self.digdump_buffer_ = [MOTOR_STILL]*NUM_MOTORS
             
@@ -122,9 +147,14 @@ class SerialNode(Node):
             buffer = self.STOP_MSG
 
         self.get_logger().info(f"Sending currents: {buffer}")
-        if TESTING: return
-        self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
-        
+        if TESTING: 
+            return
+        try:
+            self.serial_handler.send(MOTOR_CURRENT_MSG, buffer, self.get_logger())
+        except Exception as e:
+            self.get_logger().error(f"Error occurred while writing to serial port: {e}")
+            self.mode = ESTOP
+
     def readFeedback(self):
         if TESTING: return
         header, feedback = self.serial_handler.readMsg(logger=self.get_logger())
@@ -164,7 +194,22 @@ class SerialNode(Node):
                 self.position_publisher.publish(mf)
         else:
             self.get_logger().debug("no data")
-        
+    
+    def gpio_estop(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.HIGH, GPIO.LOW]) # active low
+        self.gpio_cleanup_timer.reset()
+
+    def gpio_unestop(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup([SET_PIN, RESET_PIN], GPIO.OUT)
+        GPIO.output([SET_PIN, RESET_PIN], [GPIO.LOW, GPIO.HIGH]) # active low
+        # self.gpio_cleanup_timer.reset()
+
+    def clean_up_gpio(self):
+        GPIO.output([SET_PIN, RESET_PIN], GPIO.HIGH) # active low
+        self.gpio_cleanup_timer.cancel()
 
 def main(args=None):
     rclpy.init(args=args)
