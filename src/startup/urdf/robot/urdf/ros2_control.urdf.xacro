@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:macro name="robot_ros2_control" 
+             params="use_sim mujoco_effort mujoco_model_path">
+
+  <ros2_control name="MujocoSystem" type="system">
+    <hardware>
+      <xacro:if value="$(arg use_sim)">
+        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+        <param name="headless">false</param>
+        <!-- <param name="mujoco_model">${mujoco_model_path}</param> -->
+        <param name="sim_speed_factor">1.0</param>
+      </xacro:if>
+      <xacro:unless value="$(arg use_sim)">
+        <plugin>mock_components/GenericSystem</plugin>
+      </xacro:unless>
+    </hardware>
+
+    <xacro:macro name="configure_joint" params="joint_name initial_position">
+      <joint name="${joint_name}">
+        <xacro:if value="${mujoco_effort}">
+          <command_interface name="effort"/>
+        </xacro:if>
+        <xacro:unless value="${mujoco_effort}">
+          <command_interface name="velocity"/>
+          <command_interface name="position"/>
+        </xacro:unless>
+        <state_interface name="position">
+          <param name="initial_value">${initial_position}</param>
+        </state_interface>
+        <state_interface name="velocity">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="effort"/>
+      </joint>
+    </xacro:macro>
+
+    <xacro:configure_joint joint_name="front_left_wheel_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="front_right_wheel_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_left_wheel_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_right_wheel_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="front_arm_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_arm_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="front_left_drum_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="front_right_drum_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_left_drum_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_right_drum_joint" initial_position="0.0" />
+  </ros2_control>
+
+</xacro:macro>
+</robot>

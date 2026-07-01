@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!-- Macro to create position actuators -->
+  <xacro:macro name="create_mujoco_velocity_actuator" params="joint joint_limits">
+    <!-- Iterate over joints and create actuators -->
+    <xacro:property name="lower" value="${joint_limits[joint]['limit']['lower']}" />
+    <xacro:property name="upper" value="${joint_limits[joint]['limit']['upper']}" />
+    <xacro:property name="velocity" value="${joint_limits[joint]['limit']['velocity']}" />
+    <xacro:property name="effort" value="${joint_limits[joint]['limit']['effort']}" />
+      
+    <!-- Calculate control range -->
+    <xacro:property name="ctrlrange" value="${str(lower) + ' ' + str(upper)}" />
+    <xacro:property name="forcerange" value="${str(-effort) + ' ' + str(effort)}" />
+
+    <!-- Calculate position feedback gain (kp) -->
+    <xacro:property name="kp" value="${effort}" />
+
+    <!-- Create velocity actuator -->
+    <velocity
+      name="vel_actuator_${joint}"
+      joint="${joint}"
+      ctrlrange="${ctrlrange}"
+      forcerange="${forcerange}"
+      kv="${velocity * 10}"/>
+  </xacro:macro>
+
+  <xacro:macro name="create_mujoco_position_actuator" params="joint joint_limits">
+    <!-- Iterate over joints and create actuators -->
+    <xacro:property name="lower" value="${joint_limits[joint]['limit']['lower']}" />
+    <xacro:property name="upper" value="${joint_limits[joint]['limit']['upper']}" />
+    <xacro:property name="velocity" value="${joint_limits[joint]['limit']['velocity']}" />
+    <xacro:property name="effort" value="${joint_limits[joint]['limit']['effort']}" />
+      
+    <!-- Calculate control range -->
+    <xacro:property name="ctrlrange" value="${str(lower) + ' ' + str(upper)}" />
+    <xacro:property name="forcerange" value="${str(-effort) + ' ' + str(effort)}" />
+
+    <!-- Calculate position feedback gain (kp) -->
+    <xacro:property name="kp" value="${effort}" />
+
+    <!-- Create position actuator -->
+    <position
+      name="pos_actuator_${joint}"
+      joint="${joint}"
+      ctrlrange="${ctrlrange}"
+      forcerange="${forcerange}"
+      kp="${effort * 10}"/>
+    <velocity
+      name="vel_actuator_${joint}"
+      joint="${joint}"
+      ctrlrange="${ctrlrange}"
+      forcerange="${forcerange}"
+      kv="${velocity * 10}"/>
+  </xacro:macro>
+
+
+  <!-- Reference to create actuators https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator -->
+  <xacro:macro name="create_mujoco_actuators">
+    <!-- Load YAML file -->
+    <xacro:property name="joint_limits_file" value="$(find startup)/config/joint_limits.yaml" />
+    <xacro:property name="joint_limits" value="${xacro.load_yaml(joint_limits_file)}" />
+    
+    <!-- Call the macro for each joint -->
+    <actuator>
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_left_wheel_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_right_wheel_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_left_wheel_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_right_wheel_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_arm_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_arm_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_left_drum_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_right_drum_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_left_drum_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_right_drum_joint" />
+    </actuator>
+  </xacro:macro>
+</robot>
