@@ -1,4 +1,5 @@
 from sensor_msgs.msg import JointState
+from robot_control_msgs.msg import ArmDrumControl
 from .joint_config import FRONT_ARM_NAME, BACK_ARM_NAME, FRONT_DRUM_NAME, BACK_DRUM_NAME, JOINT_MAP
 
 def clamp(value: float, min_value: float, max_value: float) -> float:
@@ -35,16 +36,13 @@ def stop_drum_spin(front_arm: bool, back_arm: bool, msg: JointState) -> None:
     if back_arm:
         update_joint_velocity(BACK_DRUM_NAME, 0.0, msg)
 
-def max_drum_spin(front_arm: bool, back_arm: bool, msg: MotorChanges, forward: bool) -> None:
-    if forward: 
-        v = 254
-    else: 
-        v = 0
+def max_drum_spin(front_arm: bool, back_arm: bool, msg: JointState, forward: bool) -> None:
 
+    # 15 is an arbitrary value that represents the maximum speed for the drum spin.
     if front_arm:
-        msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=v))
+        update_joint_velocity(FRONT_DRUM_NAME, 15 if forward else -15, msg)
     if back_arm:
-        msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=v))
+        update_joint_velocity(BACK_DRUM_NAME, 15 if forward else -15, msg)
 
 # Increments speed of the bucket drum(s) selected
 def increment_drum_spin(velocity_increment: float, front_arm: bool, back_arm: bool, msg: JointState) -> None:

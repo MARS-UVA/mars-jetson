@@ -5,7 +5,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from serial_msgs.msg import MotorCommands
 from sensor_msgs.msg import JointState
-
+from robot_control_msgs.msg import ArmDrumControl
 from geometry_msgs.msg import Twist
 
 CONTROL_HZ = 20
@@ -37,10 +37,10 @@ class RobotControllerNode(Node):
             self.cmd_vel_callback,
             QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, reliability=QoSReliabilityPolicy.RELIABLE)
         )
-        self.arm_drum_state_subscriber = self.create_subscription(
-            JointState,
-            '/arm_drum_state',
-            self.arm_drum_state_callback,
+        self.arm_drum_control_subscriber = self.create_subscription(
+            ArmDrumControl,
+            '/arm_drum_control',
+            self.arm_drum_control_callback,
             QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, reliability=QoSReliabilityPolicy.RELIABLE)
         )
 
