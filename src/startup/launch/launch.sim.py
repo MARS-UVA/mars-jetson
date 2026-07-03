@@ -2,24 +2,24 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.actions import (
     LogInfo,
     RegisterEventHandler,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessStart
 from launch.substitutions import PathJoinSubstitution
 from launch.actions import Shutdown
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 import xacro
 
 def generate_launch_description():
     mujoco_model_path = "/tmp/mujoco"
     mujoco_model_file = os.path.join(mujoco_model_path, "main.xml")
-    rviz = LaunchConfiguration("rviz")
+    rviz = LaunchConfiguration("rviz", default="true")
 
     robot_xacro_filepath = os.path.join(
         get_package_share_directory("startup"),
@@ -72,17 +72,24 @@ def generate_launch_description():
         "controllers.yaml"
     )
 
+    mujoco_plugins_file = os.path.join(
+        get_package_share_directory("startup"),
+        "config",
+        "mujoco_plugins.yaml"
+    )
+
     mujoco = Node(
         package="mujoco_ros2_control",
         executable="ros2_control_node",
         parameters=[
             { "use_sim_time": True},
             { "robot_description": robot_description},
-            ros2_control_params_file,
             {"simulation_frequency": 500.0},
             {"realtime_factor": 1.0},
             {"robot_model_path": mujoco_model_file},
             {"show_gui": True},
+            ros2_control_params_file,
+            mujoco_plugins_file,
         ],
         remappings=[
             ('/controller_manager/robot_description', '/robot_description'),
@@ -126,6 +133,15 @@ def generate_launch_description():
             ros2_control_params_file,
         ],
         namespace="/"
+    )
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', os.path.join(get_package_share_directory('startup'), 'config', 'robot.rviz')],
+        condition=IfCondition(rviz)
     )
 
     load_controllers = RegisterEventHandler(
@@ -232,6 +248,11 @@ def generate_launch_description():
                 respawn=True
             )
     
+    gstreamer = IncludeLaunchDescription(
+      PythonLaunchDescriptionSource([os.path.join(
+         get_package_share_directory('gstreamer'), 'gstreamer_launch.py')])
+      )
+    
     return LaunchDescription([
         teleop, 
         digdump,
@@ -241,12 +262,14 @@ def generate_launch_description():
         cmd_vel_mux,
         arm_drum_mux,
         robot_state_controller,
+        gstreamer,
         
         twist_stamper,
         robot_state_publisher,
         xacro2mjcf,
         # start_mujoco,
         mujoco,
-        load_controllers
+        rviz_node,
+        load_controllers,
     ])
 

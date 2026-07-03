@@ -46,6 +46,20 @@
     <xacro:configure_joint joint_name="front_right_drum_joint" initial_position="0.0" />
     <xacro:configure_joint joint_name="rear_left_drum_joint" initial_position="0.0" />
     <xacro:configure_joint joint_name="rear_right_drum_joint" initial_position="0.0" />
+
+    <sensor name="front_camera">
+      <param name="frame_name">front_camera_color_mujoco_frame</param>
+      <param name="info_topic">/front_camera/color/camera_info</param>
+      <param name="image_topic">/front_camera/image_raw</param>
+      <param name="depth_topic">/front_camera/depth/image_raw</param>
+    </sensor>
+
+    <sensor name="rear_camera">
+      <param name="frame_name">rear_camera_color_mujoco_frame</param>
+      <param name="info_topic">/rear_camera/color/camera_info</param>
+      <param name="image_topic">/rear_camera/image_raw</param>
+      <param name="depth_topic">/rear_camera/depth/image_raw</param>
+    </sensor>
   </ros2_control>
 
 </xacro:macro>

@@ -20,11 +20,14 @@
   <xacro:arg name="mujoco_effort" default="false" /> <!-- position actuators must be defined before using them -->
 
   <link name="world"/>
-  <joint name="world_joint" type="floating">
+
+  <joint name="base_link" type="floating">
+    <axis xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 0.5" rpy="0 0 0"/>
     <parent link="world"/>
     <child link="frame_assembly"/>
-    <origin xyz="0 0 0.0" rpy="0 0 2.00"/>
   </joint>
+
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
@@ -79,6 +82,9 @@
       <modify_element type="joint" name="front_right_wheel_joint" armature="125.0" />
       <modify_element type="joint" name="rear_left_wheel_joint" armature="125.0" />
       <modify_element type="joint" name="rear_right_wheel_joint" armature="125.0" /> -->
+
+      <camera site="front_camera_color_optical_frame" name="front_camera" mode="fixed" fovy="58" resolution="640 480"/>
+      <camera site="rear_camera_color_optical_frame" name="rear_camera" mode="fixed" fovy="58" resolution="640 480"/>
     </processed_inputs>
   </mujoco_inputs>
 
