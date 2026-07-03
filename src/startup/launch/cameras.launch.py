@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
         Node(
            package='v4l2_camera',
-           namespace='back_camera',
+           namespace='rear_camera',
            executable='v4l2_camera_node',
            parameters=[{
                # 'video_device': '/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index1',

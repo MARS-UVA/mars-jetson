@@ -23,7 +23,7 @@ def generate_launch_description():
             parameters=[{
                 'signaling_host': control_station_ip,
                 'signaling_port': 6969,
-                'video_topic': '/back_camera/image_raw'
+                'video_topic': '/rear_camera/image_raw'
             }]
         ),
     ])
