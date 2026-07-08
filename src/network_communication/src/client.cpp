@@ -176,6 +176,7 @@ class udpClient : public rclcpp::Node
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<robot_control_msgs::msg::RobotState>::SharedPtr robot_state_subscriber_;
+    rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr robot_state_toggle_publisher_;
     rclcpp::Subscription<serial_msgs::msg::CurrentBusVoltage>::SharedPtr currentBusSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Temperature>::SharedPtr temperatureSubscription_;
     rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr positionSubscription_;

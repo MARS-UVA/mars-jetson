@@ -14,10 +14,6 @@ struct TwistArmDrumControl {
   geometry_msgs::msg::Twist twist;
   robot_control_msgs::msg::ArmDrumControl arm_drum_control;
 };
-#include "teleop_msgs/msg/add_motor.hpp"
-#include "teleop_msgs/msg/set_motor.hpp"
-#include "teleop_msgs/msg/motor_changes.hpp"
-#include "teleop_msgs/msg/arm_control.hpp"
 #include "serial_msgs/msg/position.hpp"
 
 class DigDumpActionServer : public rclcpp::Node

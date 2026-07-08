@@ -29,7 +29,6 @@ ament_target_dependencies(action_server
   rclcpp_action
   geometry_msgs
   autonomy_msgs
-  teleop_msgs
   serial_msgs)
 
 if(BUILD_TESTING)

@@ -37,13 +37,14 @@ target_link_libraries(udp_server PUBLIC
   rclcpp_action::rclcpp_action
 )
 
-ament_target_dependencies(udp_client 
-  rclcpp 
-  rclcpp_action
-  std_msgs 
-  serial_msgs
-  robot_control_msgs
-  teleop_msgs
+target_link_libraries(udp_client PUBLIC
+  ${autonomy_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${teleop_msgs_TARGETS}
+  ${robot_control_msgs_TARGETS}
+  ${serial_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
 )
 
 install(TARGETS

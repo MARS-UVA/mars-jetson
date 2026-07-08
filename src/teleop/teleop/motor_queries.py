@@ -20,16 +20,16 @@ def stop_drum_spin(front_arm: bool, back_arm: bool, arm_drum_control: ArmDrumCon
     if back_arm:
         arm_drum_control.back_drum_speed = 0.0
 
-def max_drum_spin(front_arm: bool, back_arm: bool, msg: MotorChanges, forward: bool) -> None:
+def max_drum_spin(front_arm: bool, back_arm: bool, arm_drum_control: ArmDrumControl, forward: bool) -> None:
     if forward: 
-        v = 254
+        v = 2.0
     else: 
-        v = 0
+        v = 0.0
 
     if front_arm:
-        msg.changes.append(SetMotor(index=SetMotor.SPIN_FRONT_DRUM, velocity=v))
+        arm_drum_control.front_drum_speed = v
     if back_arm:
-        msg.changes.append(SetMotor(index=SetMotor.SPIN_BACK_DRUM, velocity=v))
+        arm_drum_control.back_drum_speed = v
 
 # Increments speed of the bucket drum(s) selected
 def increment_drum_spin(velocity_increment: float, front_arm: bool, back_arm: bool, arm_drum_control: ArmDrumControl) -> None:
