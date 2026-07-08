@@ -4,8 +4,16 @@ services:
       context: .
       dockerfile: docker/gstreamer.Dockerfile
     network_mode: host
+    ipc: host
     user: "1000:1000"
     environment:
       - ROS_DOMAIN_ID=0
-      - CONTROL_STATION_IP="192.168.50.101"
-      - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+      - CONTROL_STATION_IP="192.168.50.60"
+        # - FASTDDS_BUILTIN_TRANSPORTS=UDPv4
+        # - FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/ws/config.xml
+      - RMW_FASTRTPS_USE_QOS_FROM_XML=1
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - FASTDDS_BUILTIN_TRANSPORTS=SHM
+    volumes:
+      - ./config.xml:/ws/config.xml

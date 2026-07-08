@@ -14,7 +14,9 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   arm_control_mode_sub_ = this->create_subscription<robot_control_msgs::msg::ArmControlMode>(
     "arm_control_mode", 10, std::bind(&DigDumpActionServer::arm_control_mode_callback, this, std::placeholders::_1)
   );
-
+  position_sub_ = this->create_subscription<serial_msgs::msg::Position>(
+    "position", 10, std::bind(&DigDumpActionServer::actuator_position_callback, this, std::placeholders::_1)
+  );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel/autonomy", 1);
   arm_drum_control_pub_ = this->create_publisher<robot_control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
@@ -26,16 +28,24 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   };
 
   // Speed is from 0-127 where 0 is stopped and 127 is maximum speed
-  actuator_speed = declare_with_desc("actuator_speed", 1.0, "The speed at which the arms lower/raise during dig/dump autonomy routine from 0-127");
+  actuator_speed_aerial = declare_with_desc("actuator_speed_aerial", 1.0, "The speed at which the arms lower during dig autonomy routine before reaching ground from 0-127");
+  actuator_speed_ground = declare_with_desc("actuator_speed_ground", 1.0, "The speed at which the arms lower during dig autonomy routine after reaching ground from 0-127");
   dig_speed = declare_with_desc("dig_speed", 1.0, "The speed at which the front drums spin during the dig autonomy routine from 0-127");
   dump_speed = declare_with_desc("dump_speed", 1.0, "The speed at which the front drums spin during the dump autonomy routine from 0-127");
   drive_speed = declare_with_desc("drive_speed", 1.0, "The speed at which the robot drives during the dump autonomy routine from 0-127");
 
   // Time parameters are in seconds
-  dig_arm_movement_time = declare_with_desc("dig_arm_movement_time", 5.0, "The amount of time the front arms spend moving during the dig autonomy routine");
   dig_time = declare_with_desc("dig_time", 5.0, "The amount of time the front drums spend spinning during the dig autonomy routine");
   dump_time = declare_with_desc("dump_time", 5.0, "The amount of time the front drums spend spinning during the dump autonomy routine");
   move_time = declare_with_desc("move_time", 5.0, "The amount of time the robot spends driving during the dump autonomy routine");
+
+  // Actuator extend length is from 0.0-1.0 where 1.0 is fully extended
+  actuator_extend_length_aerial = declare_with_desc("actuator_extend_length_aerial", 0.5, "The length that the actuator extends during the dig autonomy routine from 0.0-1.0 where 1.0 is fully extended-- should be the ground position");
+  actuator_extend_length_ground = declare_with_desc("actuator_extend_length_ground", 0.75, "The length that the actuator extends during the dig autonomy routines from 0.0-1.0 where 1.0 is fully extended-- should be fully extended");
+
+  // Initialize current actuator position, thread will have access but no safety locks are in place
+  current_front_actuator_position = 0.0;
+  current_back_actuator_position = 0.0;
 
   cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
   "cancel_command",
@@ -66,6 +76,13 @@ void DigDumpActionServer::publish_command(const TwistArmDrumControl & command) {
 
 void DigDumpActionServer::arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg) {
   back_arm_control_mode = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
+}
+
+void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
+  //RCLCPP_WARN(this->get_logger(), "Received front actuator position update: %f", msg->front_actuator_position);
+  //RCLCPP_WARN(this->get_logger(), "Received back actuator position update: %f", msg->back_actuator_position);
+  this->current_front_actuator_position = msg->front_actuator_position; // Update the current actuator position
+  this->current_back_actuator_position = msg->back_actuator_position; // Update the current actuator position
 }
 
 //New handle_goal callback that accepts new goals only if there is not already an active goal. 
@@ -103,20 +120,23 @@ void DigDumpActionServer::execute(
 {
   goal_active_ = true;
   RCLCPP_INFO(rclcpp::get_logger("server"), "Executing goal");
-  double dig_arm_movement_time = this->get_parameter("dig_arm_movement_time").as_double();
   double dig_time = this->get_parameter("dig_time").as_double();
   double dump_time = this->get_parameter("dump_time").as_double();
   double move_time = this->get_parameter("move_time").as_double();
+  double actuator_extend_length_aerial = this->get_parameter("actuator_extend_length_aerial").as_double();
+  double actuator_extend_length_ground = this->get_parameter("actuator_extend_length_ground").as_double();
 
-  lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
-  lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double()*-1;
+
+  lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_aerial").as_double()*-1;
+  lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_aerial").as_double()*-1;
   lower_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
   lower_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
 
-  raise_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed").as_double();
-  raise_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed").as_double();
+  raise_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_aerial").as_double();
+  raise_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_aerial").as_double();
 
   dig_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double();
+  dig_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double();
 
   if (!back_arm_control_mode) {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is false, setting dump_msg to spin front drum and drive_msg to drive forward");
@@ -149,7 +169,25 @@ void DigDumpActionServer::execute(
     case 1: {
       // Dig Autonomy
       double elapsed_time = 0.0;
-      while (elapsed_time < dig_arm_movement_time) {
+      // While both arms aren't at the bottom position, keep lowering
+      while (std::min(current_front_actuator_position, current_back_actuator_position) < actuator_extend_length_ground) {
+        
+        // if the actuator has reached the ground state, slow down the lowering speed
+        if (current_front_actuator_position >= actuator_extend_length_aerial && current_front_actuator_position < actuator_extend_length_ground) {
+          lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_ground").as_double()*-1;
+        }
+        if (current_back_actuator_position >= actuator_extend_length_aerial && current_back_actuator_position < actuator_extend_length_ground) {
+          lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_ground").as_double()*-1;
+        }
+
+        // If the actuator has fully extended, set the velocity to 0 for that specific actuator
+        if (current_front_actuator_position >= actuator_extend_length_ground) {
+          lower_msg.arm_drum_control.front_arm_speed = 0;
+        }
+        if (current_back_actuator_position >= actuator_extend_length_ground) {
+          lower_msg.arm_drum_control.back_arm_speed = 0;
+        }
+
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);
@@ -175,7 +213,7 @@ void DigDumpActionServer::execute(
       publish_command(stop_msg);
 
       elapsed_time = 0.0;
-      while (elapsed_time < dig_arm_movement_time) {
+      while (std::max(current_front_actuator_position, current_back_actuator_position) > 0.6) {
         if (goal_handle->is_canceling()) {
           goal_active_ = false;
           cancel_current_goal(state, goal_handle);

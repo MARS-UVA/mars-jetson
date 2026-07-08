@@ -29,12 +29,12 @@ add_executable(udp_client
   src/client.cpp
 )
 
-ament_target_dependencies(udp_server 
-  rclcpp 
-  rclcpp_action
-  std_msgs 
-  teleop_msgs
-  autonomy_msgs
+target_link_libraries(udp_server PUBLIC
+  ${autonomy_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${teleop_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
 )
 
 ament_target_dependencies(udp_client 
@@ -43,6 +43,7 @@ ament_target_dependencies(udp_client
   std_msgs 
   serial_msgs
   robot_control_msgs
+  teleop_msgs
 )
 
 install(TARGETS

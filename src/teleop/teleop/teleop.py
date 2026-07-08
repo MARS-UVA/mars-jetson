@@ -9,7 +9,7 @@ from teleop_msgs.msg import HumanInputState, GamepadState
 
 from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
-from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin
+from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin, max_drum_spin
 from geometry_msgs.msg import Twist
 from robot_control_msgs.msg import RobotState, ArmDrumControl, ArmControlMode
 
@@ -68,6 +68,7 @@ class TeleopNode(Node):
         self.prev_gamepad_state : GamepadState = GamepadState()
         self.front_arm_control = True
         self.back_arm_control = True
+        self.arms_raising = False
         self.MAX_EMPTY_UPDATES = 30
         self.emptyUpdatesSent = 0
         self.declare_parameter(self.linear_axis_param_descriptor.name,
@@ -183,6 +184,7 @@ class TeleopNode(Node):
             self.__stopped_motors()
 
             self.cruise_control = False
+            self.arms_raising = False
             return
 
         if not self.cruise_control:
@@ -192,7 +194,6 @@ class TeleopNode(Node):
         if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
             self.front_arm_control = True
             self.back_arm_control = True
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         elif gamepad_state.x_pressed and not self.prev_gamepad_state.x_pressed:
             self.front_arm_control = True
             self.back_arm_control = False
@@ -213,18 +214,29 @@ class TeleopNode(Node):
             self.get_logger().info("bucket drum +15")
             increment_drum_spin(+0.1, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
 
+        if gamepad_state.dl_pressed and not self.prev_gamepad_state.dl_pressed:
+            self.get_logger().info("bucket drum full throttle backwards")
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = False)
+        elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dr_pressed:
+            self.get_logger().info("bucket drum full throttle forward")
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = True)
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
-            stop_drum_spin(self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            stop_drum_spin(True, True, self.arm_drum_control)
         
         rightStickY = gamepad_state.right_stick.y
         # Raise and Lower Bucket Drum Arm(s)
         if rightStickY > 0.2:
-            raise_arms(+2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            raise_arms(+2.0 * rightStickY, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         elif rightStickY < -0.2:
-            raise_arms(-2.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+            raise_arms(-2.0 * rightStickY, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         else:
             raise_arms(0.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+        
+        if self.arms_raising:
+            raise_arms(+2.0, True, True, motor_msg)
+        if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
+            self.arms_raising = not self.arms_raising
 
         if human_input_state.gamepad_state.start_pressed and not self.prev_gamepad_state.start_pressed:
             self.cruise_control = not self.cruise_control
