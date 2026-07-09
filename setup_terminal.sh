@@ -1,11 +1,8 @@
 #!/bin/bash
 source install/setup.bash
 
-export FASTRTPS_DEFAULT_PROFILES_FILE=/home/mars/mars-jetson/config.xml
-export RMW_FASTRTPS_USE_QOS_FROM_XML=1
-
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-export FASTDDS_BUILTIN_TRANSPORTS=SHM
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ros2 run rmw_zenoh_cpp rmw_zenohd
 
 ros2 daemon stop
 
