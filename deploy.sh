@@ -23,11 +23,8 @@ source install/setup.bash
 
 # export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
 # export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
-export FASTRTPS_DEFAULT_PROFILES_FILE=/home/mars/mars-jetson/config.xml
-export RMW_FASTRTPS_USE_QOS_FROM_XML=1
-
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-export FASTDDS_BUILTIN_TRANSPORTS=SHM
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ros2 run rmw_zenoh_cpp rmw_zenohd
 
 export JETSON_MODEL_NAME=JETSON_ORIN_NANO
 sudo busybox devmem 0x02448030 w 0x40a
