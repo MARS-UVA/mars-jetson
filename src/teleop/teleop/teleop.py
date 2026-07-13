@@ -276,13 +276,13 @@ class TeleopNode(Node):
         )
 
     def __on_full_forward_magnitude_changed(self, full_forward_magnitude: rclpy.parameter.Parameter) -> None:
-        self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.get_parameter_value().double_value
+        self.__drive_control_strategy.full_forward_magnitude = full_forward_magnitude.value.double_value
 
     def __on_shape_changed(self, shape: rclpy.parameter.Parameter) -> None:
-        self.__drive_control_strategy.shape = shape.get_parameter_value().double_value
+        self.__drive_control_strategy.shape = shape.value.double_value
 
     def __on_deadband_changed(self, deadband: rclpy.parameter.Parameter) -> None:
-        self.__drive_control_strategy.deadband.min_magnitude = deadband.get_parameter_value().double_value
+        self.__drive_control_strategy.deadband.min_magnitude = deadband.value.double_value
 
 
 def main() -> None:

@@ -253,6 +253,18 @@ def generate_launch_description():
          get_package_share_directory('gstreamer'), 'gstreamer_launch.py')])
       )
     
+    serial = Node(
+                package='serial_node',
+                executable='op_reader',
+                name='serial_node',
+                output='screen',
+                arguments=['--ros-args', '--log-level', 'WARN'],
+                parameters=[
+                    {'mock_serial': 1}
+                ],
+                respawn=True
+            )
+    
     return LaunchDescription([
         teleop, 
         digdump,
@@ -263,6 +275,7 @@ def generate_launch_description():
         arm_drum_mux,
         robot_state_controller,
         gstreamer,
+        serial,
         
         twist_stamper,
         robot_state_publisher,
