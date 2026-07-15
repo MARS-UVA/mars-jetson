@@ -19,6 +19,8 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3-pip
 ENV SHELL /bin/bash
 
+RUN apt-get update && apt-get install -y ros-jazzy-rmw-zenoh-cpp
+
 RUN apt-get update && apt-get install -y libglfw3-dev libx11-dev xorg-dev libopencv-dev libpcl-dev libxkbcommon-dev
 
 RUN apt-get update && apt-get install -y gstreamer1.0-tools gstreamer1.0-nice gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good libgstreamer1.0-dev libglib2.0-dev gir1.2-gst-plugins-bad-1.0
