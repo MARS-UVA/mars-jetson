@@ -3,8 +3,6 @@
 #Option 1: ./deploy.sh
 #Option 2: ./deploy.sh <control station ip>
 
-rm /dev/shm/fastrtps_*
-
 cd ~/mars-jetson
 
 
@@ -37,8 +35,6 @@ sudo busybox devmem 0x02430098 w 0x05
 #ros2 launch startup launch.py
 # ~/mars-jetson/src/obstacle_detection/src/build/obstacle_detect_node &
 # OBSTACLE_DETECT_PID=$!
-
-sudo docker compose up -d
 
 ros2 launch startup launch.py
 
