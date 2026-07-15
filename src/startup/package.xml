@@ -11,6 +11,7 @@
   <depend>topic_tools</depend>
   <depend>ros2_controllers</depend>
   <depend>xacro</depend>
+  <depend>v4l2_camera</depend>
 
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
