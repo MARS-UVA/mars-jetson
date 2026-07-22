@@ -34,15 +34,11 @@ def generate_launch_description():
 
     world = PathJoinSubstitution([
                             FindPackageShare('lunabotics_simulation'),
-                            'worlds',
+                            'world',
 
                             # OUR WORLD DIR
-                            # 'arena_nasa.world'
+                            'arena_nasa.world'
 
-                            # DUPAGE LOW RES WORLD DIR
-                            'low_resolution',
-                            'artemis',
-                            'artemis_arena.world'
                         ])
 
     gzserver_cmd = IncludeLaunchDescription(
@@ -75,7 +71,7 @@ def generate_launch_description():
     
     # Bridge ROS to Gazebo Topics
     bridge_params = os.path.join(
-        get_package_share_directory('lunabot_config'),
+        get_package_share_directory('lunabotics_config'),
         'config',
         'gazebo_bridge.yaml'
     )
