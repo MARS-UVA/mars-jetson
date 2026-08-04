@@ -216,10 +216,10 @@ class TeleopNode(Node):
 
         if gamepad_state.dl_pressed and not self.prev_gamepad_state.dl_pressed:
             self.get_logger().info("bucket drum full throttle backwards")
-            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = False)
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = self.arm_drum_control, forward = False)
         elif gamepad_state.dr_pressed and not self.prev_gamepad_state.dr_pressed:
             self.get_logger().info("bucket drum full throttle forward")
-            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = motor_msg, forward = True)
+            max_drum_spin(front_arm = self.front_arm_control, back_arm = self.back_arm_control, msg = self.arm_drum_control, forward = True)
         # Stop Bucket Drum(s)
         if gamepad_state.a_pressed:
             stop_drum_spin(True, True, self.arm_drum_control)
@@ -234,7 +234,7 @@ class TeleopNode(Node):
             raise_arms(0.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         
         if self.arms_raising:
-            raise_arms(+2.0, True, True, motor_msg)
+            raise_arms(+2.0, True, True, self.arm_drum_control)
         if gamepad_state.du_pressed and not self.prev_gamepad_state.du_pressed:
             self.arms_raising = not self.arms_raising
 
