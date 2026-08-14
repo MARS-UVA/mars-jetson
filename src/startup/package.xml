@@ -11,6 +11,8 @@
   <depend>topic_tools</depend>
   <depend>ros2_controllers</depend>
   <depend>xacro</depend>
+  <depend>v4l2_camera</depend>
+  <depend>rmw_zenoh_cpp</depend>
 
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
@@ -19,6 +21,9 @@
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
+  
+  <test_depend>rqt_graph</test_depend>
+  <test_depend>rqt_console</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
