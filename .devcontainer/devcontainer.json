@@ -28,7 +28,7 @@
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
         "ROS_DOMAIN_ID": "42"
     },
-    "postCreateCommand": "sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "postCreateCommand": "sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
     "features": {
         "ghcr.io/devcontainers/features/desktop-lite:1": {
             "version": "latest",
@@ -42,10 +42,15 @@
         6080
     ],
 
+    "runArgs": [
+        "-p",
+        "8080:8080/udp"
+    ],
+
     "portsAttributes": {
         "6080": {
             "label": "noVNC Desktop",
-            "onAutoForward": "notify"
+            "onAutoForward": "openBrowser"
         }
     }
 }

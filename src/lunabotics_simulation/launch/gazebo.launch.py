@@ -1,115 +1,122 @@
-from posixpath import join
-from ament_index_python import get_package_share_directory
+# Copyright 2024 Open Source Robotics Foundation, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription, RegisterEventHandler, AppendEnvironmentVariable, DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution, IfElseSubstitution, LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
-import os
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 
-def is_gui(context):
-    ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    if LaunchConfiguration('gui').perform(context):
-        gzclient_cmd = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(ros_gz_sim, 'launch', 'gz_sim.launch.py')
-            ),
-            launch_arguments={'gz_args': '-g -v4 ', 'on_exit_shutdown': 'true'}.items()
-        )
-        return [gzclient_cmd]
-    return []
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
 
 def generate_launch_description():
+    # Launch Arguments
+    use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
-    # ====================================
-    # GAZEBO STUFF =======================
+    def robot_state_publisher(context):
+        robot_description_file = PathJoinSubstitution(
+            [
+                FindPackageShare('lunabotics_simulation'),
+                'urdf',
+                'robot',
+                'urdf',
+                'robot_gazebo.urdf.xacro',
+            ]
+        )
+        robot_description_content = Command(
+            [
+                PathJoinSubstitution([FindExecutable(name='xacro')]),
+                ' ',
+                robot_description_file,
+            ]
+        )
+        robot_description = {'robot_description': robot_description_content}
+        node_robot_state_publisher = Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            output='screen',
+            parameters=[robot_description]
+        )
+        return [node_robot_state_publisher]
 
-    ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
-
-    # add model directory to env variable so it knows where to look
-    os.environ['GAZEBO_MODEL_PATH'] = f"$GAZEBO_MODEL_PATH:{get_package_share_directory('lunabotics_simulation')}/models"
-
-    world = PathJoinSubstitution([
-                            FindPackageShare('lunabotics_simulation'),
-                            'world',
-
-                            # OUR WORLD DIR
-                            'arena_nasa.world'
-
-                        ])
-
-    gzserver_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(ros_gz_sim, 'launch', 'gz_sim.launch.py')
-        ),
-        launch_arguments={'gz_args': ['-r -s -v4 ', world], 'on_exit_shutdown': 'true'}.items()
+    gz_spawn_entity = Node(
+        package='ros_gz_sim',
+        executable='create',
+        output='screen',
+        arguments=['-topic', 'robot_description', '-name',
+                   'Bruno', '-allow_renaming', 'true'],
     )
 
-    client = OpaqueFunction(function = is_gui)
-    
-    # ====================================
-    # ROS2 CONTROL =======================
-
-    # Joint state broadcaster
-    # joint_state_broadcaster_spawner = Node(
-    #     package="controller_manager",
-    #     executable="spawner",
-    #     arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
-    #     output="screen"
-    # )
-    
-    # # Diff drive controller
-    # diff_drive_controller_spawner = Node(
-    #     package="controller_manager",
-    #     executable="spawner",
-    #     arguments=["diff_drive_controller", "--controller-manager", "/controller_manager"],
-    #     output='screen'
-    # )
-    
-    # Bridge ROS to Gazebo Topics
-    bridge_params = os.path.join(
-        get_package_share_directory('lunabotics_config'),
-        'config',
-        'gazebo_bridge.yaml'
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster'],
     )
 
-    start_gazebo_ros_bridge_cmd = Node(
+    diff_drive_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['diff_drive_controller'],
+    )
+
+    twist_stamper = Node(
+        package='twist_stamper',
+        executable='twist_stamper',
+        remappings=[
+            ('cmd_vel_in', '/cmd_vel'),
+            ('cmd_vel_out', '/diff_drive_controller/cmd_vel'),
+        ],
+    )
+
+    # Bridge
+    bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=[
-            '--ros-args',
-            '-p',
-            f'config_file:={bridge_params}',
-        ],
-        output='screen',
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        output='screen'
     )
-    
-    ld = LaunchDescription([
-        DeclareLaunchArgument(
-            'gui',
-            default_value='true'
-        ),
-        AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH',
-        os.path.join(get_package_share_directory('lunabotics_simulation'),
-                     'models')),
-        # RegisterEventHandler(
-        #     event_handler=OnProcessExit(
-        #         target_action=robot_spawn_node,
-        #         on_exit=[joint_state_broadcaster_spawner],
-        #     )
-        # ),
-        # RegisterEventHandler(
-        #     event_handler=OnProcessExit(
-        #         target_action=joint_state_broadcaster_spawner,
-        #         on_exit=[diff_drive_controller_spawner],
-        #     )
-        # ),
 
-        gzserver_cmd,
-        client,
-        start_gazebo_ros_bridge_cmd
+    ld = LaunchDescription([
+        bridge,
+        twist_stamper,
+        # Launch gazebo environment
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
+                                       'launch',
+                                       'gz_sim.launch.py'])]),
+            launch_arguments=[('gz_args', [' -r -v 1 empty.sdf'])]),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=gz_spawn_entity,
+                on_exit=[joint_state_broadcaster_spawner, diff_drive_controller_spawner],
+            )
+        ),
+        gz_spawn_entity,
+        # Launch Arguments
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value=use_sim_time,
+            description='If true, use simulated clock'),
+        DeclareLaunchArgument(
+            'description_format',
+            default_value='urdf',
+            description='Robot description format to use, urdf or sdf'),
     ])
+    ld.add_action(OpaqueFunction(function=robot_state_publisher))
     return ld

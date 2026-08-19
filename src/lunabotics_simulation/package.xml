@@ -18,6 +18,7 @@
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_image</depend>
   <depend>ros_gz_sim</depend>
+  <depend>gz_ros2_control</depend>
   <depend>sensor_msgs</depend>
   <depend>tf2</depend>
 

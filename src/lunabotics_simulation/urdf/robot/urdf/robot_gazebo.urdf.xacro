@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro"
+    name="robot">
+
+  <!-- ============================= -->
+  <!-- Common robot                  -->
+  <!-- ============================= -->
+
+  <xacro:include
+      filename="$(find lunabotics_simulation)/urdf/robot/urdf/robot_gazebo.urdf"/>
+
+
+  <!-- ============================= -->
+  <!-- Gazebo ros2_control           -->
+  <!-- ============================= -->
+
+  <xacro:include
+      filename="$(find lunabotics_simulation)/urdf/robot/urdf/ros2_control_gazebo.urdf.xacro"/>
+
+  <xacro:ros2_control_gazebo/>
+
+
+  <!-- ============================= -->
+  <!-- Gazebo ros2_control plugin    -->
+  <!-- ============================= -->
+
+  <gazebo>
+
+    <plugin
+        filename="libgz_ros2_control-system.so"
+        name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+
+      <parameters>
+        $(find lunabotics_simulation)/config/gazebo_controllers.yaml
+      </parameters>
+
+    </plugin>
+
+  </gazebo>
+
+</robot>
