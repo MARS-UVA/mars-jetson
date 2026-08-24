@@ -7,6 +7,9 @@ controller_manager:
 
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
+      
+    arm_drum_controller:
+      type: arm_drum_controller/ArmDrumController
 
 
 diff_drive_controller:
@@ -23,3 +26,17 @@ diff_drive_controller:
     publish_rate: 50.0
     cmd_vel_timeout: 0.5
     use_stamped_vel: false
+
+arm_drum_controller:
+  ros__parameters:
+    front_arm_joints:
+      - front_arm_joint
+    back_arm_joints:
+      - rear_arm_joint
+    front_drum_joints:
+      - front_left_drum_joint
+      - front_right_drum_joint
+    back_drum_joints:
+      - rear_left_drum_joint
+      - rear_right_drum_joint
+    command_timeout: 0.5

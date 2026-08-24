@@ -19,6 +19,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 
+from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -73,6 +74,12 @@ def generate_launch_description():
         executable='spawner',
         arguments=['diff_drive_controller'],
     )
+    
+    arm_drum_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['arm_drum_controller'],
+    )
 
     twist_stamper = Node(
         package='twist_stamper',
@@ -92,6 +99,10 @@ def generate_launch_description():
     )
 
     ld = LaunchDescription([
+        SetEnvironmentVariable(
+            name='GZ_SIM_RESOURCE_PATH',
+            value=[PathJoinSubstitution([FindPackageShare('lunabotics_simulation'), 'models'])]
+        ),
         bridge,
         twist_stamper,
         # Launch gazebo environment
@@ -100,11 +111,18 @@ def generate_launch_description():
                 [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
                                        'launch',
                                        'gz_sim.launch.py'])]),
-            launch_arguments=[('gz_args', [' -r -v 1 empty.sdf'])]),
+            launch_arguments=[('gz_args', [f' -r -v 1 ', 
+                    PathJoinSubstitution([
+                        FindPackageShare('lunabotics_simulation'),
+                        'world',
+                        'arena_nasa.world'
+                    ])
+            ])]
+        ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=gz_spawn_entity,
-                on_exit=[joint_state_broadcaster_spawner, diff_drive_controller_spawner],
+                on_exit=[joint_state_broadcaster_spawner, diff_drive_controller_spawner, arm_drum_controller_spawner],
             )
         ),
         gz_spawn_entity,

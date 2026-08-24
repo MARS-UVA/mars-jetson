@@ -44,14 +44,14 @@
       <!-- Arms -->
 
       <joint name="front_arm_joint">
-        <command_interface name="position"/>
+        <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
 
       <joint name="rear_arm_joint">
-        <command_interface name="position"/>
+        <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
