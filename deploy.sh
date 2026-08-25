@@ -23,9 +23,6 @@ source install/setup.bash
 # export FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
-ros2 run rmw_zenoh_cpp rmw_zenohd &
-ROUTER_PID=$!
-
 export JETSON_MODEL_NAME=JETSON_ORIN_NANO
 sudo busybox devmem 0x02448030 w 0x40a
 sudo busybox devmem 0x02430098 w 0x05
