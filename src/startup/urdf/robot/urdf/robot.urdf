@@ -261,7 +261,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="front_left_drum_joint" type="continuous">
+  <joint name="front_drum_joint" type="continuous">
     <origin xyz="0.357187 0.0476885 0.0381" rpy="1.51327e-16 -1.41588e-16 -1.5708"/>
     <parent link="front_arm"/>
     <child link="drum"/>
@@ -297,6 +297,7 @@
     <child link="front_right_drum"/>
     <axis xyz="0 0 1"/>
     <limit effort="10" velocity="10"/>
+    <mimic joint="front_drum_joint" multiplier="1" offset="0"/>
   </joint>
 
   <link name="rear_arm">
@@ -360,6 +361,7 @@
     <child link="rear_right_drum"/>
     <axis xyz="0 0 1"/>
     <limit effort="10" velocity="10"/>
+    <mimic joint="rear_drum_joint" multiplier="1" offset="0"/>
   </joint>
 
   <link name="rear_left_drum">
@@ -384,7 +386,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="rear_left_drum_joint" type="continuous">
+  <joint name="rear_drum_joint" type="continuous">
     <origin xyz="0.357188 0.0476885 -0.0381" rpy="6.51149e-31 -1.66571e-30 -8.18079e-17"/>
     <parent link="rear_arm"/>
     <child link="rear_left_drum"/>

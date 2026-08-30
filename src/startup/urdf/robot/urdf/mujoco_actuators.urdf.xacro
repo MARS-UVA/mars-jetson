@@ -68,10 +68,8 @@
       <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_right_wheel_joint" />
       <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_arm_joint" />
       <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_arm_joint" />
-      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_left_drum_joint" />
-      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_right_drum_joint" />
-      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_left_drum_joint" />
-      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_right_drum_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="front_drum_joint" />
+      <xacro:create_mujoco_velocity_actuator joint_limits="${joint_limits}" joint="rear_drum_joint" />
     </actuator>
   </xacro:macro>
 </robot>

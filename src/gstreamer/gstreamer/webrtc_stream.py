@@ -96,7 +96,7 @@ class WebRTCNode(Node):
         if self.appsrc is None:
             return
 
-        self.get_logger().warn(f"Sending new image data!")
+        self.get_logger().debug(f"Sending new image data!")
 
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')

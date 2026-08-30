@@ -11,7 +11,8 @@ from .control import DriveControlStrategy, ArcadeDrive, GamepadAxis
 from .signal_processing import Deadband
 from .motor_queries import raise_arms, stop_drum_spin, increment_drum_spin, max_drum_spin
 from geometry_msgs.msg import Twist
-from robot_control_msgs.msg import RobotState, ArmDrumControl, ArmControlMode
+from robot_control_msgs.msg import RobotState, ArmControlMode
+from std_msgs.msg import Float64MultiArray
 
 class TeleopNode(Node):
     """A ROS node which converts inputs from a human at the control station into motor current commands."""
@@ -126,7 +127,7 @@ class TeleopNode(Node):
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
         self._arm_drum_control_publisher = self.create_publisher(
-            msg_type=ArmDrumControl,
+            msg_type=Float64MultiArray,
             topic='arm_drum_control/teleop',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
@@ -145,7 +146,7 @@ class TeleopNode(Node):
         self.timer = self.create_timer(2, self.__stopped_motors)
         self.cruise_control = False
         self.cmd_vel = Twist()
-        self.arm_drum_control = ArmDrumControl()
+        self.arm_drum_control = Float64MultiArray()
         self.robot_state = RobotState()
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
@@ -249,7 +250,7 @@ class TeleopNode(Node):
     
     def __stopped_motors(self) -> None:
         self._cmd_vel_publisher.publish(Twist())
-        self._arm_drum_control_publisher.publish(ArmDrumControl())
+        self._arm_drum_control_publisher.publish(Float64MultiArray(data=[0.0, 0.0, 0.0, 0.0]))
 
     def __add_parameter_event_handlers(self) -> None:
         try:

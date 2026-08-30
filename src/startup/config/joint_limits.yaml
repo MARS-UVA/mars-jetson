@@ -40,7 +40,7 @@ rear_arm_joint:
     velocity: 50
     effort: 1000
 
-front_left_drum_joint:
+front_drum_joint:
   limit:
     lower: -3.14
     upper: 3.14
@@ -54,7 +54,7 @@ front_right_drum_joint:
     velocity: 23
     effort: 200
 
-rear_left_drum_joint:
+rear_drum_joint:
   limit:
     lower: -3.14
     upper: 3.14

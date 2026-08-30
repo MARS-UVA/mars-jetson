@@ -3,7 +3,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
-from robot_control_msgs.msg import ArmDrumControl
+from std_msgs.msg import Float64MultiArray
 from serial_msgs.msg import MotorCommands
 
 from geometry_msgs.msg import Twist
@@ -14,9 +14,14 @@ MAXIMUM_DRUM_SPEED = 2.0
 MAXIMUM_ARM_SPEED = 2.0
 MAXIMUM_DRIVE_SPEED = 10.0
 
+FRONT_ARM_INDEX = 0
+BACK_ARM_INDEX = 1
+FRONT_DRUM_INDEX = 2
+BACK_DRUM_INDEX = 3
+
 class RobotControllerNode(Node):
-    """A ROS 2 node which controls the robot's movement based on Twist and ArmDrumControl messages."""
-    
+    """A ROS 2 node which controls the robot's movement based on Twist and Float64MultiArray (Arm/Drum Control) messages."""
+
     def __init__(self, **kwargs):
         super().__init__('robot_controller', **kwargs)
 
@@ -38,7 +43,7 @@ class RobotControllerNode(Node):
             QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, reliability=QoSReliabilityPolicy.RELIABLE)
         )
         self.arm_drum_control_subscriber = self.create_subscription(
-            ArmDrumControl,
+            Float64MultiArray,
             '/arm_drum_control',
             self.arm_drum_control_callback,
             QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, reliability=QoSReliabilityPolicy.RELIABLE)
@@ -82,12 +87,12 @@ class RobotControllerNode(Node):
         self.motor_commands_buffer['front_right'] = right_motor_command
         self.motor_commands_buffer['back_right'] = right_motor_command
 
-    def arm_drum_control_callback(self, msg: ArmDrumControl) -> None:
+    def arm_drum_control_callback(self, msg: Float64MultiArray) -> None:
         """Callback for ArmDrumControl messages to control the robot's arm and drum."""
-        self.motor_commands_buffer['front_drum'] = self.convert_speed_to_motor_command(msg.front_drum_speed / MAXIMUM_DRUM_SPEED)
-        self.motor_commands_buffer['front_actuator'] = self.convert_speed_to_motor_command(msg.front_arm_speed / MAXIMUM_ARM_SPEED)
-        self.motor_commands_buffer['back_drum'] = self.convert_speed_to_motor_command(msg.back_drum_speed / MAXIMUM_DRUM_SPEED)
-        self.motor_commands_buffer['back_actuator'] = self.convert_speed_to_motor_command(msg.back_arm_speed / MAXIMUM_ARM_SPEED)
+        self.motor_commands_buffer['front_drum'] = self.convert_speed_to_motor_command(msg.data[FRONT_DRUM_INDEX] / MAXIMUM_DRUM_SPEED)
+        self.motor_commands_buffer['front_actuator'] = self.convert_speed_to_motor_command(msg.data[FRONT_ARM_INDEX] / MAXIMUM_ARM_SPEED)
+        self.motor_commands_buffer['back_drum'] = self.convert_speed_to_motor_command(msg.data[BACK_DRUM_INDEX] / MAXIMUM_DRUM_SPEED)
+        self.motor_commands_buffer['back_actuator'] = self.convert_speed_to_motor_command(msg.data[BACK_ARM_INDEX] / MAXIMUM_ARM_SPEED)
 
 def main() -> None:
     rclpy.init(args=sys.argv)

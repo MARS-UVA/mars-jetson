@@ -9,10 +9,16 @@
 #include "robot_control_msgs/msg/arm_drum_control.hpp"
 #include "robot_control_msgs/msg/arm_control_mode.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
+
+#define FRONT_ARM_INDEX 0
+#define BACK_ARM_INDEX 1
+#define FRONT_DRUM_INDEX 2
+#define BACK_DRUM_INDEX 3
 
 struct TwistArmDrumControl {
   geometry_msgs::msg::Twist twist;
-  robot_control_msgs::msg::ArmDrumControl arm_drum_control;
+  std_msgs::msg::Float64MultiArray arm_drum_control;
 };
 #include "serial_msgs/msg/position.hpp"
 
@@ -42,7 +48,7 @@ class DigDumpActionServer : public rclcpp::Node
     rclcpp::Subscription<serial_msgs::msg::Position>::SharedPtr position_sub_;
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
-    rclcpp::Publisher<robot_control_msgs::msg::ArmDrumControl>::SharedPtr arm_drum_control_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr arm_drum_control_pub_;
     
     //Parameter to track if a goal is currently active. Used to prevent accepting new goals while one is active
     bool goal_active_ = false;
@@ -78,8 +84,8 @@ class DigDumpActionServer : public rclcpp::Node
     TwistArmDrumControl drive_msg;
     TwistArmDrumControl stop_msg;
 
-    robot_control_msgs::msg::ArmDrumControl lower_arm_drum_msg;
-    robot_control_msgs::msg::ArmDrumControl raise_arm_drum_msg;
+    std_msgs::msg::Float64MultiArray lower_arm_drum_msg;
+    std_msgs::msg::Float64MultiArray raise_arm_drum_msg;
 
     void arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg);
 

@@ -42,10 +42,8 @@
     <xacro:configure_joint joint_name="rear_right_wheel_joint" initial_position="0.0" />
     <xacro:configure_joint joint_name="front_arm_joint" initial_position="0.0" />
     <xacro:configure_joint joint_name="rear_arm_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="front_left_drum_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="front_right_drum_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_left_drum_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_right_drum_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="front_drum_joint" initial_position="0.0" />
+    <xacro:configure_joint joint_name="rear_drum_joint" initial_position="0.0" />
 
     <sensor name="front_camera">
       <param name="frame_name">front_camera_color_mujoco_frame</param>

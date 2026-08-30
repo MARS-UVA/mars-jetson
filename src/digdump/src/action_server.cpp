@@ -19,7 +19,7 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   );
   state_publisher_ = this->create_publisher<std_msgs::msg::UInt8>("robot_state/toggle", 1);
   cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel/autonomy", 1);
-  arm_drum_control_pub_ = this->create_publisher<robot_control_msgs::msg::ArmDrumControl>("arm_drum_control/autonomy", 1);
+  arm_drum_control_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("arm_drum_control/autonomy", 1);
 
   auto declare_with_desc = [this](const std::string &name, auto default_val, const std::string &description){
     rcl_interfaces::msg::ParameterDescriptor desc;
@@ -46,6 +46,15 @@ DigDumpActionServer::DigDumpActionServer(const rclcpp::NodeOptions & options) : 
   // Initialize current actuator position, thread will have access but no safety locks are in place
   current_front_actuator_position = 0.0;
   current_back_actuator_position = 0.0;
+
+  lower_msg.arm_drum_control.data.resize(4);
+  raise_msg.arm_drum_control.data.resize(4);
+  dig_msg.arm_drum_control.data.resize(4);
+  dump_msg.arm_drum_control.data.resize(4);
+  drive_msg.arm_drum_control.data.resize(4);
+  
+  lower_arm_drum_msg.data.resize(4);
+  raise_arm_drum_msg.data.resize(4);
 
   cancel_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
   "cancel_command",
@@ -127,24 +136,24 @@ void DigDumpActionServer::execute(
   double actuator_extend_length_ground = this->get_parameter("actuator_extend_length_ground").as_double();
 
 
-  lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_aerial").as_double()*-1;
-  lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_aerial").as_double()*-1;
-  lower_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
-  lower_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double()*-1;
+  lower_msg.arm_drum_control.data[FRONT_ARM_INDEX] = this->get_parameter("actuator_speed_aerial").as_double()*-1;
+  lower_msg.arm_drum_control.data[BACK_ARM_INDEX] = this->get_parameter("actuator_speed_aerial").as_double()*-1;
+  lower_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = this->get_parameter("dig_speed").as_double()*-1;
+  lower_msg.arm_drum_control.data[BACK_DRUM_INDEX] = this->get_parameter("dig_speed").as_double()*-1;
 
-  raise_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_aerial").as_double();
-  raise_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_aerial").as_double();
+  raise_msg.arm_drum_control.data[FRONT_ARM_INDEX] = this->get_parameter("actuator_speed_aerial").as_double();
+  raise_msg.arm_drum_control.data[BACK_ARM_INDEX] = this->get_parameter("actuator_speed_aerial").as_double();
 
-  dig_msg.arm_drum_control.front_drum_speed = this->get_parameter("dig_speed").as_double();
-  dig_msg.arm_drum_control.back_drum_speed = this->get_parameter("dig_speed").as_double();
+  dig_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = this->get_parameter("dig_speed").as_double();
+  dig_msg.arm_drum_control.data[BACK_DRUM_INDEX] = this->get_parameter("dig_speed").as_double();
 
   if (!back_arm_control_mode) {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is false, setting dump_msg to spin front drum and drive_msg to drive forward");
-    dump_msg.arm_drum_control.front_drum_speed = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
   } else {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
-    dump_msg.arm_drum_control.back_drum_speed = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_control.data[BACK_DRUM_INDEX] = this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double()*-1;
   }
 
@@ -174,18 +183,18 @@ void DigDumpActionServer::execute(
         
         // if the actuator has reached the ground state, slow down the lowering speed
         if (current_front_actuator_position >= actuator_extend_length_aerial && current_front_actuator_position < actuator_extend_length_ground) {
-          lower_msg.arm_drum_control.front_arm_speed = this->get_parameter("actuator_speed_ground").as_double()*-1;
+          lower_msg.arm_drum_control.data[FRONT_ARM_INDEX] = this->get_parameter("actuator_speed_ground").as_double()*-1;
         }
         if (current_back_actuator_position >= actuator_extend_length_aerial && current_back_actuator_position < actuator_extend_length_ground) {
-          lower_msg.arm_drum_control.back_arm_speed = this->get_parameter("actuator_speed_ground").as_double()*-1;
+          lower_msg.arm_drum_control.data[BACK_ARM_INDEX] = this->get_parameter("actuator_speed_ground").as_double()*-1;
         }
 
         // If the actuator has fully extended, set the velocity to 0 for that specific actuator
         if (current_front_actuator_position >= actuator_extend_length_ground) {
-          lower_msg.arm_drum_control.front_arm_speed = 0;
+          lower_msg.arm_drum_control.data[FRONT_ARM_INDEX] = 0;
         }
         if (current_back_actuator_position >= actuator_extend_length_ground) {
-          lower_msg.arm_drum_control.back_arm_speed = 0;
+          lower_msg.arm_drum_control.data[BACK_ARM_INDEX] = 0;
         }
 
         if (goal_handle->is_canceling()) {
