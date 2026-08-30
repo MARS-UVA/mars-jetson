@@ -60,28 +60,14 @@
 
       <!-- Drums -->
 
-      <joint name="front_left_drum_joint">
+      <joint name="front_drum_joint">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
 
-      <joint name="front_right_drum_joint">
-        <command_interface name="velocity"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-
-      <joint name="rear_left_drum_joint">
-        <command_interface name="velocity"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-
-      <joint name="rear_right_drum_joint">
+      <joint name="rear_drum_joint">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>

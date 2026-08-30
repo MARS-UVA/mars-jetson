@@ -24,8 +24,6 @@ source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 export JETSON_MODEL_NAME=JETSON_ORIN_NANO
-sudo busybox devmem 0x02448030 w 0x40a
-sudo busybox devmem 0x02430098 w 0x05
 
 # Launch everything
 # run realsense executable in parallel

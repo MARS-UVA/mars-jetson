@@ -17,7 +17,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Opaq
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node
@@ -157,7 +157,7 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', 'WARN'],
                 parameters=[
-                    {'mock_serial':'1'}
+                    {'mock_serial':EnvironmentVariable('MOCK_SERIAL', default_value='1')}
                 ],
                 respawn=True
             )
@@ -182,7 +182,7 @@ def generate_launch_description():
                 executable='mux',
                 name='arm_drum_mux',
                 output='screen',
-                arguments=['/arm_drum_control', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
+                arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
                 respawn=True
             )
     robot_state_controller = Node(

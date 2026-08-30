@@ -261,7 +261,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="front_left_drum_joint" type="continuous">
+  <joint name="front_drum_joint" type="continuous">
     <origin xyz="0.357187 0.0476885 0.0381" rpy="1.51327e-16 -1.41588e-16 -1.5708"/>
     <parent link="front_arm"/>
     <child link="drum"/>
@@ -291,12 +291,13 @@
       </geometry>
     </collision>
   </link>
-  <joint name="front_right_drum_joint" type="continuous">
-    <origin xyz="0.357187 0.0476885 -0.0381" rpy="-7.85046e-17 4.12558e-32 -3.14159"/>
-    <parent link="front_arm"/>
+  <!-- Both front drum meshes are mounted on the same driven axle. Attach the
+       second mesh rigidly to the driven drum link instead of relying on a
+       physics-engine-specific mimic constraint. -->
+  <joint name="front_right_drum_joint" type="fixed">
+    <origin xyz="0 0 -0.0762" rpy="0 0 -1.57079"/>
+    <parent link="drum"/>
     <child link="front_right_drum"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
   </joint>
 
   <link name="rear_arm">
@@ -354,12 +355,12 @@
       </geometry>
     </collision>
   </link>
-  <joint name="rear_right_drum_joint" type="continuous">
-    <origin xyz="0.357187 0.0476885 0.0381" rpy="3.90337e-31 5.47109e-32 -3.14159"/>
-    <parent link="rear_arm"/>
+  <!-- Both rear drum meshes are mounted on the same driven axle. The fixed
+       child is lumped into the driven rear drum assembly by Gazebo. -->
+  <joint name="rear_right_drum_joint" type="fixed">
+    <origin xyz="-0.000001 0 0.0762" rpy="0 0 -3.14159"/>
+    <parent link="rear_left_drum"/>
     <child link="rear_right_drum"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
   </joint>
 
   <link name="rear_left_drum">
@@ -384,7 +385,7 @@
       </geometry>
     </collision>
   </link>
-  <joint name="rear_left_drum_joint" type="continuous">
+  <joint name="rear_drum_joint" type="continuous">
     <origin xyz="0.357188 0.0476885 -0.0381" rpy="6.51149e-31 -1.66571e-30 -8.18079e-17"/>
     <parent link="rear_arm"/>
     <child link="rear_left_drum"/>

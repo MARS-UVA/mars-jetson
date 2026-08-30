@@ -84,7 +84,7 @@
     -->
 
     <!-- Own physics settings to speed up simulation -->
-    <physics type='ode'>
+    <physics type='dart'>
       <max_step_size>0.01</max_step_size>
       <real_time_factor>1</real_time_factor>
       <real_time_update_rate>100</real_time_update_rate>
