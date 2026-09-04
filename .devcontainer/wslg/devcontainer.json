@@ -1,0 +1,47 @@
+{
+    "name": "ROS 2 Development — WSLg",
+    "privileged": true,
+    "remoteUser": "vscode",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": "../..",
+        "args": {
+            "USERNAME": "vscode",
+            "USER_UID": "1000",
+            "USER_GID": "1000"
+        }
+    },
+    "workspaceFolder": "/home/ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-themes",
+                "twxs.cmake",
+                "donjayamanne.python-extension-pack",
+                "eamodio.gitlens",
+                "ms-iot.vscode-ros"
+            ]
+        }
+    },
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+        "GALLIUM_DRIVER": "llvmpipe",
+        "QT_QPA_PLATFORM": "xcb",
+        "QT_X11_NO_MITSHM": "1",
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42"
+    },
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+        "source=/mnt/wslg,target=/mnt/wslg,type=bind"
+    ],
+    "postCreateCommand": "sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "runArgs": [
+        "--add-host=host.docker.internal:host-gateway",
+        "-p",
+        "8080:8080/udp"
+    ]
+}

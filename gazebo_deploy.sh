@@ -3,9 +3,6 @@
 #Option 1: ./deploy.sh
 #Option 2: ./deploy.sh <control station ip>
 
-cd ~/mars-jetson
-
-
 if [ $# -ge 1 ];
     then
         export CONTROL_STATION_IP=$1
