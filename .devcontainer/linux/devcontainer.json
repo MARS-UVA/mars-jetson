@@ -13,6 +13,7 @@
     },
     "workspaceFolder": "/home/ws",
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+    "initializeCommand": "docker network inspect mars-dev >/dev/null 2>&1 || docker network create mars-dev",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -28,6 +29,7 @@
     "containerEnv": {
         "DISPLAY": "${localEnv:DISPLAY}",
         "QT_X11_NO_MITSHM": "1",
+        "CONTROL_STATION_IP": "mars-control-station",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
         "ROS_DOMAIN_ID": "42"
     },
@@ -36,6 +38,8 @@
     ],
     "postCreateCommand": "sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
     "runArgs": [
+        "--network=mars-dev",
+        "--network-alias=mars-jetson",
         "--device=/dev/dri",
         "-p",
         "8080:8080/udp"

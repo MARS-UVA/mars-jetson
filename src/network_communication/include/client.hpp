@@ -10,6 +10,7 @@
 #include <std_msgs/msg/u_int8.hpp>
 
 #include <vector>
+#include <netdb.h>
 
 #define FEEDBACK_PORT 2001
 #define FEEDBACK_PACKET_LENGTH 92

@@ -5,12 +5,13 @@
 cd ~/mars-jetson
 
 
-if [ $# -ge 1 ];
-    then
-        export CONTROL_STATION_IP=$1
-    else 
-        export CONTROL_STATION_IP="192.168.0.109"
+if [ $# -ge 1 ]; then
+    export CONTROL_STATION_IP="$1"
+else
+    export CONTROL_STATION_IP="${CONTROL_STATION_IP:-192.168.0.109}"
 fi
+
+echo "Using $CONTROL_STATION_IP as the control station address"
 ##
 #Build the packages
 # colcon build --packages-select teleop_msgs serial_msgs

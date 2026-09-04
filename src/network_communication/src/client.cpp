@@ -65,9 +65,26 @@ class udpClient : public rclcpp::Node
       struct sockaddr_in control_station_addr{};
       socklen_t control_station_struct_len = sizeof(control_station_addr);
 
-      control_station_addr.sin_family = AF_INET;
+      struct addrinfo hints{};
+      hints.ai_family = AF_INET;
+      hints.ai_socktype = SOCK_DGRAM;
+
+      struct addrinfo* resolved_addresses = nullptr;
+      int lookup_result = getaddrinfo(
+        CONTROL_STATION_IP_FOR_CLIENT, nullptr, &hints, &resolved_addresses
+      );
+      if (lookup_result != 0 || resolved_addresses == nullptr) {
+        throw std::runtime_error(
+          std::string("Could not resolve CONTROL_STATION_IP: ") +
+          gai_strerror(lookup_result)
+        );
+      }
+
+      control_station_addr = *reinterpret_cast<struct sockaddr_in*>(
+        resolved_addresses->ai_addr
+      );
       control_station_addr.sin_port = htons(port);
-      control_station_addr.sin_addr.s_addr = inet_addr(CONTROL_STATION_IP_FOR_CLIENT);
+      freeaddrinfo(resolved_addresses);
 
       connection_headers = {client_socket_fd, control_station_addr};
     }
