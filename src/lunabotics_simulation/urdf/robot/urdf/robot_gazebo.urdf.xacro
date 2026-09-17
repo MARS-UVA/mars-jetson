@@ -4,6 +4,8 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro"
     name="robot">
 
+  <xacro:arg name="camera_update_rate" default="30.0"/>
+
   <!-- ============================= -->
   <!-- Common robot                  -->
   <!-- ============================= -->
@@ -20,6 +22,37 @@
       filename="$(find lunabotics_simulation)/urdf/robot/urdf/ros2_control_gazebo.urdf.xacro"/>
 
   <xacro:ros2_control_gazebo/>
+
+  <xacro:macro name="gazebo_camera" params="name">
+    <gazebo reference="${name}_camera_link">
+      <sensor name="${name}_camera" type="camera">
+        <!-- Map Gazebo +X forward / +Z up to optical +Z forward / -Y up.
+             The optical joint uses RPY (-pi/2, -pi/2, 0); yaw alone
+             aligns the viewing direction but leaves the image rolled 90 degrees. -->
+        <pose>0 0 0 ${-pi / 2} 0 ${pi / 2}</pose>
+        <always_on>true</always_on>
+        <update_rate>$(arg camera_update_rate)</update_rate>
+        <topic>/${name}_camera/image_raw</topic>
+        <gz_frame_id>${name}_camera_color_optical_frame</gz_frame_id>
+        <camera>
+          <!-- MuJoCo uses a 58 degree vertical FOV at a 4:3 aspect ratio. -->
+          <horizontal_fov>${2 * atan(tan(58 * pi / 360) * 4 / 3)}</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>100</far>
+          </clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:gazebo_camera name="front"/>
+  <xacro:gazebo_camera name="rear"/>
 
 
   <!-- ============================= -->

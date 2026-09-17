@@ -43,6 +43,8 @@ def generate_launch_description():
                 PathJoinSubstitution([FindExecutable(name='xacro')]),
                 ' ',
                 robot_description_file,
+                ' camera_update_rate:=',
+                LaunchConfiguration('camera_update_rate'),
             ]
         )
         robot_description = {'robot_description': robot_description_content}
@@ -97,6 +99,20 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
         output='screen'
+    )
+
+    camera_bridge = Node(
+        package='ros_gz_image',
+        executable='image_bridge',
+        arguments=['/front_camera/image_raw', '/rear_camera/image_raw'],
+        parameters=[{'qos': 'sensor_data', 'use_sim_time': use_sim_time}],
+        output='screen',
+    )
+
+    gstreamer = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([FindPackageShare('gstreamer'), 'gstreamer_launch.py'])
+        )
     )
     
     # Nodes important for connecting the robot to the Control Station and running robot movements
@@ -193,13 +209,27 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', 'WARN'],
                 respawn=True
             )
+    
+    zenoh = Node(
+        package="rmw_zenoh_cpp",
+        executable="rmw_zenohd",
+        name="rmw_zenohd",
+        output="screen",
+        parameters=[
+            {"zenoh_router_port": 7447},
+            {"zenoh_router_log_level": "info"}
+        ]
+    )
 
     ld = LaunchDescription([
         SetEnvironmentVariable(
             name='GZ_SIM_RESOURCE_PATH',
             value=[PathJoinSubstitution([FindPackageShare('lunabotics_simulation'), 'models'])]
         ),
+        zenoh,
         bridge,
+        camera_bridge,
+        gstreamer,
         twist_stamper,
         # Launch gazebo environment
         IncludeLaunchDescription(
@@ -223,6 +253,10 @@ def generate_launch_description():
         ),
         gz_spawn_entity,
         # Launch Arguments
+        DeclareLaunchArgument(
+            'camera_update_rate',
+            default_value='30.0',
+            description='Update rate in Hz for both simulated cameras'),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value=use_sim_time,
