@@ -7,7 +7,13 @@ This repository is still in development and documentation is only available for 
 - April Tag Pose Estimation implementation: please visit **apriltag** branch
 
 ## How to Run
-```./deploy.sh [CONTROL_STATION_IP]```
+```
+./deploy.sh control_station_ip:=[CONTROL_STATION_IP] robot_backend:=[BACKEND]
+```
+
+Where:
+- *[CONTROL_STATION_IP]* is the IP address of the control station laptop
+- *[BACKEND]* is the backend for the robot hardware interface (serial, gazebo, mock)
 
 ## Structure
 This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:

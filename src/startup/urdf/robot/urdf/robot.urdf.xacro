@@ -1,92 +1,57 @@
 <?xml version="1.0" ?>
-<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
-
-  <!-- MuJoCo Config -->
-  <!-- Mujoco compiler options -->
-  <xacro:arg name="mujoco_model_path" default="/tmp/mujoco" />
-  <xacro:arg name="autolimits" default="true" />
-  <xacro:arg name="balanceinertia" default="true" />
-  <!-- Mujoco options -->
-  <xacro:arg name="integrator" default="implicitfast" />
-  <xacro:arg name="gravity" default="0 0 -9.81" />
-  <xacro:arg name="impratio" default="1" />
-  <xacro:arg name="integrator" default="implicitfast" />
-  <xacro:arg name="cone" default="elliptic" />
-  <xacro:arg name="solver" default="Newton" />
-  <xacro:arg name="noslip_iterations" default="3" />
-  <xacro:arg name="multiccd" default="disable" />
-
-  <xacro:arg name="use_sim" default="true" />
-  <xacro:arg name="mujoco_effort" default="false" /> <!-- position actuators must be defined before using them -->
-
-  <link name="world"/>
-
-  <joint name="base_link" type="floating">
-    <axis xyz="0 0 0" rpy="0 0 0"/>
-    <origin xyz="0 0 0.5" rpy="0 0 0"/>
-    <parent link="world"/>
-    <child link="frame_assembly"/>
-  </joint>
-
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot">
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
 
-  <mujoco_inputs>
-    <raw_inputs>
-        <!-- <compiler meshdir="$(arg mujoco_model_path)/meshes" 
-                  discardvisual="false" 
-                  autolimits="$(arg autolimits)" 
-                  balanceinertia="$(arg balanceinertia)"
-        />
-        <option integrator="$(arg integrator)" 
-                gravity="$(arg gravity)" 
-                impratio="$(arg impratio)" 
-                cone="$(arg cone)" 
-                solver="$(arg solver)" 
-                noslip_iterations="$(arg noslip_iterations)">
-            <flag multiccd="$(arg multiccd)" />
-        </option> -->
-        <option integrator="implicitfast"/>
+  <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" />
 
-        <default>
-          <default class="visual">
-            <geom group="2" type="mesh" contype="0" conaffinity="0"/>
-          </default>
-          <default class="collision">
-            <geom group="3" type="mesh"/>
-          </default>
-        </default>
+  <xacro:macro name="gazebo_camera" params="name">
+    <gazebo reference="${name}_camera_link">
+      <sensor name="${name}_camera" type="camera">
+        <!-- Map Gazebo +X forward / +Z up to optical +Z forward / -Y up.
+             The optical joint uses RPY (-pi/2, -pi/2, 0); yaw alone
+             aligns the viewing direction but leaves the image rolled 90 degrees. -->
+        <pose>0 0 0 ${-pi / 2} 0 ${pi / 2}</pose>
+        <always_on>true</always_on>
+        <update_rate>$(arg camera_update_rate)</update_rate>
+        <topic>/${name}_camera/image_raw</topic>
+        <gz_frame_id>${name}_camera_color_optical_frame</gz_frame_id>
+        <camera>
+          <!-- MuJoCo uses a 58 degree vertical FOV at a 4:3 aspect ratio. -->
+          <horizontal_fov>${2 * atan(tan(58 * pi / 360) * 4 / 3)}</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>100</far>
+          </clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
 
-        <!-- Create actuators to use position control -->
-        <xacro:include filename="$(find startup)/urdf/robot/urdf/mujoco_actuators.urdf.xacro" />
-        <xacro:create_mujoco_actuators/>
-        
-        <contact> 
-          <!-- <pair geom1="front_arm_collision_mesh0" geom2="frame_assembly_collision_mesh0" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/>
-          <pair geom1="rear_arm_collision_mesh0" geom2="frame_assembly_collision_mesh1" friction="1 0.005 0.0001" solimp="0.99 0.99 0.001"/> -->
-        </contact>
+  <xacro:gazebo_camera name="front"/>
+  <xacro:gazebo_camera name="rear"/>
 
-    </raw_inputs>
 
-    <processed_inputs>
-      <!-- <modify_element type="body" name="front_arm" gravcomp="1" />
-      <modify_element type="body" name="rear_arm" gravcomp="1" /> -->
-      <!-- <modify_element type="joint" name="front_arm_joint" armature="125.0" />
-      <modify_element type="joint" name="rear_arm_joint" armature="125.0" />
-      <modify_element type="joint" name="front_left_drum_joint" armature="125.0" />
-      <modify_element type="joint" name="front_right_drum_joint" armature="125.0" />
-      <modify_element type="joint" name="rear_left_drum_joint" armature="125.0" />
-      <modify_element type="joint" name="rear_right_drum_joint" armature="125.0" />
-      <modify_element type="joint" name="front_left_wheel_joint" armature="125.0" />
-      <modify_element type="joint" name="front_right_wheel_joint" armature="125.0" />
-      <modify_element type="joint" name="rear_left_wheel_joint" armature="125.0" />
-      <modify_element type="joint" name="rear_right_wheel_joint" armature="125.0" /> -->
+  <!-- ============================= -->
+  <!-- Gazebo ros2_control plugin    -->
+  <!-- ============================= -->
 
-      <camera site="front_camera_color_optical_frame" name="front_camera" mode="fixed" fovy="58" resolution="640 480"/>
-      <camera site="rear_camera_color_optical_frame" name="rear_camera" mode="fixed" fovy="58" resolution="640 480"/>
-    </processed_inputs>
-  </mujoco_inputs>
+  <gazebo>
+    <plugin
+        filename="libgz_ros2_control-system.so"
+        name="gz_ros2_control::GazeboSimROS2ControlPlugin">
 
-  <xacro:robot_ros2_control use_sim="$(arg use_sim)" mujoco_effort="$(arg mujoco_effort)" mujoco_model_path="$(arg mujoco_model_path)" />
+      <parameters>
+        $(find startup)/config/controllers.yaml
+      </parameters>
+
+    </plugin>
+
+  </gazebo>
 </robot>

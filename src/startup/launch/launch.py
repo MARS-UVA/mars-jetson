@@ -1,124 +1,105 @@
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable
+from launch.substitutions import Command, PathJoinSubstitution, LaunchConfiguration, EnvironmentVariable, PythonExpression
+from launch.actions import DeclareLaunchArgument
+from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
-
+from launch.conditions import IfCondition
 
 def generate_launch_description():
-    teleop = Node(
-                package='teleop',
-                executable='teleop',
-                name='teleop',
-                output='screen',
-                parameters=[{
-                    'linear_axis': 'left_y',
-                    'turn_axis': 'left_x_inverted',
-                    'full_forward_magnitude': 0.6,
-                    'deadband': 0.05
-                }],
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                respawn=True
-            )
-    
-    digdump = Node(
-                package='digdump',
-                executable='action_server',
-                name='digdump',
-                output='screen',
-                parameters=[{
-                    'actuator_speed_aerial': 1.0,
-                    'actuator_speed_ground': 0.75,
-                    'dig_speed': 0.75,
-                    'dump_speed': 1.0,
-                    'drive_speed': 0.25,
-                    'dig_time': 3.0,
-                    'dump_time': 6.0,
-                    'move_time': 6.0,
-                    'actuator_extend_length_aerial': 0.69,
-                    'actuator_extend_length_ground': 0.9,
-                }],
-                respawn=True
-            )
-    network_client = Node(
-                package='network_communication',
-                executable='udp_client',
-                name='client_node',
-                output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                respawn=True
-            )
-    network_server = Node(
-                package='network_communication',
-                executable='udp_server',
-                name='server_node',
-                output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                respawn=True
-            )
-    serial = Node(
-                package='serial_node',
-                executable='op_reader',
-                name='serial_node',
-                output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                parameters=[
-                    {'mock_serial': EnvironmentVariable('MOCK_SERIAL', default_value='0')}
-                ],
-                respawn=True
-            )
-    controller = Node(
-                package='robot_controller',
-                executable='robot_controller',
-                name='robot_controller',
-                output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                respawn=True
-            )
-    cmd_vel_mux = Node(
-                package='topic_tools',
-                executable='mux',
-                name='cmd_vel_mux',
-                output='screen',
-                arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy'],
-                respawn=True
-            )
-    arm_drum_mux = Node(
-                package='topic_tools',
-                executable='mux',
-                name='arm_drum_mux',
-                output='screen',
-                arguments=['/arm_drum_control', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
-                respawn=True
-            )
-    robot_state_controller = Node(
-                package='robot_state_controller',
-                executable='robot_state_controller',
-                name='robot_state_controller',
-                output='screen',
-                arguments=['--ros-args', '--log-level', 'WARN'],
-                respawn=True
-            )
-    
-    cameras = IncludeLaunchDescription(
-      PythonLaunchDescriptionSource([os.path.join(
-         get_package_share_directory('startup'), 'launch'),
-         '/cameras.launch.py'])
-      )
+    backend = LaunchConfiguration("robot_backend")
+    control_station_ip = LaunchConfiguration("control_station_ip")
+
+    backend_arg = DeclareLaunchArgument(
+        "robot_backend",
+        default_value="serial",
+        description="Backend for the robot hardware interface (serial, gazebo, mock)",
+    )
+    control_station_ip_arg = DeclareLaunchArgument(
+        "control_station_ip",
+        default_value="192.168.50.60",
+        description="IP address of the control station for network communication",
+    )
+    args = [backend_arg, control_station_ip_arg]
+
+    startup_pkg = FindPackageShare("startup")
+
+    nodes = []
+
+    nodes.append(Node(
+        package="rmw_zenoh_cpp",
+        executable="rmw_zenohd",
+        name="rmw_zenohd",
+        output="screen",
+        parameters=[
+            {"zenoh_router_port": 7447},
+            {"zenoh_router_log_level": "info"}
+        ]
+    ))
+
+    # Process the xacro file and create the robot description
+    robot_description = Command([
+        "xacro ",
+        PathJoinSubstitution([
+            startup_pkg,
+            "urdf",
+            "robot",
+            "urdf",
+            "robot.urdf.xacro"
+        ]),
+        " robot_backend:=", backend,
+        " camera_update_rate:=30",
+    ])
+
+
+    nodes.append(Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        output='screen',
+        parameters=[{
+            'robot_description': robot_description
+        }],
+    ))
+
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'robot.launch.py'])),
+        launch_arguments={
+            'robot_backend': backend
+        }.items()
+    ))
+
+    nodes.append(Node(
+        package='serial_node',
+        executable='op_reader',
+        name='serial_node',
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN'],
+        parameters=[
+            {'mock_serial': EnvironmentVariable('MOCK_SERIAL', default_value='0')}
+        ],
+        respawn=True,
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'"])
+        )
+    ))
+
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'gazebo.launch.py'])),
+        launch_arguments={
+            'robot_backend': backend
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'gazebo'"])
+        )
+    ))
 
     return LaunchDescription([
-        teleop, 
-        digdump,
-        network_client,
-        network_server,
-        serial,
-        controller,
-        cmd_vel_mux,
-        arm_drum_mux,
-        robot_state_controller,
-        cameras,
+        SetEnvironmentVariable(
+            name="CONTROL_STATION_IP",
+            value=control_station_ip,
+        ),
+        *args,
+        *nodes,
     ])
 

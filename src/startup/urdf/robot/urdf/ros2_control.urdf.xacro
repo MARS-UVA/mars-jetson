@@ -1,63 +1,38 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<xacro:macro name="robot_ros2_control" 
-             params="use_sim mujoco_effort mujoco_model_path">
+<xacro:macro name="robot_ros2_control" params="robot_backend">
 
-  <ros2_control name="MujocoSystem" type="system">
+  <ros2_control name="RobotSystem" type="system">
     <hardware>
-      <xacro:if value="$(arg use_sim)">
-        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
-        <param name="headless">false</param>
-        <!-- <param name="mujoco_model">${mujoco_model_path}</param> -->
-        <param name="sim_speed_factor">1.0</param>
+      <xacro:if value="${robot_backend == 'gazebo'}">
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
       </xacro:if>
-      <xacro:unless value="$(arg use_sim)">
+      <xacro:if value="${robot_backend == 'mock'}">
         <plugin>mock_components/GenericSystem</plugin>
-      </xacro:unless>
+      </xacro:if>
+      <xacro:if value="${robot_backend == 'serial'}">
+        <plugin>mock_components/GenericSystem</plugin>
+      </xacro:if>
     </hardware>
 
-    <xacro:macro name="configure_joint" params="joint_name initial_position">
+    <xacro:macro name="configure_joint" params="joint_name">
       <joint name="${joint_name}">
-        <xacro:if value="${mujoco_effort}">
-          <command_interface name="effort"/>
-        </xacro:if>
-        <xacro:unless value="${mujoco_effort}">
-          <command_interface name="velocity"/>
-          <command_interface name="position"/>
-        </xacro:unless>
-        <state_interface name="position">
-          <param name="initial_value">${initial_position}</param>
-        </state_interface>
-        <state_interface name="velocity">
-          <param name="initial_value">0.0</param>
-        </state_interface>
+        <command_interface name="velocity"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
     </xacro:macro>
 
-    <xacro:configure_joint joint_name="front_left_wheel_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="front_right_wheel_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_left_wheel_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_right_wheel_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="front_arm_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_arm_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="front_drum_joint" initial_position="0.0" />
-    <xacro:configure_joint joint_name="rear_drum_joint" initial_position="0.0" />
-
-    <sensor name="front_camera">
-      <param name="frame_name">front_camera_color_mujoco_frame</param>
-      <param name="info_topic">/front_camera/color/camera_info</param>
-      <param name="image_topic">/front_camera/image_raw</param>
-      <param name="depth_topic">/front_camera/depth/image_raw</param>
-    </sensor>
-
-    <sensor name="rear_camera">
-      <param name="frame_name">rear_camera_color_mujoco_frame</param>
-      <param name="info_topic">/rear_camera/color/camera_info</param>
-      <param name="image_topic">/rear_camera/image_raw</param>
-      <param name="depth_topic">/rear_camera/depth/image_raw</param>
-    </sensor>
+    <xacro:configure_joint joint_name="front_left_wheel_joint" />
+    <xacro:configure_joint joint_name="front_right_wheel_joint" />
+    <xacro:configure_joint joint_name="rear_left_wheel_joint" />
+    <xacro:configure_joint joint_name="rear_right_wheel_joint" />
+    <xacro:configure_joint joint_name="front_arm_joint" />
+    <xacro:configure_joint joint_name="rear_arm_joint" />
+    <xacro:configure_joint joint_name="front_drum_joint" />
+    <xacro:configure_joint joint_name="rear_drum_joint" />
   </ros2_control>
 
 </xacro:macro>

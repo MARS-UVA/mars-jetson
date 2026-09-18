@@ -1,9 +1,7 @@
 #!/bin/bash
-source install/setup.bash
-
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-ros2 run rmw_zenoh_cpp rmw_zenohd
-
-ros2 daemon stop
-
-ros2 daemon start
+source /opt/ros/jazzy/setup.bash
+WORKSPACE_SETUP="$(dirname -- "${BASH_SOURCE[0]}")/install/setup.bash"
+if [ -f "${WORKSPACE_SETUP}" ]; then
+  source "${WORKSPACE_SETUP}"
+fi

@@ -17,6 +17,9 @@ setup(
         (os.path.join('share', package_name, 'urdf', 'robot', 'urdf'), glob('urdf/robot/urdf/*')),
         (os.path.join('share', package_name, 'urdf', 'robot', 'assets'), glob('urdf/robot/assets/*')),
         (os.path.join('share', package_name, 'urdf'), ['urdf/scene_info.xml']),
+        (os.path.join('share', package_name, 'world'), glob('world/*')),
+        *[(os.path.join('share', package_name, os.path.dirname(path)), [path]) for path in glob('models/**/*', recursive=True) if os.path.isfile(path)],
+        (os.path.join('share', package_name, 'scripts'), glob('scripts/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +30,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'actuator_position_feedback = scripts.actuator_position_feedback:main',
         ],
     },
 )
