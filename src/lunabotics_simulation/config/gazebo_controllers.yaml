@@ -14,6 +14,13 @@ controller_manager:
 
 diff_drive_controller:
   ros__parameters:
+    linear.x.has_velocity_limits: true
+    linear.x.max_velocity: 0.80   # Forward speed, m/s
+    linear.x.min_velocity: -0.80 # Reverse speed, m/s
+
+    angular.z.has_velocity_limits: true
+    angular.z.max_velocity: 0.8  # Turning speed, rad/s
+    angular.z.min_velocity: -0.8
     left_wheel_names:
       - front_left_wheel_joint
       - rear_left_wheel_joint
@@ -21,7 +28,7 @@ diff_drive_controller:
       - front_right_wheel_joint
       - rear_right_wheel_joint
     wheel_separation: 0.4318
-    wheel_radius: 0.0508
+    wheel_radius: 0.1778  # 14-inch diameter from wheel.stl
     base_frame_id: frame_assembly
     publish_rate: 50.0
     cmd_vel_timeout: 0.5

@@ -7,6 +7,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+install(PROGRAMS scripts/actuator_position_feedback.py
+  DESTINATION lib/${PROJECT_NAME})
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -21,6 +23,10 @@ install (DIRECTORY
 )
  
 if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_actuator_feedback.py")
+    ament_add_pytest_test(actuator_feedback test/test_actuator_feedback.py)
+  endif()
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files

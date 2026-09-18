@@ -29,7 +29,7 @@ def max_drum_spin(front_arm: bool, back_arm: bool, arm_drum_control: Float64Mult
     if forward: 
         v = 2.0
     else: 
-        v = 0.0
+        v = -2.0
 
     if front_arm:
         arm_drum_control.data[FRONT_DRUM_INDEX] = v

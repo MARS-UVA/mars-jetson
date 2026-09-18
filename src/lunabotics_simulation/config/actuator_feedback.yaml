@@ -1,0 +1,14 @@
+actuator_position_feedback:
+  ros__parameters:
+    # Simulation approximation: normalized travel, not physical actuator length.
+    # Keep angle endpoints aligned with the arm travel limits in robot_gazebo.urdf.
+    front.joint: front_arm_joint
+    front.angle_start: -1.2
+    front.angle_end: 0.2
+    front.output_start: 1.0
+    front.output_end: 0.0
+    back.joint: rear_arm_joint
+    back.angle_start: -1.2
+    back.angle_end: 0.2
+    back.output_start: 1.0
+    back.output_end: 0.0

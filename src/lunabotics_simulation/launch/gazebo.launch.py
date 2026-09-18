@@ -21,6 +21,7 @@ from launch.substitutions import Command, FindExecutable, LaunchConfiguration, P
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -47,7 +48,9 @@ def generate_launch_description():
                 LaunchConfiguration('camera_update_rate'),
             ]
         )
-        robot_description = {'robot_description': robot_description_content}
+        robot_description = {
+            'robot_description': ParameterValue(robot_description_content, value_type=str)
+        }
         node_robot_state_publisher = Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -129,6 +132,7 @@ def generate_launch_description():
                         'linear_axis': 'left_y',
                         'turn_axis': 'left_x_inverted',
                         'full_forward_magnitude': 0.6,
+                        'turn_speed_scale': 2.0,
                         'deadband': 0.05
                     }],
                     arguments=['--ros-args', '--log-level', 'WARN'],
@@ -179,6 +183,7 @@ def generate_launch_description():
                 parameters=[
                     {'mock_serial':EnvironmentVariable('MOCK_SERIAL', default_value='1')}
                 ],
+                remappings=[('position', 'mock/position')],
                 respawn=True
             )
     controller = Node(
@@ -231,6 +236,15 @@ def generate_launch_description():
             value=[PathJoinSubstitution([FindPackageShare('lunabotics_simulation'), 'models'])]
         ),
         zenoh,
+        Node(
+            package='lunabotics_simulation',
+            executable='actuator_position_feedback.py',
+            name='actuator_position_feedback',
+            parameters=[PathJoinSubstitution([
+                FindPackageShare('lunabotics_simulation'), 'config',
+                'actuator_feedback.yaml']), {'use_sim_time': use_sim_time}],
+            output='screen',
+        ),
         bridge,
         camera_bridge,
         gstreamer,

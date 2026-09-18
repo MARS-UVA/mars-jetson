@@ -2,7 +2,7 @@
   <link name="frame_assembly">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="40"/>
+      <mass value="30"/>
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
     <visual>
@@ -84,9 +84,11 @@
 
   <link name="front_left_wheel">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1.7"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Thin cylindrical shell approximation: mesh radius 0.17780000 m,
+           axial length 0.07937500 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 0 -0.0396875000" rpy="0 0 0"/>
+      <mass value="1.1"/>
+      <inertia ixx="0.0179645977" ixy="0" ixz="0.0000000617" iyy="0.0179645977" iyz="0" izz="0.0347741239"/>
     </inertial>
     <visual>
       <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
@@ -94,7 +96,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/wheel.stl"/>
       </geometry>
       <material name="wheel_material">
-        <color rgba="0.231373 0.380392 0.705882 1"/>
+        <color rgba="0.137255 0.176471 0.294118 1"/>
       </material>
     </visual>
     <collision>
@@ -115,9 +117,11 @@
 
   <link name="rear_left_wheel">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1.7"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Thin cylindrical shell approximation: mesh radius 0.17780000 m,
+           axial length 0.07937500 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 0 -0.0396875000" rpy="0 0 0"/>
+      <mass value="1.1"/>
+      <inertia ixx="0.0179645977" ixy="0" ixz="0.0000000617" iyy="0.0179645977" iyz="0" izz="0.0347741239"/>
     </inertial>
     <visual>
       <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
@@ -125,7 +129,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/wheel.stl"/>
       </geometry>
       <material name="rear_left_wheel_material">
-        <color rgba="0.231373 0.380392 0.705882 1"/>
+        <color rgba="0.898039 0.447059 0 1"/>
       </material>
     </visual>
     <collision>
@@ -146,9 +150,11 @@
 
   <link name="rear_right_wheel">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1.7"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Thin cylindrical shell approximation: mesh radius 0.17780000 m,
+           axial length 0.07937500 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 0 -0.0396875000" rpy="0 0 0"/>
+      <mass value="1.1"/>
+      <inertia ixx="0.0179645977" ixy="0" ixz="-0.0000000617" iyy="0.0179645977" iyz="0" izz="0.0347741239"/>
     </inertial>
     <visual>
       <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
@@ -156,7 +162,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/wheel.stl"/>
       </geometry>
       <material name="rear_right_wheel_material">
-        <color rgba="0.231373 0.380392 0.705882 1"/>
+        <color rgba="0.898039 0.447059 0 1"/>
       </material>
     </visual>
     <collision>
@@ -177,9 +183,11 @@
 
   <link name="front_right_wheel">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1.7"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Thin cylindrical shell approximation: mesh radius 0.17780000 m,
+           axial length 0.07937500 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 0 -0.0396875000" rpy="0 0 0"/>
+      <mass value="1.1"/>
+      <inertia ixx="0.0179645977" ixy="0" ixz="-0.0000000617" iyy="0.0179645977" iyz="0" izz="0.0347741239"/>
     </inertial>
     <visual>
       <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
@@ -187,7 +195,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/wheel.stl"/>
       </geometry>
       <material name="front_right_wheel_material">
-        <color rgba="0.231373 0.380392 0.705882 1"/>
+        <color rgba="0.137255 0.176471 0.294118 1"/>
       </material>
     </visual>
     <collision>
@@ -229,21 +237,23 @@
     </collision>
   </link>
   
-  <joint name="front_arm_joint" type="continuous">
+  <joint name="front_arm_joint" type="revolute">
     <origin xyz="3.1225e-17 -0.2921 0.0508" rpy="-1.5708 -1.0472 -1.5708"/>
     <parent link="frame_assembly"/>
     <child link="front_arm"/>
     <axis xyz="0 0 -1"/>
-    <limit effort="1000" velocity="1000"/>
+    <limit effort="1000" velocity="2.0" lower="-1.2" upper="0.2"/>
     <!-- <limit effort="1000" velocity="1000" lower="-2" upper="0.4"/> -->
     <dynamics damping="80.0" friction="700.0" />
   </joint>
 
   <link name="drum">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Uniform solid cylinder approximation: mesh radius 0.15494008 m,
+           axial length 0.31750000 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 -0.0001008137 0.1587500018" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.0216031925" ixy="0" ixz="0" iyy="0.0216031925" iyz="-0.0000000132" izz="0.0180048221"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0.00254" rpy="-1.5708 -1.57526e-32 4.0637e-17"/>
@@ -251,7 +261,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/drum.stl"/>
       </geometry>
       <material name="drum_material">
-        <color rgba="0.85098 0.756863 0.866667 1"/>
+        <color rgba="0.137255 0.176471 0.294118 1"/>
       </material>
     </visual>
     <collision>
@@ -271,9 +281,11 @@
 
   <link name="front_right_drum">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Uniform solid cylinder approximation: mesh radius 0.15494008 m,
+           axial length 0.31750000 m; COM at transformed mesh bounds center. -->
+      <origin xyz="-0.0002101910 -0.0000444932 -0.1587499982" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.0216031925" ixy="0" ixz="0" iyy="0.0216031925" iyz="-0.0000000132" izz="0.0180048221"/>
     </inertial>
     <visual>
       <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 1.48742e-17"/>
@@ -281,7 +293,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/drum.stl"/>
       </geometry>
       <material name="front_right_drum_material">
-        <color rgba="0.85098 0.756863 0.866667 1"/>
+        <color rgba="0.137255 0.176471 0.294118 1"/>
       </material>
     </visual>
     <collision>
@@ -323,21 +335,23 @@
     </collision>
   </link>
   
-  <joint name="rear_arm_joint" type="continuous">
+  <joint name="rear_arm_joint" type="revolute">
     <origin xyz="3.1225e-17 0.2921 0.0508" rpy="-1.5708 -1.0472 1.5708"/>
     <parent link="frame_assembly"/>
     <child link="rear_arm"/>
     <axis xyz="0 0 -1"/>
-    <limit effort="1000" velocity="1000"/>
+    <limit effort="1000" velocity="2.0" lower="-1.2" upper="0.2"/>
     <!-- <limit effort="1000" velocity="1000" lower="-2" upper="0.4"/> -->
     <dynamics damping="80.0" friction="700.0" />
   </joint>
 
   <link name="rear_right_drum">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Uniform solid cylinder approximation: mesh radius 0.15494008 m,
+           axial length 0.31750000 m; COM at transformed mesh bounds center. -->
+      <origin xyz="0 -0.0001008137 0.1587500018" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.0216031925" ixy="0" ixz="0" iyy="0.0216031925" iyz="-0.0000000132" izz="0.0180048221"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0.00254" rpy="-1.5708 -1.08695e-32 -3.82533e-17"/>
@@ -345,7 +359,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/drum.stl"/>
       </geometry>
       <material name="rear_right_drum_material">
-        <color rgba="0.85098 0.756863 0.866667 1"/>
+        <color rgba="0.898039 0.447059 0 1"/>
       </material>
     </visual>
     <collision>
@@ -365,9 +379,11 @@
 
   <link name="rear_left_drum">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      <!-- Uniform solid cylinder approximation: mesh radius 0.15494008 m,
+           axial length 0.31750000 m; COM at transformed mesh bounds center. -->
+      <origin xyz="-0.0002101910 -0.0000444932 -0.1587499982" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.0216031925" ixy="0" ixz="0" iyy="0.0216031925" iyz="-0.0000000132" izz="0.0180048221"/>
     </inertial>
     <visual>
       <origin xyz="-0.000210191 5.63205e-05 -0.31496" rpy="-1.5708 -2.95656e-16 -1.35584e-17"/>
@@ -375,7 +391,7 @@
         <mesh filename="file://$(find lunabotics_simulation)/urdf/robot/assets/drum.stl"/>
       </geometry>
       <material name="rear_left_drum_material">
-        <color rgba="0.85098 0.756863 0.866667 1"/>
+        <color rgba="0.898039 0.447059 0 1"/>
       </material>
     </visual>
     <collision>
@@ -390,7 +406,7 @@
     <parent link="rear_arm"/>
     <child link="rear_left_drum"/>
     <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10"/>
+    <limit effort="1000" velocity="10"/>
   </joint>
 
   <link name="front_camera_link">

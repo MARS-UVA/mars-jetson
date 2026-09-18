@@ -72,6 +72,15 @@ class TeleopNode(Node):
         self.arms_raising = False
         self.MAX_EMPTY_UPDATES = 30
         self.emptyUpdatesSent = 0
+        self.declare_parameter(
+            'turn_speed_scale', 1.0,
+            descriptor=ParameterDescriptor(
+                description='Multiplier for the commanded driving turn rate.',
+                read_only=True,
+                floating_point_range=[FloatingPointRange(from_value=0.0, to_value=10.0)],
+            ),
+        )
+        self.turn_speed_scale = self.get_parameter('turn_speed_scale').value
         self.declare_parameter(self.linear_axis_param_descriptor.name,
                                descriptor=self.linear_axis_param_descriptor)
         self.declare_parameter(self.turn_axis_param_descriptor.name,
@@ -190,6 +199,7 @@ class TeleopNode(Node):
 
         if not self.cruise_control:
             self.cmd_vel = self.__drive_control_strategy.get_twist(human_input_state.gamepad_state) #spin wheels
+            self.cmd_vel.angular.z *= self.turn_speed_scale
         
         # Set states for control of bucket drums
         if gamepad_state.y_pressed and not self.prev_gamepad_state.y_pressed:
@@ -227,10 +237,8 @@ class TeleopNode(Node):
         
         rightStickY = gamepad_state.right_stick.y
         # Raise and Lower Bucket Drum Arm(s)
-        if rightStickY > 0.2:
-            raise_arms(+2.0 * rightStickY, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
-        elif rightStickY < -0.2:
-            raise_arms(-2.0 * rightStickY, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
+        if abs(rightStickY) > 0.2:
+            raise_arms(2.0 * rightStickY, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         else:
             raise_arms(0.0, self.front_arm_control, self.back_arm_control, self.arm_drum_control)
         
