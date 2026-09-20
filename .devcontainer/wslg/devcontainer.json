@@ -34,7 +34,8 @@
         "QT_X11_NO_MITSHM": "1",
         "CONTROL_STATION_IP": "mars-control-station",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
-        "ROS_DOMAIN_ID": "42"
+        "ROS_DOMAIN_ID": "42",
+        "RMW_IMPLEMENTATION": "rmw_zenoh_cpp"
     },
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
