@@ -18,7 +18,7 @@ def generate_launch_description():
     )
     control_station_ip_arg = DeclareLaunchArgument(
         "control_station_ip",
-        default_value="192.168.50.60",
+        default_value=EnvironmentVariable("CONTROL_STATION_IP", default_value="192.168.50.60"),
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg]
@@ -95,11 +95,10 @@ def generate_launch_description():
     ))
 
     return LaunchDescription([
+        *args,
         SetEnvironmentVariable(
             name="CONTROL_STATION_IP",
             value=control_station_ip,
         ),
-        *args,
         *nodes,
     ])
-
