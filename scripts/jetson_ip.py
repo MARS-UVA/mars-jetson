@@ -1,12 +1,13 @@
 import argparse
+import os
 import socket
 import time
 
 import requests
 
 
-# Replace with your webhook URL
-WEBHOOK_URL = "https://discord.com/api/webhooks/1473084356301160448/0V97Ar5DjD54Rz9mSNqRcfG1Zv2zOLIG0DjaR-8NhXJ5O_h5y6i7IMDfiF-LgLFTLieu"
+# Supplied by Codespaces secrets or the service environment.
+WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
 
 
 def get_ip():
@@ -48,6 +49,8 @@ def main():
     parser.add_argument("--interval", type=int, default=30,
                         help="Seconds between IP checks (default: 30)")
     args = parser.parse_args()
+    if not WEBHOOK_URL:
+        parser.error("Set the DISCORD_WEBHOOK_URL environment variable")
     if args.interval <= 0:
         parser.error("--interval must be greater than zero")
     try:
