@@ -6,7 +6,7 @@ import requests
 
 
 # Replace with your webhook URL
-WEBHOOK_URL = "https://discord.com/api/webhooks/1435393485262946445/kpzKJ9iZ4o8wSZdboCGKRg_2LlTLTAHPFNhh_sUDncrlvFW1xgsy4BsUjbuznVZzhlUu"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1473084356301160448/0V97Ar5DjD54Rz9mSNqRcfG1Zv2zOLIG0DjaR-8NhXJ5O_h5y6i7IMDfiF-LgLFTLieu"
 
 
 def get_ip():
