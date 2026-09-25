@@ -8,7 +8,6 @@ import threading
 import asyncio
 import json
 import websockets
-import sys
 import gi
 
 # --- GStreamer Imports ---
@@ -46,6 +45,16 @@ class WebRTCNode(Node):
         self.conn = None
         self.loop = None
         self.appsrc = None
+        self.pipe = None
+        self.webrtc = None
+        self.session_lock = threading.Lock()
+        self.session_generation = 0
+        self.session_conn = None
+        self.offer_started = False
+        self.offer_sent = False
+        self.pending_local_ice = []
+        self.remote_description_set = False
+        self.pending_remote_ice = []
 
         # Start GLib Main Loop
         self.glib_loop = GLib.MainLoop()
@@ -64,19 +73,6 @@ class WebRTCNode(Node):
             webrtcbin name=sendrecv bundle-policy=max-bundle stun-server={STUN_SERVER}
         """
         
-        try:
-            self.pipe = Gst.parse_launch(self.pipeline_desc)
-        except Exception as e:
-            self.get_logger().error(f"FATAL: Pipeline parsing failed: {e}")
-            sys.exit(1)
-
-        self.webrtc = self.pipe.get_by_name('sendrecv')
-        self.appsrc = self.pipe.get_by_name('ros_source')
-        
-        # Connect Signals
-        self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
-        self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
-        
         # Camera Subscriber
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -93,7 +89,10 @@ class WebRTCNode(Node):
         self.get_logger().info(f"WebRTC Node listening on {self.video_topic}...")
 
     def image_callback(self, msg):
-        if self.appsrc is None:
+        with self.session_lock:
+            appsrc = self.appsrc
+            generation = self.session_generation
+        if appsrc is None:
             return
 
         self.get_logger().debug(f"Sending new image data!")
@@ -108,7 +107,10 @@ class WebRTCNode(Node):
             buf.fill(0, data)
             buf.duration = (1000000000 // FRAMERATE)
             
-            self.appsrc.emit('push-buffer', buf)
+            # Hold the lock through the push so teardown cannot race this frame.
+            with self.session_lock:
+                if generation == self.session_generation and appsrc is self.appsrc:
+                    appsrc.emit('push-buffer', buf)
             
         except Exception as e:
             self.get_logger().error(f"Frame error: {e}")
@@ -120,78 +122,230 @@ class WebRTCNode(Node):
 
     async def connect_signaling(self):
         while True:
+            conn = None
             try:
-                self.conn = await websockets.connect(self.signaling_url)
-                self.get_logger().info("Connected to Signaling Server.")
-                await self.conn.send(json.dumps({'cmd': 'HELLO_FROM_STREAMER'}))
-                
-                async for message in self.conn:
-                    data = json.loads(message)
-                    if 'cmd' in data and data['cmd'] == 'HELLO_FROM_VIEWER':
-                        self.get_logger().info("Viewer detected. Starting Pipeline...")
-                        self.start_pipeline()
-                    elif 'sdp' in data:
-                        self.handle_sdp(data['sdp'])
-                    elif 'ice' in data:
-                        self.handle_ice(data['ice'])
+                async with websockets.connect(self.signaling_url) as conn:
+                    self.conn = conn
+                    self.get_logger().info("Connected to Signaling Server.")
+                    await conn.send(json.dumps({'cmd': 'HELLO_FROM_STREAMER'}))
+
+                    async for message in conn:
+                        data = json.loads(message)
+                        # Serialize session changes and incoming signaling on GLib.
+                        GLib.idle_add(self.handle_signaling, conn, data)
             except Exception as e:
                 self.get_logger().warn(f"Signaling Error (Retrying in 2s): {e}")
-                await asyncio.sleep(2)
+            finally:
+                if self.conn is conn:
+                    self.conn = None
+                GLib.idle_add(self.on_signaling_closed, conn)
+            await asyncio.sleep(2)
 
-    def start_pipeline(self):
-        self.pipe.set_state(Gst.State.PLAYING)
-        # Create Offer
-        promise = Gst.Promise.new_with_change_func(self.on_offer_created, self.webrtc, None)
-        self.webrtc.emit('create-offer', None, promise)
+    def handle_signaling(self, conn, data):
+        if conn is not self.conn:
+            return False
+        if data.get('cmd') == 'HELLO_FROM_VIEWER':
+            self.get_logger().info("Viewer detected. Starting fresh pipeline...")
+            self.start_pipeline(conn)
+        elif conn is self.session_conn and self.webrtc is not None:
+            if 'sdp' in data:
+                self.handle_sdp(data['sdp'])
+            elif 'ice' in data:
+                self.handle_ice(data['ice'])
+        return False
 
-    def on_offer_created(self, promise, _, __):
-        promise.wait()
+    def on_signaling_closed(self, conn):
+        if conn is self.session_conn:
+            self.stop_pipeline()
+        return False
+
+    def stop_pipeline(self):
+        # Invalidate callbacks and detach appsrc before stopping streaming threads.
+        with self.session_lock:
+            self.session_generation += 1
+            self.appsrc = None
+            old_pipe = self.pipe
+            self.pipe = None
+            self.webrtc = None
+            self.session_conn = None
+        self.pending_local_ice = []
+        self.pending_remote_ice = []
+        self.offer_started = False
+        self.offer_sent = False
+        self.remote_description_set = False
+        # Do not hold the frame lock while GStreamer waits for threads to stop.
+        if old_pipe is not None:
+            old_pipe.set_state(Gst.State.NULL)
+
+    def start_pipeline(self, conn):
+        # Called only on the GLib thread, including on every viewer refresh.
+        self.stop_pipeline()
+        try:
+            pipe = Gst.parse_launch(self.pipeline_desc)
+            webrtc = pipe.get_by_name('sendrecv')
+            appsrc = pipe.get_by_name('ros_source')
+            with self.session_lock:
+                self.pipe = pipe
+                self.webrtc = webrtc
+                self.session_conn = conn
+            session = (self.session_generation, webrtc, conn)
+            webrtc.connect('on-negotiation-needed', self.on_negotiation_needed, session)
+            webrtc.connect('on-ice-candidate', self.on_ice_candidate, session)
+            if pipe.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
+                raise RuntimeError("Pipeline could not enter PLAYING")
+            with self.session_lock:
+                self.appsrc = appsrc
+        except Exception as e:
+            self.get_logger().error(f"Failed to start WebRTC session: {e}")
+            self.stop_pipeline()
+
+    def session_is_current(self, session):
+        generation, webrtc, conn = session
+        with self.session_lock:
+            return (generation == self.session_generation
+                    and webrtc is self.webrtc
+                    and conn is self.session_conn
+                    and conn is self.conn)
+
+    def on_negotiation_needed(self, element, session):
+        GLib.idle_add(self.create_offer, session)
+
+    def create_offer(self, session):
+        if not self.session_is_current(session) or self.offer_started:
+            return False
+        self.offer_started = True
+        promise = Gst.Promise.new_with_change_func(self.on_offer_created, session, None)
+        session[1].emit('create-offer', None, promise)
+        return False
+
+    def on_offer_created(self, promise, session, _):
+        GLib.idle_add(self.finish_offer, promise, session)
+
+    def promise_succeeded(self, promise, operation):
+        if promise.wait() != Gst.PromiseResult.REPLIED:
+            self.get_logger().error(f"{operation}: promise did not reply")
+            return False
         reply = promise.get_reply()
-        if not reply: return
-        
-        offer = reply.get_value('offer')
-        if not offer: return
+        if reply is not None and reply.has_field('error'):
+            self.get_logger().error(f"{operation}: {reply.get_value('error')}")
+            return False
+        return True
 
-        # Send Promise
-        promise = Gst.Promise.new_with_change_func(self.on_local_description_set, self.webrtc, None)
-        self.webrtc.emit('set-local-description', offer, promise)
-        
-        # Send Offer
-        msg = json.dumps({'sdp': {'type': 'offer', 'sdp': offer.sdp.as_text()}})
-        if self.loop:
-            asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
+    def finish_offer(self, promise, session):
+        if not self.session_is_current(session):
+            return False
+        if not self.promise_succeeded(promise, "Create offer"):
+            return False
+        reply = promise.get_reply()
+        offer = reply.get_value('offer') if reply is not None else None
+        if offer is None:
+            self.get_logger().error("Create offer returned no offer")
+            return False
+        message = {'sdp': {'type': 'offer', 'sdp': offer.sdp.as_text()}}
+        local_promise = Gst.Promise.new_with_change_func(
+            self.on_local_description_set, (session, message), None)
+        session[1].emit('set-local-description', offer, local_promise)
+        return False
 
-    def on_local_description_set(self, promise, _, __):
-        promise.wait()
-        self.get_logger().info("Local description set.")
+    def on_local_description_set(self, promise, context, _):
+        session, message = context
+        GLib.idle_add(self.finish_local_description, promise, session, message)
 
-    def on_negotiation_needed(self, element):
-        pass 
+    def finish_local_description(self, promise, session, message):
+        if not self.session_is_current(session):
+            return False
+        if not self.promise_succeeded(promise, "Set local description"):
+            return False
+        self.get_logger().info("Local description set. Sending offer.")
+        self.send_signaling(session, message)
+        self.offer_sent = True
+        for message in self.pending_local_ice:
+            self.send_signaling(session, message)
+        self.pending_local_ice = []
+        return False
 
-    def on_ice_candidate(self, _, mlineindex, candidate):
-        candidate_str = candidate
-        self.get_logger().info(f"Sending ICE Candidate: {candidate_str}")
-        
-        msg = json.dumps({'ice': {'candidate': candidate_str, 'sdpMLineIndex': mlineindex}})
-        if self.loop:
-            asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
+    def on_ice_candidate(self, element, mlineindex, candidate, session):
+        GLib.idle_add(self.send_ice_candidate, session, mlineindex, candidate)
+
+    def send_ice_candidate(self, session, mlineindex, candidate):
+        if not self.session_is_current(session):
+            return False
+        message = {'ice': {'candidate': candidate, 'sdpMLineIndex': mlineindex}}
+        if self.offer_sent:
+            self.send_signaling(session, message)
+        else:
+            self.pending_local_ice.append(message)
+        return False
+
+    def send_signaling(self, session, message):
+        if not self.session_is_current(session) or self.loop is None:
+            return
+        coroutine = self.send_if_current(session, message)
+        try:
+            future = asyncio.run_coroutine_threadsafe(coroutine, self.loop)
+        except Exception as e:
+            coroutine.close()
+            self.get_logger().error(f"Could not schedule signaling send: {e}")
+            return
+        future.add_done_callback(self.on_signaling_sent)
+
+    async def send_if_current(self, session, message):
+        # Recheck when the asyncio loop actually runs this queued send. Use the
+        # captured socket, never a replacement connection in self.conn.
+        if self.session_is_current(session):
+            await session[2].send(json.dumps(message))
+            if 'ice' in message:
+                self.get_logger().info(
+                    f"Session {session[0]}: sent ICE candidate")
+
+    def on_signaling_sent(self, future):
+        if future.cancelled():
+            return
+        try:
+            future.result()
+        except Exception as e:
+            self.get_logger().error(f"Signaling send failed: {e}")
 
     def handle_sdp(self, sdp_data):
-        if sdp_data['type'] == 'answer':
-            self.get_logger().info("Received Answer. Setting Remote Description...")
-            res, sdp_msg = GstSdp.SDPMessage.new()
-            GstSdp.sdp_message_parse_buffer(bytes(sdp_data['sdp'].encode()), sdp_msg)
-            answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdp_msg)
+        if sdp_data.get('type') != 'answer':
+            return
+        self.get_logger().info("Received Answer. Setting Remote Description...")
+        res, sdp_msg = GstSdp.SDPMessage.new()
+        if res != GstSdp.SDPResult.OK:
+            self.get_logger().error("Could not allocate remote SDP")
+            return
+        res = GstSdp.sdp_message_parse_buffer(sdp_data['sdp'].encode(), sdp_msg)
+        if res != GstSdp.SDPResult.OK:
+            self.get_logger().error("Could not parse remote SDP")
+            return
+        answer = GstWebRTC.WebRTCSessionDescription.new(
+            GstWebRTC.WebRTCSDPType.ANSWER, sdp_msg)
+        session = (self.session_generation, self.webrtc, self.session_conn)
+        promise = Gst.Promise.new_with_change_func(
+            self.on_remote_description_set, session, None)
+        session[1].emit('set-remote-description', answer, promise)
 
-            promise = Gst.Promise.new_with_change_func(self.on_remote_description_set, self.webrtc, None)
-            self.webrtc.emit('set-remote-description', answer, promise)
+    def on_remote_description_set(self, promise, session, _):
+        GLib.idle_add(self.finish_remote_description, promise, session)
 
-    def on_remote_description_set(self, promise, _, __):
-        promise.wait()
-        self.get_logger().info("Remote description set. Connection established!")
+    def finish_remote_description(self, promise, session):
+        if not self.session_is_current(session):
+            return False
+        if not self.promise_succeeded(promise, "Set remote description"):
+            return False
+        self.get_logger().info("Remote description set.")
+        self.remote_description_set = True
+        for ice in self.pending_remote_ice:
+            self.handle_ice(ice)
+        self.pending_remote_ice = []
+        return False
 
     def handle_ice(self, ice_data):
-        self.webrtc.emit('add-ice-candidate', ice_data['sdpMLineIndex'], ice_data['candidate'])
+        if not self.remote_description_set:
+            self.pending_remote_ice.append(ice_data)
+            return
+        self.webrtc.emit('add-ice-candidate',
+                         ice_data['sdpMLineIndex'], ice_data['candidate'])
 
 def main(args=None):
     rclpy.init(args=args)
