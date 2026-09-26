@@ -49,7 +49,7 @@
             "onAutoForward": "openBrowser"
         }
     },
-    "postCreateCommand": "sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "postCreateCommand": "sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y && bash .devcontainer/build-workspace.sh",
     "runArgs": [
         "--network=mars-dev",
         "--network-alias=mars-jetson",
