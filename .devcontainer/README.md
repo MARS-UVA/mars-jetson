@@ -14,6 +14,12 @@ All profiles build the shared `Dockerfile` in this directory. Changes to shared
 extensions, environment variables, or lifecycle commands must currently be
 applied to all three `devcontainer.json` files.
 
+After creation, every profile runs rosdep and then `build-workspace.sh`, which
+runs `colcon build --symlink-install`. If an existing `build/` directory holds a
+`CMakeCache.txt` recorded under a different mount path, the script deletes
+`build/`, `install/`, and `log/` before building. After that, you only need to
+re-run `colcon build` by hand when you pull in new upstream packages.
+
 All profiles also create and join the `mars-dev` Docker network using the
 hostname `mars-jetson`. The control-station container is addressed as
 `mars-control-station`; this hostname is provided through `CONTROL_STATION_IP`
