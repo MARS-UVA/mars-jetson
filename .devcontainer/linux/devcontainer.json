@@ -36,7 +36,7 @@
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
     ],
-    "postCreateCommand": "sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "postCreateCommand": "git submodule update --init --recursive && sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
     "runArgs": [
         "--network=mars-dev",
         "--network-alias=mars-jetson",
