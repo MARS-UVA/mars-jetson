@@ -19,7 +19,7 @@ setup(
         (os.path.join('share', package_name, 'urdf'), ['urdf/scene_info.xml']),
         (os.path.join('share', package_name, 'world'), glob('world/*')),
         *[(os.path.join('share', package_name, os.path.dirname(path)), [path]) for path in glob('models/**/*', recursive=True) if os.path.isfile(path)],
-        (os.path.join('share', package_name, 'scripts'), glob('scripts/*')),
+        (os.path.join('share', package_name, 'scripts'), glob('scripts/*.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

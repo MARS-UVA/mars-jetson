@@ -1,5 +1,7 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import Image
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from cv_bridge import CvBridge
@@ -32,6 +34,7 @@ class WebRTCNode(Node):
         self.declare_parameter('bitrate', 1800000)
         self.declare_parameter('stream_height', 480)
         self.declare_parameter('stream_width', 640)
+        self.declare_parameter('feed_active', True)
 
         # Get Parameter Values
         self.signaling_url = f'ws://{self.get_parameter("signaling_host").value}:{self.get_parameter("signaling_port").value}'
@@ -39,6 +42,11 @@ class WebRTCNode(Node):
         self.bitrate = self.get_parameter('bitrate').value
         self.stream_height = self.get_parameter('stream_height').value
         self.stream_width = self.get_parameter('stream_width').value
+        self.feed_active = self.get_parameter('feed_active').value
+
+        # Parameter Callback
+        self.add_on_set_parameters_callback(self.parameter_callback)
+
         
         # Initialize GStreamer
         Gst.init(None)
@@ -58,7 +66,7 @@ class WebRTCNode(Node):
             appsrc name=ros_source format=time is-live=true do-timestamp=true 
             caps=video/x-raw,format=GRAY8,width={self.stream_width},height={self.stream_height},framerate={FRAMERATE}/1 ! 
             videoconvert ! queue max-size-buffers=1 leaky=downstream ! 
-            vp8enc deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
+            vp8enc name=encoder deadline=1 keyframe-max-dist=30 target-bitrate={self.bitrate} ! 
             rtpvp8pay ! 
             application/x-rtp,media=video,encoding-name=VP8,payload=96 ! 
             webrtcbin name=sendrecv bundle-policy=max-bundle stun-server={STUN_SERVER}
@@ -76,15 +84,20 @@ class WebRTCNode(Node):
         # Connect Signals
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
         self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
+        self.webrtc.connect('notify::connection-state', self.on_connection_state)
+        # Bus Watcher
+        bus = self.pipe.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message', self.on_bus_message)
         
         # Camera Subscriber
-        qos_profile = QoSProfile(
+        self.qos_profile = qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             durability=DurabilityPolicy.VOLATILE,
             depth=1
         )
-        self.create_subscription(Image, self.video_topic, self.image_callback, qos_profile)
+        self.image_subscription = self.create_subscription(Image, self.video_topic, self.image_callback, self.qos_profile)
         
         # Start Signaling Thread
         self.thread = threading.Thread(target=self.start_async_loop, daemon=True)
@@ -92,26 +105,104 @@ class WebRTCNode(Node):
         
         self.get_logger().info(f"WebRTC Node listening on {self.video_topic}...")
 
+    def parameter_callback(self, params):
+        for param in params:
+            if param.name == 'video_topic':
+                self.video_topic = param.value
+                self.get_logger().info(f'Updated video topic: {self.video_topic}')
+                self.destroy_subscription(self.image_subscription)
+                self.image_subscription = self.create_subscription(
+                    Image, self.video_topic, self.image_callback, self.qos_profile)
+            elif param.name == 'feed_active':
+                self.feed_active = param.value
+                if self.feed_active:
+                    self.pipe.set_state(Gst.State.PLAYING)
+                else:
+                    self.pipe.set_state(Gst.State.PAUSED)
+            elif param.name == 'bitrate':
+                self.bitrate = param.value
+                encoder = self.pipe.get_by_name('encoder')
+                if encoder:
+                    encoder.set_property('target-bitrate', self.bitrate)
+                    self.get_logger().info(f'Updated bitrate: {self.bitrate}')
+                else:
+                    self.get_logger().error('Encoder not found!')
+            else:
+                self.get_logger().warning(f'Tried to update {param.name}, but that does not update')
+        return SetParametersResult(successful=True)
+
     def image_callback(self, msg):
-        if self.appsrc is None:
+        # Local copy to prevent race condition on resetting pipeline
+        appsrc = self.appsrc
+        if appsrc is None:
             return
 
-        self.get_logger().debug(f"Sending new image data!")
+        if self.feed_active:
+            try:
+                cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+                if cv_image.shape[1] != self.stream_width or cv_image.shape[0] != self.stream_height:
+                    cv_image = cv2.resize(cv_image, (self.stream_width, self.stream_height))
+                
+                data = cv_image.tobytes()
+                buf = Gst.Buffer.new_allocate(None, len(data), None)
+                buf.fill(0, data)
+                buf.duration = (1000000000 // FRAMERATE)
+                
+                appsrc.emit('push-buffer', buf)
+                
+            except Exception as e:
+                self.get_logger().error(f"Frame error: {e}")
+        
+    def on_connection_state(self, webrtc, pspec):
+        if getattr(self, 'resetting_', False):
+            return
+        state = webrtc.get_property('connection-state')
+        self.get_logger().info(f'WebRTC state: {state.value_nick}')
+        if state.value_nick in ['failed', 'closed']:
+            self.get_logger().warn('WebRTC Died (RIP) -> Resetting Pipeline')
+            self.reset_pipeline()
+
+    def on_bus_message(self, bus, message):
+        msg_type = message.type
+        if msg_type == Gst.MessageType.ERROR:
+            e, debug = message.parse_error()
+            self.get_logger().error(f'GStreamer Error: {e}, {debug}')
+            self.reset_pipeline()
+        elif msg_type == Gst.MessageType.EOS:
+            self.get_logger().warn('End of Stream')
+            self.reset_pipeline()
+    
+    def reset_pipeline(self):
+        self.get_logger().warn("Reseting Full Pipeline")
+        # Ensure it can only reset once
+        if getattr(self, 'resetting_', False):
+            return
+        self.resetting_ = True
 
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-            if cv_image.shape[1] != self.stream_width or cv_image.shape[0] != self.stream_height:
-                cv_image = cv2.resize(cv_image, (self.stream_width, self.stream_height))
-            
-            data = cv_image.tobytes()
-            buf = Gst.Buffer.new_allocate(None, len(data), None)
-            buf.fill(0, data)
-            buf.duration = (1000000000 // FRAMERATE)
-            
-            self.appsrc.emit('push-buffer', buf)
-            
+            self.appsrc = None
+            # Stop Pipeline
+            if self.pipe:
+                self.pipe.set_state(Gst.State.NULL)
+            # Create new Pipeline
+            self.pipe = Gst.parse_launch(self.pipeline_desc)
+            # Rebind elements to new pipeline
+            self.webrtc = self.pipe.get_by_name('sendrecv')
+            self.appsrc = self.pipe.get_by_name('ros_source')
+            # Reconnect Signals
+            self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
+            self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
+            self.webrtc.connect('notify::connection-state', self.on_connection_state)
+            # Get Bus Watcher to ensure Rebuild
+            bus = self.pipe.get_bus()
+            bus.add_signal_watch()
+            bus.connect('message', self.on_bus_message)
+            self.get_logger().info('Pipeline Rebuilt Successfuly')
         except Exception as e:
-            self.get_logger().error(f"Frame error: {e}")
+            self.get_logger().error(f'Pipeline Reset Failed: {e}')
+        finally:
+            self.resetting_ = False
+
 
     def start_async_loop(self):
         self.loop = asyncio.new_event_loop()
@@ -128,8 +219,10 @@ class WebRTCNode(Node):
                 async for message in self.conn:
                     data = json.loads(message)
                     if 'cmd' in data and data['cmd'] == 'HELLO_FROM_VIEWER':
-                        self.get_logger().info("Viewer detected. Starting Pipeline...")
-                        self.start_pipeline()
+                        self.get_logger().info("Viewer detected. Starting New Pipeline...")
+                        self.reset_pipeline()
+                        # Wait 50ms to ensure pipeline resets before we try to start the new pipeline
+                        GLib.timeout_add(50, self.start_pipeline)
                     elif 'sdp' in data:
                         self.handle_sdp(data['sdp'])
                     elif 'ice' in data:
@@ -139,6 +232,9 @@ class WebRTCNode(Node):
                 await asyncio.sleep(2)
 
     def start_pipeline(self):
+        if not self.pipe or not self.webrtc:
+            self.get_logger().error('Pipeline not yet ready')
+            return
         self.pipe.set_state(Gst.State.PLAYING)
         # Create Offer
         promise = Gst.Promise.new_with_change_func(self.on_offer_created, self.webrtc, None)
@@ -158,7 +254,7 @@ class WebRTCNode(Node):
         
         # Send Offer
         msg = json.dumps({'sdp': {'type': 'offer', 'sdp': offer.sdp.as_text()}})
-        if self.loop:
+        if self.loop and self.conn and self.conn.close_code is None:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def on_local_description_set(self, promise, _, __):
@@ -173,7 +269,7 @@ class WebRTCNode(Node):
         self.get_logger().info(f"Sending ICE Candidate: {candidate_str}")
         
         msg = json.dumps({'ice': {'candidate': candidate_str, 'sdpMLineIndex': mlineindex}})
-        if self.loop:
+        if self.loop and self.conn and self.conn.close_code is None:
             asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
     def handle_sdp(self, sdp_data):

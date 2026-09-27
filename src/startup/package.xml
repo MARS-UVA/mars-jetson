@@ -13,7 +13,11 @@
   <depend>xacro</depend>
   <depend>v4l2_camera</depend>
   <depend>rmw_zenoh_cpp</depend>
-
+  
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_image</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
 
