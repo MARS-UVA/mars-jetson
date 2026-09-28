@@ -29,6 +29,9 @@
   <test_depend>rqt_graph</test_depend>
   <test_depend>rqt_console</test_depend>
 
+  <exec_depend>apriltag_ros</exec_depend>
+  <exec_depend>apriltag_msgs</exec_depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>

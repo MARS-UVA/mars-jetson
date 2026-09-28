@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-cv-bridge \
     ros-jazzy-vision-opencv \
     ros-jazzy-sensor-msgs \
+    ros-jazzy-apriltag-ros \
+    ros-jazzy-apriltag-msgs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python networking libs
