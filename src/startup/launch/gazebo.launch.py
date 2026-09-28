@@ -27,6 +27,36 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 
+def launch_rtabmap(context):
+    if not IfCondition(LaunchConfiguration('enable_rtabmap')).evaluate(context):
+        return []
+    if not IfCondition(LaunchConfiguration('enable_d435i')).evaluate(context):
+        raise RuntimeError('enable_rtabmap requires enable_d435i:=true')
+
+    # Resolve the optional package only when RTAB-Map is requested.
+    return [IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('rtabmap_launch'), 'launch', 'rtabmap.launch.py',
+        ])),
+        launch_arguments={
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'frame_id': 'frame_assembly',
+            'visual_odometry': 'true',
+            'publish_tf_odom': 'true',
+            'vo_frame_id': 'odom',
+            'odom_topic': '/rtabmap/visual_odom',
+            'rgb_topic': '/d435i/color/image_raw',
+            'depth_topic': '/d435i/depth/image_raw',
+            'camera_info_topic': '/d435i/camera_info',
+            'approx_sync': 'true',
+            'qos': '2',
+            'rtabmap_viz': 'true',
+            'rviz': 'false',
+            'database_path': LaunchConfiguration('rtabmap_database_path'),
+        }.items(),
+    )]
+
+
 def generate_launch_description():
     # Launch Arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
@@ -71,10 +101,20 @@ def generate_launch_description():
     )
 
     ld = LaunchDescription([
+        DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument(
-            'enable_d435i', default_value='false',
+            'enable_rtabmap', default_value='false',
+            description='Run RGB-D visual odometry and RTAB-Map',
+        ),
+        DeclareLaunchArgument(
+            'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
+            description='RTAB-Map database to save or resume',
+        ),
+        DeclareLaunchArgument(
+            'enable_d435i', default_value=LaunchConfiguration('enable_rtabmap'),
             description='Bridge the optional front RGB-D camera (also enable it in robot_description)',
         ),
+        OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
                 FindPackageShare('startup'), 'launch', 'd435i_sim.launch.py',
@@ -104,10 +144,5 @@ def generate_launch_description():
             ])]
         ),
         gz_spawn_entity,
-        # Launch Arguments
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value=use_sim_time,
-            description='If true, use simulated clock'),
     ])
     return ld

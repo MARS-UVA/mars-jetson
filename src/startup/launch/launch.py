@@ -10,6 +10,7 @@ from launch.conditions import IfCondition
 
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
+    enable_rtabmap = LaunchConfiguration("enable_rtabmap")
     enable_d435i = LaunchConfiguration("enable_d435i")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
@@ -24,7 +25,13 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
-        'enable_d435i', default_value='false',
+        'enable_rtabmap', default_value='false',
+        description='Run RGB-D visual odometry and RTAB-Map with Gazebo',
+    ), DeclareLaunchArgument(
+        'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
+        description='RTAB-Map database to save or resume',
+    ), DeclareLaunchArgument(
+        'enable_d435i', default_value=enable_rtabmap,
         description='Add one front RGB-D camera when using the Gazebo backend',
     )]
 
@@ -64,7 +71,9 @@ def generate_launch_description():
         executable='robot_state_publisher',
         output='screen',
         parameters=[{
-            'robot_description': ParameterValue(robot_description, value_type=str)
+            'robot_description': ParameterValue(robot_description, value_type=str),
+            'use_sim_time': ParameterValue(
+                PythonExpression(["'", backend, "' == 'gazebo'"]), value_type=bool),
         }],
     ))
 
@@ -95,6 +104,8 @@ def generate_launch_description():
         launch_arguments={
             'robot_backend': backend,
             'enable_d435i': enable_d435i,
+            'enable_rtabmap': enable_rtabmap,
+            'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

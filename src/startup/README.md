@@ -41,7 +41,7 @@ This corrects the cloud's frame label without rotating its point coordinates.
 The initial settings are 640x480 at 30 Hz, 87-degree horizontal FOV and
 0.1–10 m clipping. These are idealized simulation settings, not a calibrated
 D435i hardware profile. There is no IMU, stereo matching, hardware driver,
-or RTAB-Map integration in this version.
+in this sensor model. RTAB-Map can be launched separately as described below.
 
 Configuration locations:
 
@@ -72,3 +72,30 @@ depths. Actual frame rate depends on rendering performance.
 If ROS topics have no messages, check `gz topic -l` for `/d435i/image`,
 `/d435i/depth_image`, `/d435i/camera_info` and `/d435i/points`, and check Gazebo's rendering logs.
 The existing arena world already loads the required Sensors system with Ogre2.
+
+## Optional RTAB-Map visual odometry
+
+Install `ros-jazzy-rtabmap-ros` in the dev container, rebuild `startup`, then run:
+
+```bash
+ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true
+```
+
+`enable_rtabmap` defaults to false. Enabling it also defaults `enable_d435i` to
+true, so the robot camera, its bridges, RGB-D RViz configuration and RTAB-Map
+start together. Explicitly disabling the camera while enabling RTAB-Map is an
+error. The Gazebo launch includes RTAB-Map's standard launch with RGB-D visual
+odometry, Best Effort subscriptions and simulation time. No second RViz is
+started; RTAB-Map's own visualization window is enabled.
+
+Stop any manually launched RTAB-Map instance before using this option.
+The existing controller configuration disables wheel odometry TF publication
+(`enable_odom_tf: false`), allowing visual odometry to own `odom -> frame_assembly`.
+That controller setting also applies when RTAB-Map is disabled; restore it to
+true if returning to wheel odometry, and do not run visual odometry TF alongside it.
+
+The database defaults to `/tmp/d435i_visual_test.db` and is resumed on subsequent
+runs. Pass `rtabmap_database_path:=/tmp/another_test.db` for a separate map.
+In RViz, select fixed frame `map` and add `/rtabmap/cloud_map` as a PointCloud2
+display to view the accumulated map. Visual odometry is published on
+`/rtabmap/visual_odom`.
