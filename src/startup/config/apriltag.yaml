@@ -1,0 +1,6 @@
+apriltag:
+      ros__parameters:
+        family: "36h11" # yoinked from startup/models
+        size: 0.17 # similarly snatched
+        max_hamming: 0
+        z_up: true
