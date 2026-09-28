@@ -1,5 +1,7 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot">
+  <xacro:arg name="enable_d435i" default="false"/>
+  <xacro:include filename="$(find startup)/urdf/robot/urdf/d435i.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
@@ -36,6 +38,12 @@
 
   <xacro:gazebo_camera name="front"/>
   <xacro:gazebo_camera name="rear"/>
+
+  <xacro:if value="$(arg enable_d435i)">
+    <xacro:if value="${'$(arg robot_backend)' == 'gazebo'}">
+      <xacro:d435i_rgbd parent="frame_assembly"/>
+    </xacro:if>
+  </xacro:if>
 
 
   <!-- ============================= -->

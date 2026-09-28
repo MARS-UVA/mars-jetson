@@ -5,10 +5,12 @@ from launch.substitutions import Command, PathJoinSubstitution, LaunchConfigurat
 from launch.actions import DeclareLaunchArgument
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
 
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
+    enable_d435i = LaunchConfiguration("enable_d435i")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
     backend_arg = DeclareLaunchArgument(
@@ -21,7 +23,10 @@ def generate_launch_description():
         default_value=EnvironmentVariable("CONTROL_STATION_IP", default_value="192.168.50.60"),
         description="IP address of the control station for network communication",
     )
-    args = [backend_arg, control_station_ip_arg]
+    args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'enable_d435i', default_value='false',
+        description='Add one front RGB-D camera when using the Gazebo backend',
+    )]
 
     startup_pkg = FindPackageShare("startup")
 
@@ -50,6 +55,7 @@ def generate_launch_description():
         ]),
         " robot_backend:=", backend,
         " camera_update_rate:=30",
+        " enable_d435i:=", enable_d435i,
     ])
 
 
@@ -58,7 +64,7 @@ def generate_launch_description():
         executable='robot_state_publisher',
         output='screen',
         parameters=[{
-            'robot_description': robot_description
+            'robot_description': ParameterValue(robot_description, value_type=str)
         }],
     ))
 
@@ -87,7 +93,8 @@ def generate_launch_description():
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'gazebo.launch.py'])),
         launch_arguments={
-            'robot_backend': backend
+            'robot_backend': backend,
+            'enable_d435i': enable_d435i,
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

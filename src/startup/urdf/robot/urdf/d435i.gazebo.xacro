@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!-- Functional RGB-D approximation, not a model of RealSense stereo/IMU. -->
+  <xacro:macro name="d435i_rgbd" params="parent">
+    <link name="d435i_link">
+      <inertial>
+        <mass value="0.075"/>
+        <inertia ixx="0.000056" ixy="0" ixz="0" iyy="0.000008" iyz="0" izz="0.000056"/>
+      </inertial>
+      <visual>
+        <geometry><box size="0.025 0.09 0.025"/></geometry>
+        <material name="d435i_material"><color rgba="0.2 0.2 0.2 1"/></material>
+      </visual>
+    </link>
+    <joint name="d435i_mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="d435i_link"/>
+      <!-- Blue side is the physical front (-Y in frame_assembly).
+           Mount above the legacy rear_camera position; tilt down 15 degrees. -->
+      <origin xyz="0.1159 -0.2921 0.1308" rpy="0 ${pi / 12} ${-pi / 2}"/>
+    </joint>
+    <link name="d435i_optical_frame"/>
+    <joint name="d435i_optical_joint" type="fixed">
+      <parent link="d435i_link"/>
+      <child link="d435i_optical_frame"/>
+      <origin xyz="0 0 0" rpy="${-pi / 2} 0 ${-pi / 2}"/>
+    </joint>
+    <gazebo reference="d435i_link">
+      <sensor name="d435i_rgbd" type="rgbd_camera">
+        <always_on>true</always_on>
+        <update_rate>30</update_rate>
+        <topic>/d435i</topic>
+        <gz_frame_id>d435i_optical_frame</gz_frame_id>
+        <camera>
+          <!-- Shared RGB/depth geometry; these are simulation defaults. -->
+          <horizontal_fov>${87 * pi / 180}</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip><near>0.1</near><far>10.0</far></clip>
+          <depth_camera>
+            <clip><near>0.1</near><far>10.0</far></clip>
+          </depth_camera>
+          <camera_info_topic>/d435i/camera_info</camera_info_topic>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

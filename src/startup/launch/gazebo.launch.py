@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from launch import LaunchDescription
+from launch.conditions import IfCondition
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
@@ -70,6 +71,17 @@ def generate_launch_description():
     )
 
     ld = LaunchDescription([
+        DeclareLaunchArgument(
+            'enable_d435i', default_value='false',
+            description='Bridge the optional front RGB-D camera (also enable it in robot_description)',
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(PathJoinSubstitution([
+                FindPackageShare('startup'), 'launch', 'd435i_sim.launch.py',
+            ])),
+            launch_arguments={'use_sim_time': use_sim_time}.items(),
+            condition=IfCondition(LaunchConfiguration('enable_d435i')),
+        ),
         mock_actuator_feedback,
         SetEnvironmentVariable(
             name='GZ_SIM_RESOURCE_PATH',
