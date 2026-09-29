@@ -1,7 +1,7 @@
 import rclpy
 import sys
 
-from tf_parser.tf_parser.node import TfParserNode
+from tf_parser.node import TfParserNode
 
 def main() -> None:
     rclpy.init(args=sys.argv)
