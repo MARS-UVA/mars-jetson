@@ -36,6 +36,7 @@ class TfParserNode(Node):
                 position.qx = rotation.x
                 position.qy = rotation.y
                 position.qz = rotation.z
+                position.qw = rotation.w
                 
                 positions.positions.append(position)
             except Exception:
