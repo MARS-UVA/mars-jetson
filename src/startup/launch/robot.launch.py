@@ -126,6 +126,13 @@ def generate_launch_description():
         ],
         output='screen'
     )
+    
+    tf_parser = Node(
+            package='tf_parser',
+            executable='tf_parser_node',
+            name='tf_parser',
+            output='screen'
+        )
 
     controllers = [
         Node(
@@ -178,6 +185,7 @@ def generate_launch_description():
         gstreamer,
         twist_stamper,
         apriltag,
+        tf_parser,
         *controllers
     ])
 
