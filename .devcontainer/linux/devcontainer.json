@@ -45,6 +45,7 @@
         "7447:7447/tcp",
         "-p",
         "8080:8080/udp",
+        "--privileged",
         "--device=/dev/dri"
     ]
 }
