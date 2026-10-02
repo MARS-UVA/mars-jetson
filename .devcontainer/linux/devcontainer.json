@@ -42,6 +42,7 @@
         "--network-alias=mars-jetson",
         "--device=/dev/dri",
         "-p",
-        "8080:8080/udp"
+        "8080:8080/udp",
+        "--privileged"
     ]
 }
