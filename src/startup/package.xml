@@ -21,6 +21,7 @@
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>rtabmap_launch</exec_depend>
+  <exec_depend>imu_tools</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
