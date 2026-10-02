@@ -4,10 +4,16 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /Status1
         - /TF1/Tree1
+        - /PointCloud21
+        - /Imu1
+        - /Imu1/Box properties1
+        - /Imu1/Axes properties1
+        - /Imu1/Acceleration properties1
       Splitter Ratio: 0.5
-    Tree Height: 464
+    Tree Height: 341
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -24,7 +30,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Visualization Manager:
   Class: ""
   Displays:
@@ -83,10 +89,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        front_camera_color_mujoco_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         front_camera_color_optical_frame:
           Alpha: 1
           Show Axes: false
@@ -120,10 +122,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        rear_camera_color_mujoco_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         rear_camera_color_optical_frame:
           Alpha: 1
           Show Axes: false
@@ -153,10 +151,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        world:
+        unilidar_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -166,7 +165,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/Camera
-      Enabled: true
+      Enabled: false
       Far Plane Distance: 100
       Image Rendering: background and overlay
       Name: Front Camera
@@ -177,17 +176,19 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /front_camera/image_raw
-      Value: true
+      Value: false
       Visibility:
+        "": true
         Grid: true
         Image: true
+        PointCloud2: true
         Rear Camera: true
         RobotModel: true
         TF: true
         Value: true
       Zoom Factor: 1
     - Class: rviz_default_plugins/Camera
-      Enabled: true
+      Enabled: false
       Far Plane Distance: 100
       Image Rendering: background and overlay
       Name: Rear Camera
@@ -198,101 +199,33 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /rear_camera/image_raw
-      Value: true
+      Value: false
       Visibility:
+        "": true
         Front Camera: true
         Grid: true
         Image: true
+        PointCloud2: true
         RobotModel: true
         TF: true
         Value: true
       Zoom Factor: 1
     - Class: rviz_default_plugins/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        drum:
-          Value: true
-        frame_assembly:
-          Value: true
-        front_arm:
-          Value: true
-        front_camera_color_frame:
-          Value: true
-        front_camera_color_mujoco_frame:
-          Value: true
-        front_camera_color_optical_frame:
-          Value: true
-        front_camera_link:
-          Value: true
-        front_left_wheel:
-          Value: true
-        front_right_drum:
-          Value: true
-        front_right_wheel:
-          Value: true
-        odom:
-          Value: true
-        rear_arm:
-          Value: true
-        rear_camera_color_frame:
-          Value: true
-        rear_camera_color_mujoco_frame:
-          Value: true
-        rear_camera_color_optical_frame:
-          Value: true
-        rear_camera_link:
-          Value: true
-        rear_left_drum:
-          Value: true
-        rear_left_wheel:
-          Value: true
-        rear_right_drum:
-          Value: true
-        rear_right_wheel:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        frame_assembly:
-          front_arm:
-            drum:
-              {}
-            front_right_drum:
-              {}
-          front_camera_link:
-            front_camera_color_frame:
-              front_camera_color_optical_frame:
-                front_camera_color_mujoco_frame:
-                  {}
-          front_left_wheel:
-            {}
-          front_right_wheel:
-            {}
-          rear_arm:
-            rear_left_drum:
-              {}
-            rear_right_drum:
-              {}
-          rear_camera_link:
-            rear_camera_color_frame:
-              rear_camera_color_optical_frame:
-                rear_camera_color_mujoco_frame:
-                  {}
-          rear_left_wheel:
-            {}
-          rear_right_wheel:
-            {}
-        odom:
-          {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/Image
       Enabled: true
       Max Value: 1
@@ -321,6 +254,67 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /rear_camera/image_raw
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 0
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /unilidar/cloud
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Acceleration properties:
+        Acc. vector alpha: 1
+        Acc. vector color: 255; 0; 0
+        Acc. vector scale: 0.10000000149011612
+        Derotate acceleration: true
+        Enable acceleration: false
+      Axes properties:
+        Axes scale: 0.20000000298023224
+        Enable axes: true
+      Box properties:
+        Box alpha: 1
+        Box color: 255; 0; 0
+        Enable box: false
+        x_scale: 1
+        y_scale: 1
+        z_scale: 1
+      Class: rviz_imu_plugin/Imu
+      Enabled: true
+      Name: Imu
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /unilidar/imu
+      Value: true
+      fixed_frame_orientation: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -343,11 +337,14 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /clicked_point
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
   Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 2.774009943008423
+      Distance: 2.5711898803710938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -362,22 +359,22 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Pitch: 0.6597968339920044
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 0.7853981852531433
+      Yaw: 2.9690959453582764
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
   Front Camera:
     collapsed: false
-  Height: 1689
+  Height: 1130
   Hide Left Dock: false
   Hide Right Dock: true
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001c5000005d4fc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000008800fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000550000028d0000012a00fffffffb0000000c00430061006d00650072006101000001c2000000960000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001800460072006f006e0074002000430061006d00650072006101000002eb000000ef0000001b00fffffffb000000160052006500610072002000430061006d00650072006101000003e3000000ef0000001b00fffffffb0000000a0049006d00610067006501000004db000000a00000001b00fffffffb0000000a0049006d0061006700650100000584000000a50000001b00ffffff000000010000010f000002b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000e800fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000b4000000044fc0100000002fb0000000800540069006d0065010000000000000b400000038300fffffffb0000000800540069006d0065010000000000000450000000000000000000000972000005d400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001c5000003cafc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000001fd000000c700fffffffb0000000c00430061006d00650072006101000001c2000000960000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001800460072006f006e0074002000430061006d00650072006100000001e90000009c0000001600fffffffb000000160052006500610072002000430061006d0065007200610000000240000000bb0000001600fffffffb0000000a0049006d006100670065010000023e000000e20000001600fffffffb0000000a0049006d0061006700650100000326000000df0000001600ffffff000000010000010f000002b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000044fc0100000002fb0000000800540069006d00650100000000000007800000025300fffffffb0000000800540069006d00650100000000000004500000000000000000000005b5000003ca00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Rear Camera:
     collapsed: false
   Selection:
@@ -388,6 +385,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 2880
+  Width: 1920
   X: 0
   Y: 0
