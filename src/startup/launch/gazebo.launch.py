@@ -47,7 +47,14 @@ def generate_launch_description():
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/unilidar/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
+            '/unilidar/cloud/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
+        ],
+        remappings=[
+            ('/unilidar/cloud/points', '/unilidar/cloud')
+        ],
         output='screen'
     )
 
@@ -66,6 +73,15 @@ def generate_launch_description():
         parameters=[PathJoinSubstitution([
             FindPackageShare('startup'), 'config',
             'actuator_feedback.yaml']), {'use_sim_time': use_sim_time}],
+        output='screen',
+    )
+
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', PathJoinSubstitution([FindPackageShare('startup'), 'config', 'robot.rviz'])],
+        parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
     )
 
@@ -92,6 +108,7 @@ def generate_launch_description():
             ])]
         ),
         gz_spawn_entity,
+        rviz,
         # Launch Arguments
         DeclareLaunchArgument(
             'use_sim_time',
