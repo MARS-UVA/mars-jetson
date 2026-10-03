@@ -22,7 +22,7 @@
     <!-- apriltag localization board (start) -->
     <include>
       <uri>model://apriltag_board</uri>
-      <pose>0.05 -2 0.34 0 1.57 0</pose>
+      <pose>0 0 0.1 1.57 -1.57 1.57</pose>
     </include>
 
     <!-- arena frame boundary 
@@ -31,7 +31,7 @@
     -->
     <include>
       <uri>model://arena_frame_nasa</uri>
-      <pose frame=''>0 0 0 0 -0 0</pose>
+      <pose frame=''>-0.1 0 0 0 -0 0</pose>
     </include>
 
 <!-- This defines the generated rock field.  -->
