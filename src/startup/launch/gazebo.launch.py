@@ -14,17 +14,58 @@
 
 from launch import LaunchDescription
 from launch.conditions import IfCondition
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, GroupAction
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
 
 from launch.actions import SetEnvironmentVariable
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 import os
+
+
+def launch_rgbd_sync(context):
+    if not IfCondition(LaunchConfiguration('RTABMap_sync')).evaluate(context):
+        return []
+    if not IfCondition(LaunchConfiguration('enable_rgbd')).evaluate(context):
+        raise RuntimeError('RTABMap_sync requires enable_rgbd:=true')
+
+    nodes = []
+    for camera in ('blue', 'orange'):
+        prefix = f'/rgbd_{camera}'
+        nodes.append(Node(
+            package='rtabmap_sync', executable='rgbd_sync',
+            name=f'rgbd_{camera}_sync', output='screen',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'approx_sync': True, 'approx_sync_max_interval': 0.02,
+                'qos': 2, 'qos_camera_info': 2,
+            }],
+            remappings=[
+                ('rgb/image', f'{prefix}/color/image_raw'),
+                ('depth/image', f'{prefix}/depth/image_raw'),
+                ('rgb/camera_info', f'{prefix}/camera_info'),
+                ('rgbd_image', f'{prefix}/rgbd_image'),
+            ],
+        ))
+    nodes.append(Node(
+        package='rtabmap_sync', executable='rgbdx_sync',
+        name='rgbd_cameras_sync', output='screen',
+        parameters=[{
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'rgbd_cameras': 2, 'approx_sync': True,
+            'approx_sync_max_interval': 0.02, 'qos': 2,
+        }],
+        remappings=[
+            ('rgbd_image0', '/rgbd_blue/rgbd_image'),
+            ('rgbd_image1', '/rgbd_orange/rgbd_image'),
+            ('rgbd_images', '/rgbd_images'),
+        ],
+    ))
+    return nodes
 
 
 def launch_rtabmap(context):
@@ -35,8 +76,12 @@ def launch_rtabmap(context):
     if not (enable_rgbd or enable_lidar):
         raise RuntimeError('enable_rtabmap requires enable_rgbd:=true or enable_lidar:=true')
 
+    sync_rgbd = IfCondition(LaunchConfiguration('RTABMap_sync')).evaluate(context)
+    if sync_rgbd and not enable_rgbd:
+        raise RuntimeError('RTABMap_sync requires enable_rgbd:=true')
+
     # Resolve the optional package only when RTAB-Map is requested.
-    return [IncludeLaunchDescription(
+    rtabmap = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
             FindPackageShare('rtabmap_launch'), 'launch', 'rtabmap.launch.py',
         ])),
@@ -45,8 +90,10 @@ def launch_rtabmap(context):
             'frame_id': 'frame_assembly',
             'visual_odometry': 'false' if enable_lidar else 'true',
             'icp_odometry': 'true' if enable_lidar else 'false',
-            'depth': 'true' if enable_rgbd else 'false',
-            'subscribe_rgb': 'true' if enable_rgbd else 'false',
+            'depth': 'true' if enable_rgbd and not sync_rgbd else 'false',
+            'subscribe_rgb': 'true' if enable_rgbd and not sync_rgbd else 'false',
+            'subscribe_rgbd': 'true' if sync_rgbd else 'false',
+            'rgbd_sync': 'false',
             'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
             'scan_cloud_topic': '/unilidar/cloud',
             'publish_tf_odom': 'true',
@@ -57,7 +104,7 @@ def launch_rtabmap(context):
                 '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
                 '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
                 if enable_lidar else ''
-            ),
+            ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
             'rgb_topic': '/rgbd_blue/color/image_raw',
             'depth_topic': '/rgbd_blue/depth/image_raw',
             'camera_info_topic': '/rgbd_blue/camera_info',
@@ -67,7 +114,16 @@ def launch_rtabmap(context):
             'rviz': 'false',
             'database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
-    )]
+    )
+    if sync_rgbd:
+        # The upstream launch does not expose RGBDImages input arguments.
+        # Apply these to mapping, visualization and optional RGB-D odometry.
+        return [GroupAction(actions=[
+            SetParameter(name='rgbd_cameras', value=0),
+            SetRemap(src='rgbd_images', dst='/rgbd_images'),
+            rtabmap,
+        ])]
+    return [rtabmap]
 
 
 def generate_launch_description():
@@ -158,6 +214,11 @@ def generate_launch_description():
             'enable_lidar', default_value=LaunchConfiguration('enable_rtabmap'),
             description='Bridge the optional simulated LiDAR (also enable it in robot_description)',
         ),
+        DeclareLaunchArgument(
+            'RTABMap_sync', default_value='false',
+            description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
+        ),
+        OpaqueFunction(function=launch_rgbd_sync),
         OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
