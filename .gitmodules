@@ -2,3 +2,9 @@
 	path = src/mujoco_ros2_pkgs
 	url = https://github.com/dfki-ric/mujoco_ros2_control.git
 	branch = jazzy
+[submodule "src/point_lio_ros2"]
+	path = src/point_lio_ros2
+	url = https://github.com/dfloreaa/point_lio_ros2.git
+[submodule "src/unilidar_sdk2"]
+	path = src/unilidar_sdk2
+	url = https://github.com/unitreerobotics/unilidar_sdk2.git

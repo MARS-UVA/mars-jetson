@@ -112,6 +112,13 @@ def generate_launch_description():
         )
     ))
 
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'lidar.launch.py'])),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'"])
+        )
+    ))
+
     return LaunchDescription([
         *args,
         SetEnvironmentVariable(
