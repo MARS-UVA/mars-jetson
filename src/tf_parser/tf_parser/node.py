@@ -20,7 +20,7 @@ class TfParserNode(Node):
             try:
                 tagname = f'{detection.family}:{detection.id}'
                 t = self.tf_buffer.lookup_transform(
-                    'front_camera_color_optical_frame',   
+                    'frame_assembly',   
                     tagname,  
                     Time() 
                 )
