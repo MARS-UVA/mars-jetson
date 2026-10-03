@@ -29,6 +29,9 @@ def generate_launch_description():
         'enable_rtabmap', default_value='false',
         description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors in Gazebo',
     ), DeclareLaunchArgument(
+        'RTABMap_sync', default_value='false',
+        description='Synchronize blue and orange RGB-D cameras for RTAB-Map',
+    ), DeclareLaunchArgument(
         'rtabmap_database_path', default_value='/tmp/rgbd_visual_test.db',
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
@@ -111,6 +114,7 @@ def generate_launch_description():
             'enable_rgbd': enable_rgbd,
             'enable_lidar': enable_lidar,
             'enable_rtabmap': enable_rtabmap,
+            'RTABMap_sync': LaunchConfiguration('RTABMap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
         condition=IfCondition(

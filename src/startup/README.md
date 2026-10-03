@@ -31,8 +31,8 @@ The existing Gazebo launch expects a robot description publisher upstream.
 
 The orange camera publishes the same four topics under `/rgbd_orange`, using
 `rgbd_orange_link` and `rgbd_orange_optical_frame`. Both cameras are controlled by
-`enable_rgbd`. RTAB-Map currently consumes the blue
-RGB-D stream; the orange stream is available for visualization and other consumers.
+`enable_rgbd`. RTAB-Map consumes the blue RGB-D stream by default. Enable `RTABMap_sync`
+to feed both cameras to RTAB-Map.
 
 The image and calibration topics use sensor-data QoS and `rgbd_blue_optical_frame`. Gazebo's RGB and depth
 share the same viewpoint and calibration; `/rgbd_blue/camera_info` describes both.
@@ -117,3 +117,25 @@ display to view the accumulated map. Odometry is published on
 
 Teleoperation uses `turn_speed_scale: 2.0` to double commanded turning speed.
 The controller angular velocity limits are ±1.6 rad/s (previously ±0.8 rad/s).
+
+## Synchronize both RGB-D cameras for RTAB-Map
+
+```bash
+ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true RTABMap_sync:=true
+```
+
+`RTABMap_sync` defaults to false and requires `enable_rgbd:=true`. It starts
+one `rtabmap_sync/rgbd_sync` node per camera, producing
+`/rgbd_blue/rgbd_image` and `/rgbd_orange/rgbd_image`. A
+`rtabmap_sync/rgbdx_sync` node synchronizes both into `/rgbd_images`
+(`rtabmap_msgs/msg/RGBDImages`). This bundles both cameras with their own
+calibration and frames; it does not stitch their depth images into one view.
+Approximate synchronization allows at most 20 ms between inputs, with Best
+Effort QoS and simulation time.
+
+RTAB-Map, its visualization, and RGB-D odometry (when LiDAR is disabled) use
+`subscribe_rgbd=true`, `rgbd_cameras=0` and the combined topic. Multi-camera
+visual estimation uses `Vis/EstimationType=0`. LiDAR ICP settings remain active
+when LiDAR is enabled. Use a fresh `rtabmap_database_path` when changing inputs.
+The sync pipeline can also run with RTAB-Map disabled by setting
+`enable_rgbd:=true RTABMap_sync:=true`.
