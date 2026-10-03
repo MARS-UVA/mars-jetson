@@ -24,6 +24,7 @@ def generate_launch_description():
             'linear_axis': 'left_y',
             'turn_axis': 'left_x_inverted',
             'full_forward_magnitude': 0.6,
+            'turn_speed_scale': 2.0,
             'deadband': 0.05
         }],
         arguments=['--ros-args', '--log-level', 'WARN'],

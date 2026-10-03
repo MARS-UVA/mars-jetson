@@ -30,10 +30,10 @@ import os
 def launch_rtabmap(context):
     if not IfCondition(LaunchConfiguration('enable_rtabmap')).evaluate(context):
         return []
-    enable_d435i = IfCondition(LaunchConfiguration('enable_d435i')).evaluate(context)
+    enable_rgbd = IfCondition(LaunchConfiguration('enable_rgbd')).evaluate(context)
     enable_lidar = IfCondition(LaunchConfiguration('enable_lidar')).evaluate(context)
-    if not (enable_d435i or enable_lidar):
-        raise RuntimeError('enable_rtabmap requires enable_d435i:=true or enable_lidar:=true')
+    if not (enable_rgbd or enable_lidar):
+        raise RuntimeError('enable_rtabmap requires enable_rgbd:=true or enable_lidar:=true')
 
     # Resolve the optional package only when RTAB-Map is requested.
     return [IncludeLaunchDescription(
@@ -45,8 +45,8 @@ def launch_rtabmap(context):
             'frame_id': 'frame_assembly',
             'visual_odometry': 'false' if enable_lidar else 'true',
             'icp_odometry': 'true' if enable_lidar else 'false',
-            'depth': 'true' if enable_d435i else 'false',
-            'subscribe_rgb': 'true' if enable_d435i else 'false',
+            'depth': 'true' if enable_rgbd else 'false',
+            'subscribe_rgb': 'true' if enable_rgbd else 'false',
             'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
             'scan_cloud_topic': '/unilidar/cloud',
             'publish_tf_odom': 'true',
@@ -58,9 +58,9 @@ def launch_rtabmap(context):
                 '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
                 if enable_lidar else ''
             ),
-            'rgb_topic': '/d435i/color/image_raw',
-            'depth_topic': '/d435i/depth/image_raw',
-            'camera_info_topic': '/d435i/camera_info',
+            'rgb_topic': '/rgbd_blue/color/image_raw',
+            'depth_topic': '/rgbd_blue/depth/image_raw',
+            'camera_info_topic': '/rgbd_blue/camera_info',
             'approx_sync': 'true',
             'qos': '2',
             'rtabmap_viz': 'true',
@@ -147,12 +147,12 @@ def generate_launch_description():
             description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors',
         ),
         DeclareLaunchArgument(
-            'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
+            'rtabmap_database_path', default_value='/tmp/rgbd_visual_test.db',
             description='RTAB-Map database to save or resume',
         ),
         DeclareLaunchArgument(
-            'enable_d435i', default_value=LaunchConfiguration('enable_rtabmap'),
-            description='Bridge the optional front RGB-D camera (also enable it in robot_description)',
+            'enable_rgbd', default_value=LaunchConfiguration('enable_rtabmap'),
+            description='Bridge the optional blue and orange RGB-D cameras (also enable it in robot_description)',
         ),
         DeclareLaunchArgument(
             'enable_lidar', default_value=LaunchConfiguration('enable_rtabmap'),
@@ -161,10 +161,10 @@ def generate_launch_description():
         OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
-                FindPackageShare('startup'), 'launch', 'd435i_sim.launch.py',
+                FindPackageShare('startup'), 'launch', 'rgbd_sim.launch.py',
             ])),
             launch_arguments={'use_sim_time': use_sim_time}.items(),
-            condition=IfCondition(LaunchConfiguration('enable_d435i')),
+            condition=IfCondition(LaunchConfiguration('enable_rgbd')),
         ),
         mock_actuator_feedback,
         SetEnvironmentVariable(

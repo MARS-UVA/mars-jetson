@@ -11,7 +11,7 @@ from launch.conditions import IfCondition
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
     enable_rtabmap = LaunchConfiguration("enable_rtabmap")
-    enable_d435i = LaunchConfiguration("enable_d435i")
+    enable_rgbd = LaunchConfiguration("enable_rgbd")
     enable_lidar = LaunchConfiguration("enable_lidar")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
@@ -29,11 +29,11 @@ def generate_launch_description():
         'enable_rtabmap', default_value='false',
         description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors in Gazebo',
     ), DeclareLaunchArgument(
-        'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
+        'rtabmap_database_path', default_value='/tmp/rgbd_visual_test.db',
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
-        'enable_d435i', default_value=enable_rtabmap,
-        description='Add one front RGB-D camera when using the Gazebo backend',
+        'enable_rgbd', default_value=enable_rtabmap,
+        description='Add blue and orange RGB-D cameras when using the Gazebo backend',
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
@@ -66,7 +66,7 @@ def generate_launch_description():
         ]),
         " robot_backend:=", backend,
         " camera_update_rate:=30",
-        " enable_d435i:=", enable_d435i,
+        " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
     ])
 
@@ -108,7 +108,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'gazebo.launch.py'])),
         launch_arguments={
             'robot_backend': backend,
-            'enable_d435i': enable_d435i,
+            'enable_rgbd': enable_rgbd,
             'enable_lidar': enable_lidar,
             'enable_rtabmap': enable_rtabmap,
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
