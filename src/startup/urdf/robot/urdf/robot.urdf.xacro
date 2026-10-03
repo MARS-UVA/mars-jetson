@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot">
-  <xacro:arg name="enable_d435i" default="false"/>
+  <xacro:arg name="enable_rgbd" default="false"/>
   <xacro:arg name="enable_lidar" default="false"/>
-  <xacro:include filename="$(find startup)/urdf/robot/urdf/d435i.gazebo.xacro" />
+  <xacro:include filename="$(find startup)/urdf/robot/urdf/rgbd.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
@@ -40,9 +40,12 @@
   <xacro:gazebo_camera name="front"/>
   <xacro:gazebo_camera name="rear"/>
 
-  <xacro:if value="$(arg enable_d435i)">
+  <xacro:if value="$(arg enable_rgbd)">
     <xacro:if value="${'$(arg robot_backend)' == 'gazebo'}">
-      <xacro:d435i_rgbd parent="frame_assembly"/>
+      <xacro:rgbd_camera parent="frame_assembly" name="rgbd_blue"
+                        xyz="0.1159 -0.2921 0.1308" yaw="${-pi / 2}"/>
+      <xacro:rgbd_camera parent="frame_assembly" name="rgbd_orange"
+                        xyz="0.1159 0.2921 0.1308" yaw="${pi / 2}"/>
     </xacro:if>
   </xacro:if>
 

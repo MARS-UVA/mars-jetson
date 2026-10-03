@@ -1,4 +1,4 @@
-"""Bridge and visualize the robot's optional front RGB-D sensor."""
+"""Bridge and visualize the robot's optional blue and orange RGB-D sensors."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -13,7 +13,7 @@ def generate_launch_description():
         Node(
             package='rviz2',
             executable='rviz2',
-            name='d435i_rviz',
+            name='rgbd_rviz',
             output='screen',
             arguments=['-d', PathJoinSubstitution([
                 FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
@@ -23,27 +23,42 @@ def generate_launch_description():
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            name='d435i_points_bridge',
+            name='rgbd_blue_points_bridge',
             output='screen',
             arguments=[
-                '/d435i/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+                '/rgbd_blue/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
             ],
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 # Native Gazebo cloud coordinates are X-forward, Y-left, Z-up.
                 # Apply this label only to points; images need the optical frame.
-                'override_frame_id': 'd435i_link',
+                'override_frame_id': 'rgbd_blue_link',
             }],
         ),
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            name='d435i_bridge',
+            name='rgbd_orange_points_bridge',
+            output='screen',
+            arguments=[
+                '/rgbd_orange/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            ],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                # Native Gazebo cloud coordinates are X-forward, Y-left, Z-up.
+                # Apply this label only to points; images need the optical frame.
+                'override_frame_id': 'rgbd_orange_link',
+            }],
+        ),
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            name='rgbd_bridge',
             output='screen',
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'config_file': PathJoinSubstitution([
-                    FindPackageShare('startup'), 'config', 'd435i_bridge.yaml',
+                    FindPackageShare('startup'), 'config', 'rgbd_bridge.yaml',
                 ]),
             }],
         ),
