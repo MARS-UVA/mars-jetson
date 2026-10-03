@@ -30,8 +30,10 @@ import os
 def launch_rtabmap(context):
     if not IfCondition(LaunchConfiguration('enable_rtabmap')).evaluate(context):
         return []
-    if not IfCondition(LaunchConfiguration('enable_d435i')).evaluate(context):
-        raise RuntimeError('enable_rtabmap requires enable_d435i:=true')
+    enable_d435i = IfCondition(LaunchConfiguration('enable_d435i')).evaluate(context)
+    enable_lidar = IfCondition(LaunchConfiguration('enable_lidar')).evaluate(context)
+    if not (enable_d435i or enable_lidar):
+        raise RuntimeError('enable_rtabmap requires enable_d435i:=true or enable_lidar:=true')
 
     # Resolve the optional package only when RTAB-Map is requested.
     return [IncludeLaunchDescription(
@@ -41,10 +43,21 @@ def launch_rtabmap(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'frame_id': 'frame_assembly',
-            'visual_odometry': 'true',
+            'visual_odometry': 'false' if enable_lidar else 'true',
+            'icp_odometry': 'true' if enable_lidar else 'false',
+            'depth': 'true' if enable_d435i else 'false',
+            'subscribe_rgb': 'true' if enable_d435i else 'false',
+            'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
+            'scan_cloud_topic': '/unilidar/cloud',
             'publish_tf_odom': 'true',
             'vo_frame_id': 'odom',
-            'odom_topic': '/rtabmap/visual_odom',
+            'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
+            'rtabmap_args': (
+                '--Reg/Strategy 1 --Reg/Force3DoF true '
+                '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
+                '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
+                if enable_lidar else ''
+            ),
             'rgb_topic': '/d435i/color/image_raw',
             'depth_topic': '/d435i/depth/image_raw',
             'camera_info_topic': '/d435i/camera_info',
@@ -80,6 +93,17 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+        ],
+        output='screen',
+    )
+
+    lidar_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='lidar_bridge',
+        condition=IfCondition(LaunchConfiguration('enable_lidar')),
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=[
             '/unilidar/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
             '/unilidar/cloud/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
         ],
@@ -120,7 +144,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument(
             'enable_rtabmap', default_value='false',
-            description='Run RGB-D visual odometry and RTAB-Map',
+            description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors',
         ),
         DeclareLaunchArgument(
             'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
@@ -129,6 +153,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'enable_d435i', default_value=LaunchConfiguration('enable_rtabmap'),
             description='Bridge the optional front RGB-D camera (also enable it in robot_description)',
+        ),
+        DeclareLaunchArgument(
+            'enable_lidar', default_value=LaunchConfiguration('enable_rtabmap'),
+            description='Bridge the optional simulated LiDAR (also enable it in robot_description)',
         ),
         OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
@@ -144,6 +172,7 @@ def generate_launch_description():
             value=[PathJoinSubstitution([FindPackageShare('startup'), 'models'])]
         ),
         bridge,
+        lidar_bridge,
         camera_bridge,
         # Launch gazebo environment
         IncludeLaunchDescription(

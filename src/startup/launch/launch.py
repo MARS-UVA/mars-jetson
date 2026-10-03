@@ -12,6 +12,7 @@ def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
     enable_rtabmap = LaunchConfiguration("enable_rtabmap")
     enable_d435i = LaunchConfiguration("enable_d435i")
+    enable_lidar = LaunchConfiguration("enable_lidar")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
     backend_arg = DeclareLaunchArgument(
@@ -26,13 +27,16 @@ def generate_launch_description():
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
         'enable_rtabmap', default_value='false',
-        description='Run RGB-D visual odometry and RTAB-Map with Gazebo',
+        description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors in Gazebo',
     ), DeclareLaunchArgument(
         'rtabmap_database_path', default_value='/tmp/d435i_visual_test.db',
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
         'enable_d435i', default_value=enable_rtabmap,
         description='Add one front RGB-D camera when using the Gazebo backend',
+    ), DeclareLaunchArgument(
+        'enable_lidar', default_value=enable_rtabmap,
+        description='Enable the simulated LiDAR when using the Gazebo backend',
     )]
 
     startup_pkg = FindPackageShare("startup")
@@ -63,6 +67,7 @@ def generate_launch_description():
         " robot_backend:=", backend,
         " camera_update_rate:=30",
         " enable_d435i:=", enable_d435i,
+        " enable_lidar:=", enable_lidar,
     ])
 
 
@@ -104,6 +109,7 @@ def generate_launch_description():
         launch_arguments={
             'robot_backend': backend,
             'enable_d435i': enable_d435i,
+            'enable_lidar': enable_lidar,
             'enable_rtabmap': enable_rtabmap,
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),

@@ -73,7 +73,7 @@ If ROS topics have no messages, check `gz topic -l` for `/d435i/image`,
 `/d435i/depth_image`, `/d435i/camera_info` and `/d435i/points`, and check Gazebo's rendering logs.
 The existing arena world already loads the required Sensors system with Ogre2.
 
-## Optional RTAB-Map visual odometry
+## Optional RTAB-Map with RGB-D and LiDAR
 
 Install `ros-jazzy-rtabmap-ros` in the dev container, rebuild `startup`, then run:
 
@@ -81,21 +81,31 @@ Install `ros-jazzy-rtabmap-ros` in the dev container, rebuild `startup`, then ru
 ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true
 ```
 
-`enable_rtabmap` defaults to false. Enabling it also defaults `enable_d435i` to
-true, so the robot camera, its bridges, RGB-D RViz configuration and RTAB-Map
-start together. Explicitly disabling the camera while enabling RTAB-Map is an
-error. The Gazebo launch includes RTAB-Map's standard launch with RGB-D visual
-odometry, Best Effort subscriptions and simulation time. No second RViz is
-started; RTAB-Map's own visualization window is enabled.
+`enable_rtabmap` defaults to false. Enabling it defaults both `enable_d435i`
+and `enable_lidar` to true. RTAB-Map uses LiDAR ICP odometry and subscribes to
+both `/unilidar/cloud` and the RGB-D images. Registration and the occupancy
+grid use LiDAR with the supplied planar ICP settings (5 cm voxels and
+point-to-plane matching). Subscriptions use Best Effort QoS and simulation time.
+RTAB-Map's own visualization window is enabled.
+
+For RGB-D visual odometry alone, add `enable_lidar:=false`. For LiDAR alone,
+add `enable_d435i:=false`. Enabling RTAB-Map with both sensors disabled is an
+error. Both sensor arguments also work independently of RTAB-Map; LiDAR defaults
+to off when RTAB-Map is off. `enable_lidar` controls the simulated sensor and its
+cloud/IMU bridges. The physical LiDAR launch for the serial backend is unchanged.
+When launching `gazebo.launch.py` separately, pass the same sensor flags when
+creating the robot description with Xacro.
 
 Stop any manually launched RTAB-Map instance before using this option.
 The existing controller configuration disables wheel odometry TF publication
-(`enable_odom_tf: false`), allowing visual odometry to own `odom -> frame_assembly`.
-That controller setting also applies when RTAB-Map is disabled; restore it to
-true if returning to wheel odometry, and do not run visual odometry TF alongside it.
+(`enable_odom_tf: false`), allowing RTAB-Map odometry to own
+`odom -> frame_assembly`. That controller setting also applies when RTAB-Map is
+disabled; restore it to true if returning to wheel odometry, and do not run
+RTAB-Map odometry TF alongside it.
 
 The database defaults to `/tmp/d435i_visual_test.db` and is resumed on subsequent
-runs. Pass `rtabmap_database_path:=/tmp/another_test.db` for a separate map.
+runs. Pass `rtabmap_database_path:=/tmp/another_test.db` for a separate map;
+use a fresh database when switching sensor configurations.
 In RViz, select fixed frame `map` and add `/rtabmap/cloud_map` as a PointCloud2
-display to view the accumulated map. Visual odometry is published on
-`/rtabmap/visual_odom`.
+display to view the accumulated map. Odometry is published on
+`/rtabmap/icp_odom` when LiDAR is enabled, otherwise `/rtabmap/visual_odom`.

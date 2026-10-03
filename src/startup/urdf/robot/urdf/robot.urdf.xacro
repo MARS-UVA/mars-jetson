@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot">
   <xacro:arg name="enable_d435i" default="false"/>
+  <xacro:arg name="enable_lidar" default="false"/>
   <xacro:include filename="$(find startup)/urdf/robot/urdf/d435i.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
@@ -45,66 +46,69 @@
     </xacro:if>
   </xacro:if>
 
-  <gazebo reference="unilidar_link">
-    
-    <!-- 1. 3D LiDAR Sensor Profile (Unitree L2 Specifications) -->
-    <sensor name="unilidar_cloud" type="gpu_lidar">
-      <pose>0 0 0 0 0 0</pose>
-      <update_rate>10</update_rate>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>360</samples>
-            <resolution>1</resolution>
-            <min_angle>-3.14159</min_angle>
-            <max_angle>3.14159</max_angle>
-          </horizontal>
-          <vertical>
-            <samples>32</samples> <!-- Unitree L2 features a dense vertical profile -->
-            <resolution>1</resolution>
-            <min_angle>-0.261799</min_angle> <!-- -15 deg -->
-            <max_angle>0.261799</max_angle>  <!-- +15 deg -->
-          </vertical>
-        </scan>
-        <range>
-          <min>0.1</min>
-          <max>30.0</max>
-          <resolution>0.01</resolution>
-        </range>
-      </ray>
-      <always_on>true</always_on>
-      <visualize>false</visualize>
-      <topic>unilidar/cloud</topic>
-      <gz_frame_id>unilidar_link</gz_frame_id>
-    </sensor>
+  <xacro:if value="$(arg enable_lidar)">
+    <gazebo reference="unilidar_link">
 
-    <!-- 2. Integrated IMU Sensor Profile (with exact internal offset) -->
-    <sensor name="unilidar_imu" type="imu">
-      <always_on>true</always_on>
-      <update_rate>200</update_rate> <!-- Fast update rate for LIO pipelines -->
-      <visualize>false</visualize>
-      <topic>unilidar/imu</topic>
-      <!-- Accurate physical hardware offset inside Unitree L2 housing -->
-      <pose>-0.007698 -0.014655 0.00667 0 0 0</pose> 
-      <gz_frame_id>unilidar_link</gz_frame_id>
-      <imu>
-        <angular_velocity>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
-        </angular_velocity>
-        <linear_acceleration>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></z>
-        </linear_acceleration>
-      </imu>
-    </sensor>
-  </gazebo>
+      <!-- 1. 3D LiDAR Sensor Profile (Unitree L2 Specifications) -->
+      <sensor name="unilidar_cloud" type="gpu_lidar">
+        <pose>0 0 0 0 0 0</pose>
+        <update_rate>10</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159</min_angle>
+              <max_angle>3.14159</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>32</samples> <!-- Unitree L2 features a dense vertical profile -->
+              <resolution>1</resolution>
+              <min_angle>-0.261799</min_angle> <!-- -15 deg -->
+              <max_angle>0.261799</max_angle>  <!-- +15 deg -->
+            </vertical>
+          </scan>
+          <range>
+            <min>0.1</min>
+            <max>30.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </ray>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <topic>unilidar/cloud</topic>
+        <gz_frame_id>unilidar_link</gz_frame_id>
+      </sensor>
 
-  <gazebo reference="unilidar_joint">
-    <disableFixedJointLumping>true</disableFixedJointLumping>
-  </gazebo>
+      <!-- 2. Integrated IMU Sensor Profile (with exact internal offset) -->
+      <sensor name="unilidar_imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>200</update_rate> <!-- Fast update rate for LIO pipelines -->
+        <visualize>false</visualize>
+        <topic>unilidar/imu</topic>
+        <!-- Accurate physical hardware offset inside Unitree L2 housing -->
+        <pose>-0.007698 -0.014655 0.00667 0 0 0</pose>
+        <gz_frame_id>unilidar_link</gz_frame_id>
+        <imu>
+          <angular_velocity>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></z>
+          </linear_acceleration>
+        </imu>
+      </sensor>
+    </gazebo>
+
+    <gazebo reference="unilidar_joint">
+      <disableFixedJointLumping>true</disableFixedJointLumping>
+    </gazebo>
+
+  </xacro:if>
 
   <!-- ============================= -->
   <!-- Gazebo ros2_control plugin    -->
