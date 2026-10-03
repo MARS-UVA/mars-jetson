@@ -10,6 +10,16 @@
           </box>
         </geometry>
         <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <pbr>
+            <metal>
+              <albedo_map>model://Apriltag36_11_00000/materials/textures/tag36_11_00000.png</albedo_map>
+              <roughness>0.9</roughness>
+              <metalness>0</metalness>
+            </metal>
+          </pbr>
           <script>
             <uri>model://Apriltag36_11_00000/materials/scripts</uri>
             <uri>model://Apriltag36_11_00000/materials/textures</uri>
@@ -30,6 +40,16 @@
           </box>
         </geometry>
         <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <pbr>
+            <metal>
+              <albedo_map>model://Apriltag36_11_00001/materials/textures/tag36_11_00001.png</albedo_map>
+              <roughness>0.9</roughness>
+              <metalness>0</metalness>
+            </metal>
+          </pbr>
           <script>
             <uri>model://Apriltag36_11_00001/materials/scripts</uri>
             <uri>model://Apriltag36_11_00001/materials/textures</uri>
@@ -50,6 +70,16 @@
           </box>
         </geometry>
         <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <pbr>
+            <metal>
+              <albedo_map>model://Apriltag36_11_00002/materials/textures/tag36_11_00002.png</albedo_map>
+              <roughness>0.9</roughness>
+              <metalness>0</metalness>
+            </metal>
+          </pbr>
           <script>
             <uri>model://Apriltag36_11_00002/materials/scripts</uri>
             <uri>model://Apriltag36_11_00002/materials/textures</uri>
@@ -70,6 +100,16 @@
           </box>
         </geometry>
         <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <pbr>
+            <metal>
+              <albedo_map>model://Apriltag36_11_00003/materials/textures/tag36_11_00003.png</albedo_map>
+              <roughness>0.9</roughness>
+              <metalness>0</metalness>
+            </metal>
+          </pbr>
           <script>
             <uri>model://Apriltag36_11_00003/materials/scripts</uri>
             <uri>model://Apriltag36_11_00003/materials/textures</uri>
