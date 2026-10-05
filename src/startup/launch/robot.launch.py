@@ -2,18 +2,24 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    ros2_control_params_file = os.path.join(
-        get_package_share_directory("startup"),
-        "config",
-        "controllers.yaml"
+    backend_arg = DeclareLaunchArgument(
+        "robot_backend",
+        default_value="serial",
+        description="Backend for the robot hardware interface (serial, gazebo, mock)",
     )
+
+    # No controller spawners here, for any backend. serial and mock run no
+    # ros2_control_node, so there is no controller manager for a spawner to
+    # reach; gazebo's controller manager lives inside gz sim (gz_ros2_control)
+    # and only exists once the robot is spawned, so gazebo.launch.py starts its
+    # spawners off that event.
 
     teleop = Node(
         package='teleop',
@@ -113,46 +119,8 @@ def generate_launch_description():
         ]
     )
 
-    controllers = [
-        Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=[
-                "joint_state_broadcaster",
-                "--controller-manager",
-                ["/", "controller_manager"],
-                '--param-file',
-                ros2_control_params_file,
-            ],
-        ),
-        Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=[
-                "base_controller",
-                "--controller-manager",
-                ["/", "controller_manager"],
-                '--param-file',
-                ros2_control_params_file,
-            ],
-            namespace="/",
-        ),
-        Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=[
-                "arm_drum_controller",
-                "--controller-manager",
-                ["/", "controller_manager"],
-                '--param-file',
-                ros2_control_params_file,
-            ],
-            namespace="/"
-        )
-    ]
-
-
     return LaunchDescription([
+        backend_arg,
         teleop, 
         digdump,
         network_client,
@@ -163,6 +131,5 @@ def generate_launch_description():
         robot_state_controller,
         gstreamer,
         twist_stamper,
-        *controllers
     ])
 
