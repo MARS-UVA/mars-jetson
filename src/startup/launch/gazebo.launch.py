@@ -69,7 +69,47 @@ def generate_launch_description():
         output='screen',
     )
 
+    # The controller manager runs inside gz sim (gz_ros2_control plugin) and
+    # only exists once `create` has spawned the robot, so the spawners start
+    # off create's exit instead of racing it. joint_state_broadcaster first,
+    # then the two command controllers. The timeouts cover a slow sim (e.g.
+    # software rendering) where the manager comes up or switches late. The
+    # service-call timeout matters most: at its 10 s default the spawner
+    # re-sends switch_controller while the first switch is still in progress,
+    # and the controller manager rejects the retry (STRICT), so the spawner
+    # exits with an error even though the controller did activate.
+    ros2_control_params_file = PathJoinSubstitution([
+        FindPackageShare('startup'), 'config', 'controllers.yaml'])
+
+    def spawner(controller):
+        return Node(
+            package='controller_manager',
+            executable='spawner',
+            arguments=[
+                controller,
+                '--controller-manager', '/controller_manager',
+                '--param-file', ros2_control_params_file,
+                '--controller-manager-timeout', '60',
+                '--switch-timeout', '30',
+                '--service-call-timeout', '60',
+            ],
+            output='screen',
+        )
+
+    joint_state_broadcaster_spawner = spawner('joint_state_broadcaster')
+
+    spawn_controllers_after_robot = RegisterEventHandler(OnProcessExit(
+        target_action=gz_spawn_entity,
+        on_exit=[joint_state_broadcaster_spawner],
+    ))
+    spawn_command_controllers_after_jsb = RegisterEventHandler(OnProcessExit(
+        target_action=joint_state_broadcaster_spawner,
+        on_exit=[spawner('base_controller'), spawner('arm_drum_controller')],
+    ))
+
     ld = LaunchDescription([
+        spawn_controllers_after_robot,
+        spawn_command_controllers_after_jsb,
         mock_actuator_feedback,
         SetEnvironmentVariable(
             name='GZ_SIM_RESOURCE_PATH',

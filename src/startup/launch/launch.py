@@ -27,15 +27,22 @@ def generate_launch_description():
 
     nodes = []
 
+    # Zenoh router. Every rmw_zenoh_cpp participant on this host connects through
+    # it, so it has to be up before anything else -- starting it here replaces the
+    # manual "ros2 run rmw_zenoh_cpp rmw_zenohd" that used to live in
+    # setup_terminal.sh (kept there, commented, as a fallback for by-hand starts).
+    #
+    # Deliberately no parameters=[]: rmw_zenohd is not an rclcpp node (it does not
+    # link rclcpp at all), so launch_ros's "--ros-args -p ..." argv is silently
+    # ignored. It reads its config only from ZENOH_ROUTER_CONFIG_URI, or from
+    # ZENOH_CONFIG_OVERRIDE for individual keys. The packaged default already
+    # listens on tcp/[::]:7447, which is what we want, so we pass nothing.
     nodes.append(Node(
         package="rmw_zenoh_cpp",
         executable="rmw_zenohd",
         name="rmw_zenohd",
         output="screen",
-        parameters=[
-            {"zenoh_router_port": 7447},
-            {"zenoh_router_log_level": "info"}
-        ]
+        respawn=True,
     ))
 
     # Process the xacro file and create the robot description
