@@ -14,10 +14,19 @@ All profiles build the shared `Dockerfile` in this directory. Changes to shared
 extensions, environment variables, or lifecycle commands must currently be
 applied to all three `devcontainer.json` files.
 
-All profiles also create and join the `mars-dev` Docker network using the
-hostname `mars-jetson`. The control-station container is addressed as
-`mars-control-station`; this hostname is provided through `CONTROL_STATION_IP`
-for UDP feedback and camera signaling.
+After creation, every profile runs rosdep and then `build-workspace.sh`, which
+runs `colcon build --symlink-install`. If an existing `build/` directory holds a
+`CMakeCache.txt` recorded under a different mount path, the script deletes
+`build/`, `install/`, and `log/` before building. After that, you only need to
+re-run `colcon build` by hand when you pull in new upstream packages.
+
+All profiles run with host networking (`--network=host`), so the Zenoh router
+on 7447 and the WebRTC streamers' ICE candidates use the host's own addresses,
+which a browser on the host can reach (a Docker bridge address would not be).
+The control-station container stays on its `mars-dev` bridge network, publishes
+its camera signaling ports 6767/6969 to the host, and reaches this container as
+`host.docker.internal`. From here it is therefore `CONTROL_STATION_IP=127.0.0.1`.
+How the two sides connect is in `docs/rosbridge.md`.
 
 XQuartz may eventually replace or supplement noVNC in the macOS profile, but it
 requires an X server and display-access configuration on each developer's Mac.
