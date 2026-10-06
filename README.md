@@ -15,6 +15,10 @@ Where:
 - *[CONTROL_STATION_IP]* is the IP address of the control station laptop
 - *[BACKEND]* is the backend for the robot hardware interface (serial, gazebo, mock)
 
+For the Gazebo backend use `./gazebo_deploy.sh`, which also cleans up a leftover
+`gz sim` server. The control station connects over ROS 2 through rosbridge on
+its side and the Zenoh router this launch starts; see `docs/rosbridge.md`.
+
 ## Structure
 This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:
 - *src/actions/* includes programs that make up the **actions** node. These programs decide what motor and actuator actions to perform upon subscribing to the **communications** nodes. All motor and actuator current values (all motor are controlled by current levels) are passed through a buffer or array of bytes and constructed by the **actions** node.

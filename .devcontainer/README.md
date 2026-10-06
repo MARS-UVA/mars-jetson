@@ -26,6 +26,7 @@ which a browser on the host can reach (a Docker bridge address would not be).
 The control-station container stays on its `mars-dev` bridge network, publishes
 its camera signaling ports 6767/6969 to the host, and reaches this container as
 `host.docker.internal`. From here it is therefore `CONTROL_STATION_IP=127.0.0.1`.
+How the two sides connect is in `docs/rosbridge.md`.
 
 XQuartz may eventually replace or supplement noVNC in the macOS profile, but it
 requires an X server and display-access configuration on each developer's Mac.
