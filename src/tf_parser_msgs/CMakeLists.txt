@@ -28,6 +28,7 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AprilTagPosition.msg"
   "msg/AprilTagPositions.msg"
+  "msg/AbsolutePosition.msg"
 )
 
 ament_export_dependencies(rosidl_default_runtime)

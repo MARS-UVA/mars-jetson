@@ -1,9 +1,9 @@
 <sdf version='1.7'>
   <model name='apriltag_board'>
-    <pose>0 0 0.5 0 1.57 0</pose>
     <link name='tag_0'>
       <pose>0 0 0 0 -0 0</pose>
       <visual name='main_Visual'>
+      <pose>0 0 0 0 0 3.14159</pose>
         <geometry>
           <box>
             <size>0.17 0.17 0.01</size>
@@ -34,6 +34,7 @@
     <link name='tag_1'>
       <pose>0.18 0 0 0 -0 0</pose>
       <visual name='main_Visual'>
+      <pose>0 0 0 0 0 3.14159</pose>
         <geometry>
           <box>
             <size>0.17 0.17 0.01</size>
@@ -64,6 +65,7 @@
     <link name='tag_2'>
       <pose>0.18 0.18 0 0 -0 0</pose>
       <visual name='main_Visual'>
+      <pose>0 0 0 0 0 3.14159</pose>
         <geometry>
           <box>
             <size>0.17 0.17 0.01</size>
@@ -94,6 +96,7 @@
     <link name='tag_3'>
       <pose>0 0.18 0 0 -0 0</pose>
       <visual name='main_Visual'>
+      <pose>0 0 0 0 0 3.14159</pose>
         <geometry>
           <box>
             <size>0.17 0.17 0.01</size>

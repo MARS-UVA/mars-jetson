@@ -4,3 +4,4 @@ apriltag_node:
     size: 0.136 # similarly snatched
     max_hamming: 0
     use_sim_time: true
+    publish_tag_detections_image: true
