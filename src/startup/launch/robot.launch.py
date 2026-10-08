@@ -112,6 +112,27 @@ def generate_launch_description():
             ('/cmd_vel_out', '/base_controller/cmd_vel')
         ]
     )
+    
+    apriltag = Node(
+        package='apriltag_ros',
+        executable='apriltag_node',
+        name='apriltag_node',
+        remappings=[
+            ('image_rect', '/front_camera/image_raw'),
+            ('camera_info', '/front_camera/camera_info'),
+        ],
+        parameters=[
+            os.path.join(get_package_share_directory('startup'), 'config', 'apriltag.yaml')
+        ],
+        output='screen'
+    )
+    
+    tf_parser = Node(
+            package='tf_parser',
+            executable='tf_parser_node',
+            name='tf_parser',
+            output='screen'
+        )
 
     controllers = [
         Node(
@@ -163,6 +184,8 @@ def generate_launch_description():
         robot_state_controller,
         gstreamer,
         twist_stamper,
+        apriltag,
+        tf_parser,
         *controllers
     ])
 
