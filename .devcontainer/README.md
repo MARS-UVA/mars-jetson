@@ -20,13 +20,21 @@ runs `colcon build --symlink-install`. If an existing `build/` directory holds a
 `build/`, `install/`, and `log/` before building. After that, you only need to
 re-run `colcon build` by hand when you pull in new upstream packages.
 
-All profiles run with host networking (`--network=host`), so the Zenoh router
-on 7447 and the WebRTC streamers' ICE candidates use the host's own addresses,
-which a browser on the host can reach (a Docker bridge address would not be).
-The control-station container stays on its `mars-dev` bridge network, publishes
-its camera signaling ports 6767/6969 to the host, and reaches this container as
-`host.docker.internal`. From here it is therefore `CONTROL_STATION_IP=127.0.0.1`.
-How the two sides connect is in `docs/rosbridge.md`.
+All profiles create and join the `mars-dev` Docker bridge network, with the
+alias `mars-jetson`. `CONTROL_STATION_IP=mars-control-station` addresses the
+control-station container on the same Docker host. TCP 7447 is published for
+Zenoh clients outside this network; UDP 8080 remains published for the legacy
+gateway. Workspace builds and ROS environment settings are unchanged.
+
+For local simulation, set `JETSON_IP=mars-jetson` in the control-station
+container and use `ROS_DOMAIN_ID=42` on both sides. Rebuild both containers if
+their networking or environment configuration changes. For separate machines,
+use the Jetson's LAN IP as `JETSON_IP`, pass the laptop's LAN IP as
+`control_station_ip` to `deploy.sh`, and publish TCP 6767/6969 on the
+control-station host for camera signaling. Docker bridge networks do not span
+machines. Camera media uses WebRTC ICE separately from these signaling ports;
+bridge-mode camera connectivity must be verified and may need a TURN relay.
+See `docs/rosbridge.md` for the connection details.
 
 XQuartz may eventually replace or supplement noVNC in the macOS profile, but it
 requires an X server and display-access configuration on each developer's Mac.

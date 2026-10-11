@@ -7,7 +7,7 @@ mars-control-station; nothing here runs rosbridge.
 ## Topology
 
 ```
-control station: browser ──> rosbridge :9090 ──Zenoh client──> this host, rmw_zenohd :7447 ──> nodes
+control station: browser ──> rosbridge :9090 ──Zenoh client──> Jetson container, rmw_zenohd :7447 ──> nodes
 this host:       gstreamer streamers ──ws :6767 / :6969──> control-station signaling relay
                                       ──WebRTC──────────> browser
 ```
@@ -20,14 +20,28 @@ this host:       gstreamer streamers ──ws :6767 / :6969──> control-stati
   sessions that have no launch file.
 - `RMW_IMPLEMENTATION=rmw_zenoh_cpp` is set in `setup_terminal.sh` and in every
   devcontainer profile's `containerEnv`.
-- The three devcontainer profiles use host networking. The router and the
-  WebRTC ICE candidates then carry the host's own address, which a browser on
-  the host can reach. On a Docker bridge network they would advertise a
-  172.x address the browser cannot.
-- `CONTROL_STATION_IP` is where the streamers dial the signaling relay. In the
-  devcontainer it is `127.0.0.1`: the control-station container publishes 6767
-  and 6969 to the host. On a real robot pass the laptop's address as
-  `control_station_ip:=<ip>` to `deploy.sh`.
+- The three devcontainer profiles join the `mars-dev` Docker bridge network
+  with the alias `mars-jetson` and publish TCP 7447 for the Zenoh router.
+  The control station remains a Zenoh client; it does not need its own router.
+- On the same Docker host, configure the control-station container with
+  `JETSON_IP=mars-jetson` and `ROS_DOMAIN_ID=42`. Its `ros/ros-env.sh` should set
+  `ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/mars-jetson:7447"]'`.
+  Both containers must join `mars-dev`. The old `host.docker.internal` endpoint
+  can also reach the published router port, but the container alias is direct.
+- `CONTROL_STATION_IP=mars-control-station` makes the streamers dial the
+  signaling relay directly over the shared bridge network on TCP 6767/6969.
+  `127.0.0.1` inside this container refers to this container itself.
+- Across Wi-Fi, Docker bridge networks are separate on each host. Set
+  `JETSON_IP=<Jetson LAN IP>` on the control station, pass
+  `control_station_ip:=<laptop LAN IP>` to `deploy.sh`, and publish TCP 6767/6969
+  on the control-station host. The Jetson's published TCP 7447 must be reachable
+  from the laptop. Match `ROS_DOMAIN_ID` on both sides.
+- Camera media travels through WebRTC ICE, separately from signaling. The
+  streamers currently configure STUN, but no TURN relay. Private container
+  candidates may be unreachable from the browser, especially on Docker Desktop
+  or across machines. Verify the selected ICE connection; a reachable TURN
+  relay configured on the streamer and browser provides a fallback. Publishing
+  the signaling ports alone does not expose the media connection.
 
 ## Running against the control station
 
@@ -108,3 +122,11 @@ disabled.
   been confirmed; only the devcontainers have.
 - The `mock` backend looks, from the control station, like real hardware with a
   dead ESP.
+
+## Checking the bridge connection
+
+After rebuilding the Jetson devcontainer, start the robot and run
+`./ros/verify-jetson-link.sh` in the control-station container with the environment
+above. Verify ROS topics and command delivery before testing cameras. Test
+cameras separately and inspect the browser's selected ICE candidate pair.
+These bridge-mode runtime checks have not yet been performed.
