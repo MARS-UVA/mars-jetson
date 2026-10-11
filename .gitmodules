@@ -1,4 +1,3 @@
-[submodule "src/mujoco_ros2_pkgs"]
-	path = src/mujoco_ros2_pkgs
-	url = https://github.com/dfki-ric/mujoco_ros2_control.git
-	branch = jazzy
+[submodule "src/mars-ros-interfaces"]
+	path = src/mars-ros-interfaces
+	url = https://github.com/MARS-UVA/mars-ros-interfaces
