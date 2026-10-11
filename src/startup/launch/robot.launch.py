@@ -48,22 +48,6 @@ def generate_launch_description():
         }],
         respawn=True
     )
-    network_client = Node(
-        package='network_communication',
-        executable='udp_client',
-        name='client_node',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN'],
-        respawn=True
-    )
-    network_server = Node(
-        package='network_communication',
-        executable='udp_server',
-        name='server_node',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN'],
-        respawn=True
-    )
     controller = Node(
         package='robot_controller',
         executable='robot_controller',
@@ -155,8 +139,6 @@ def generate_launch_description():
     return LaunchDescription([
         teleop, 
         digdump,
-        network_client,
-        network_server,
         controller,
         cmd_vel_mux,
         arm_drum_mux,
