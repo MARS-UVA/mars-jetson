@@ -47,7 +47,10 @@ def generate_launch_description():
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        arguments=[
+                '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+                '/front_camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
+            ],
         output='screen'
     )
 
