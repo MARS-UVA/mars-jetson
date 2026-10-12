@@ -1,0 +1,203 @@
+# Navigation goals use the Nav2 action client; RTAB-Map supplies localization.
+# Select NAVIGATION mode separately before commanding robot motion.
+# Enable the individual sensor-cloud displays when debugging costmaps.
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+- Class: rviz_common/Tool Properties
+  Name: Tool Properties
+- Class: rviz_common/Views
+  Name: Views
+- Class: nav2_rviz_plugins/Navigation 2
+  Name: Navigation 2
+Visualization Manager:
+  Class: ''
+  Name: root
+  Enabled: true
+  Value: true
+  Global Options:
+    Fixed Frame: map
+    Background Color: 48; 48; 48
+    Frame Rate: 20
+  Displays:
+  - Class: rviz_default_plugins/Grid
+    Name: Grid
+    Enabled: true
+    Value: true
+    Cell Size: 1
+    Plane: XY
+    Plane Cell Count: 20
+    Alpha: 0.3
+  - Class: rviz_default_plugins/Map
+    Name: RTAB-Map
+    Enabled: true
+    Value: true
+    Alpha: 0.7
+    Color Scheme: map
+    Draw Behind: true
+    Topic:
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /rtabmap/map
+  - Class: rviz_default_plugins/RobotModel
+    Name: Robot
+    Enabled: true
+    Value: true
+    Description Source: Topic
+    Description Topic:
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /robot_description
+    Visual Enabled: true
+    Collision Enabled: false
+    Alpha: 1
+  - Class: rviz_default_plugins/Map
+    Name: Global Costmap
+    Enabled: true
+    Value: true
+    Alpha: 0.3
+    Color Scheme: costmap
+    Draw Behind: true
+    Topic:
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /global_costmap/costmap
+  - Class: rviz_default_plugins/Map
+    Name: Local Costmap
+    Enabled: true
+    Value: true
+    Alpha: 0.5
+    Color Scheme: costmap
+    Draw Behind: true
+    Topic:
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /local_costmap/costmap
+  - Class: rviz_default_plugins/Path
+    Name: A* Planned Path
+    Enabled: true
+    Value: true
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /plan
+    Color: 0; 255; 0
+    Line Style: Lines
+    Line Width: 0.03
+    Buffer Length: 1
+  - Class: rviz_default_plugins/Polygon
+    Name: Local Footprint (Arms and Drums)
+    Enabled: true
+    Value: true
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /local_costmap/published_footprint
+    Color: 255; 170; 0
+    Alpha: 1
+  - Class: rviz_default_plugins/Polygon
+    Name: Global Planning Circle
+    Enabled: true
+    Value: true
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /global_costmap/published_footprint
+    Color: 0; 170; 255
+    Alpha: 0.6
+  - Class: rviz_default_plugins/PointCloud2
+    Name: Blue RGB-D Obstacles
+    Enabled: false
+    Value: false
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Best Effort
+      Value: /rgbd_blue/points
+    Position Transformer: XYZ
+    Color Transformer: AxisColor
+    Axis: Z
+    Style: Points
+    Size (Pixels): 2
+    Size (m): 0.01
+    Decay Time: 0
+  - Class: rviz_default_plugins/PointCloud2
+    Name: Orange RGB-D Obstacles
+    Enabled: false
+    Value: false
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Best Effort
+      Value: /rgbd_orange/points
+    Position Transformer: XYZ
+    Color Transformer: AxisColor
+    Axis: Z
+    Style: Points
+    Size (Pixels): 2
+    Size (m): 0.01
+    Decay Time: 0
+  - Class: rviz_default_plugins/PointCloud2
+    Name: LiDAR Obstacles
+    Enabled: false
+    Value: false
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Best Effort
+      Value: /unilidar/cloud
+    Position Transformer: XYZ
+    Color Transformer: AxisColor
+    Axis: Z
+    Style: Points
+    Size (Pixels): 2
+    Size (m): 0.01
+    Decay Time: 0
+  - Class: rviz_default_plugins/TF
+    Name: TF
+    Enabled: false
+    Value: false
+    Show Names: true
+    Show Axes: true
+    Show Arrows: true
+    Frames:
+      All Enabled: true
+  Tools:
+  - Class: rviz_default_plugins/Interact
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  - Class: rviz_default_plugins/FocusCamera
+  - Class: rviz_default_plugins/Measure
+  - Class: nav2_rviz_plugins/GoalTool
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Target Frame: frame_assembly
+      Scale: 60
+      Angle: 0
+      X: 0
+      Y: 0
+      Near Clip Distance: 0.01
+Window Geometry:
+  Width: 1400
+  Height: 900
+  Hide Left Dock: false
+  Hide Right Dock: false

@@ -147,6 +147,12 @@ def generate_launch_description():
             'enable_rtabmap': enable_rtabmap,
             'RTABMap_sync': LaunchConfiguration('RTABMap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
+            'rviz_config': PathJoinSubstitution([
+                startup_pkg, 'config', PythonExpression([
+                    "'nav2.rviz' if '", LaunchConfiguration('enable_nav2'),
+                    "'.lower() in ('true', '1') else 'RGBDRViz.rviz'",
+                ]),
+            ]),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

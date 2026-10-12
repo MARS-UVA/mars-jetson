@@ -199,6 +199,12 @@ def generate_launch_description():
     ld = LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument(
+            'rviz_config', default_value=PathJoinSubstitution([
+                FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
+            ]),
+            description='RViz configuration for mapping or navigation',
+        ),
+        DeclareLaunchArgument(
             'enable_rtabmap', default_value='false',
             description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors',
         ),
@@ -224,7 +230,10 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(PathJoinSubstitution([
                 FindPackageShare('startup'), 'launch', 'rgbd_sim.launch.py',
             ])),
-            launch_arguments={'use_sim_time': use_sim_time}.items(),
+            launch_arguments={
+                'use_sim_time': use_sim_time,
+                'rviz_config': LaunchConfiguration('rviz_config'),
+            }.items(),
             condition=IfCondition(LaunchConfiguration('enable_rgbd')),
         ),
         mock_actuator_feedback,
