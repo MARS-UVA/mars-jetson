@@ -14,12 +14,36 @@
   <depend>v4l2_camera</depend>
   <depend>rmw_zenoh_cpp</depend>
   
+  <!-- Launch libraries and robot runtime nodes. -->
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>hardware_interface</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>digdump</exec_depend>
+  <exec_depend>gstreamer</exec_depend>
+  <exec_depend>network_communication</exec_depend>
+  <exec_depend>robot_controller</exec_depend>
+  <exec_depend>robot_state_controller</exec_depend>
+  <exec_depend>serial_node</exec_depend>
+  <exec_depend>teleop</exec_depend>
+
+  <!-- Actuator feedback and hardware LiDAR support. -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>serial_msgs</exec_depend>
+  <exec_depend>point_lio</exec_depend>
+  <exec_depend>unitree_lidar_ros2</exec_depend>
+
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_image</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
   <exec_depend>rtabmap_launch</exec_depend>
   <exec_depend>rtabmap_sync</exec_depend>
   <exec_depend>imu_tools</exec_depend>
