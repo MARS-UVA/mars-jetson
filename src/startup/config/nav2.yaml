@@ -1,10 +1,10 @@
-# Initial navigation-only configuration for ROS 2 Jazzy. Not launched yet.
+# Initial navigation-only configuration for ROS 2 Jazzy.
 # RTAB-Map owns map -> odom, odom -> frame_assembly, and /rtabmap/map.
 # No AMCL or map_server: confirm /rtabmap/map is nav_msgs/OccupancyGrid.
-# /odom is the intended estimator-independent input; the optional launch must
-# remap it to the selected RTAB-Map odometry topic until that interface exists.
+# /odom is the intended estimator-independent input. nav2.launch.py rewrites
+# odom_topic to the selected estimator topic (currently /rtabmap/icp_odom).
 # Odometry must contain measured base-frame velocities before navigation tests.
-# use_sim_time is supplied by the future optional launch, not fixed here.
+# use_sim_time defaults to false and is rewritten by the optional launch.
 #
 # Conservative footprint in frame_assembly: transformed URDF collision-mesh
 # bounding boxes sampled across both arm limits (-1.2..0.2 rad) and full wheel/
@@ -21,6 +21,7 @@
 
 bt_navigator:
   ros__parameters:
+    use_sim_time: false
     global_frame: map
     robot_base_frame: frame_assembly
     odom_topic: /odom
@@ -35,6 +36,7 @@ bt_navigator:
 
 controller_server:
   ros__parameters:
+    use_sim_time: false
     odom_topic: /odom
     enable_stamped_cmd_vel: false
     controller_frequency: 20.0
@@ -89,6 +91,7 @@ controller_server:
 local_costmap:
   local_costmap:
     ros__parameters:
+      use_sim_time: false
       global_frame: odom
       robot_base_frame: frame_assembly
       transform_tolerance: 0.2
@@ -161,6 +164,7 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
+      use_sim_time: false
       global_frame: map
       robot_base_frame: frame_assembly
       transform_tolerance: 0.2
@@ -187,6 +191,7 @@ global_costmap:
 
 planner_server:
   ros__parameters:
+    use_sim_time: false
     expected_planner_frequency: 1.0
     planner_plugins: [GridBased]
     GridBased:
@@ -200,6 +205,7 @@ planner_server:
 
 smoother_server:
   ros__parameters:
+    use_sim_time: false
     smoother_plugins: [simple_smoother]
     simple_smoother:
       plugin: nav2_smoother::SimpleSmoother
@@ -209,6 +215,7 @@ smoother_server:
 
 behavior_server:
   ros__parameters:
+    use_sim_time: false
     enable_stamped_cmd_vel: false
     local_frame: odom
     global_frame: map
@@ -235,6 +242,7 @@ behavior_server:
 
 velocity_smoother:
   ros__parameters:
+    use_sim_time: false
     enable_stamped_cmd_vel: false
     smoothing_frequency: 20.0
     feedback: OPEN_LOOP
