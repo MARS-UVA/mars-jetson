@@ -1,29 +1,30 @@
 # Initial navigation-only configuration for ROS 2 Jazzy.
-# RTAB-Map owns map -> odom, odom -> frame_assembly, and /rtabmap/map.
+# RTAB-Map owns map -> odom, odom -> base_link, and /rtabmap/map.
 # No AMCL or map_server: confirm /rtabmap/map is nav_msgs/OccupancyGrid.
 # /odom is the intended estimator-independent input. nav2.launch.py rewrites
 # odom_topic to the selected estimator topic (currently /rtabmap/icp_odom).
 # Odometry must contain measured base-frame velocities before navigation tests.
 # use_sim_time defaults to false and is rewritten by the optional launch.
 #
-# Conservative footprint in frame_assembly: transformed URDF collision-mesh
+# Conservative footprint in the CAD frame_assembly: transformed URDF collision-mesh
 # bounding boxes sampled across both arm limits (-1.2..0.2 rad) and full wheel/
 # drum rotations give x +/-0.356, y +/-0.871 m. Rounded outward below, with
 # another 0.03 m padding. Covers held arm positions, not just the chassis.
+# In blue-forward base_link, these bounds become x +/-0.90, y +/-0.38 m.
 # Confirm the envelope against the physical robot before hardware use.
 #
 # Height limits are in the costmap fixed frame, not the camera optical frame.
 # Initial flat-ground assumption: ground ~-0.13 m in odom (initial base origin).
 # Reject returns below -0.08 m (~5 cm above that ground). Verify this against
 # actual TF/clouds; a height cut alone does not segment ground on slopes.
-# Both RGB-D cameras look sideways; LiDAR supplements front/rear coverage.
-# All three observation sources are required by this initial configuration.
+# Local obstacles use the blue/front and orange/rear RGB-D cameras.
+# LiDAR remains the input for ICP odometry and RTAB-Map mapping.
 
 bt_navigator:
   ros__parameters:
     use_sim_time: false
     global_frame: map
-    robot_base_frame: frame_assembly
+    robot_base_frame: base_link
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -58,34 +59,61 @@ controller_server:
       yaw_goal_tolerance: 0.20
       stateful: true
     FollowPath:
-      plugin: nav2_mppi_controller::MPPIController
+      plugin: nav2_rotation_shim_controller::RotationShimController
+      primary_controller: nav2_mppi_controller::MPPIController
+      angular_dist_threshold: 0.5235987756 # 30 degrees: turn before translating.
+      angular_disengage_threshold: 0.1745329252 # Resume MPPI within 10 degrees.
+      forward_sampling_distance: 0.5
+      rotate_to_heading_angular_vel: 1.20
+      max_angular_accel: 1.20
+      simulate_ahead_time: 1.0
+      rotate_to_heading_once: false # Recheck alignment on every updated path.
+      use_path_orientations: true # Respect Hybrid-A* reverse-segment headings.
       motion_model: DiffDrive
       time_steps: 56
       model_dt: 0.05 # 2.8-second prediction horizon at 20 Hz.
       batch_size: 1000 # Starting compute budget; profile on the Jetson.
       iteration_count: 1
-      vx_max: 0.25
-      vx_min: -0.15
+      vx_max: 0.60
+      vx_min: -0.40
       vy_max: 0.0
-      wz_max: 0.60
-      ax_max: 0.30
-      ax_min: -0.30
+      wz_max: 1.20
+      ax_max: 0.60
+      ax_min: -0.60
       ay_max: 0.0
       ay_min: 0.0
-      az_max: 0.80
-      vx_std: 0.10
+      az_max: 1.20
+      vx_std: 0.20
       vy_std: 0.0
-      wz_std: 0.20
-      prune_distance: 1.5
+      wz_std: 0.40
+      prune_distance: 2.0 # Covers the 1.68 m forward prediction horizon.
+      enforce_path_inversion: true # Follow the planner's forward/reverse cusps.
       transform_tolerance: 0.2
       temperature: 0.3
       gamma: 0.015
       visualize: false
-      critics: [ConstraintCritic, CostCritic, GoalCritic, GoalAngleCritic,
-                PathAlignCritic, PathFollowCritic, PathAngleCritic, PreferForwardCritic]
-      CostCritic:
+      critics: [ConstraintCritic, ObstaclesCritic, GoalCritic, GoalAngleCritic,
+                PathAlignCritic, PathFollowCritic, PathAngleCritic]
+      ObstaclesCritic:
         consider_footprint: true
-        trajectory_point_step: 1
+        # Score actual collisions, without a soft proximity/clearance penalty.
+        repulsion_weight: 0.0
+        collision_margin_distance: 0.0
+        critical_weight: 20.0
+        collision_cost: 10000.0
+        inflation_radius: 1.25
+        cost_scaling_factor: 20.0
+      PathAlignCritic:
+        use_path_orientations: true
+      PathAngleCritic:
+        mode: 2 # Follow feasible Hybrid-A* headings, including reverse segments.
+        cost_weight: 6.0 # Prioritize correcting heading over forward progress.
+        max_angle_to_furthest: 0.35 # Start correcting at ~20 degrees, not 45.
+        threshold_to_consider: 0.25
+      PathFollowCritic:
+        cost_weight: 3.0 # Reduce pressure to advance before heading is aligned.
+      GoalAngleCritic:
+        cost_weight: 5.0
       # Remaining critic weights use the installed Jazzy plugin defaults.
 
 local_costmap:
@@ -93,7 +121,7 @@ local_costmap:
     ros__parameters:
       use_sim_time: false
       global_frame: odom
-      robot_base_frame: frame_assembly
+      robot_base_frame: base_link
       transform_tolerance: 0.2
       rolling_window: true
       width: 6
@@ -101,7 +129,7 @@ local_costmap:
       resolution: 0.05
       update_frequency: 10.0
       publish_frequency: 2.0
-      footprint: "[[0.38, 0.90], [-0.38, 0.90], [-0.38, -0.90], [0.38, -0.90]]"
+      footprint: "[[0.90, 0.38], [-0.90, 0.38], [-0.90, -0.38], [0.90, -0.38]]"
       footprint_padding: 0.03
       plugins: [voxel_layer, inflation_layer]
       voxel_layer:
@@ -115,7 +143,7 @@ local_costmap:
         min_obstacle_height: -0.08
         max_obstacle_height: 1.45
         mark_threshold: 0
-        observation_sources: rgbd_blue rgbd_orange lidar
+        observation_sources: rgbd_blue rgbd_orange
         rgbd_blue:
           topic: /rgbd_blue/points
           data_type: PointCloud2
@@ -142,23 +170,13 @@ local_costmap:
           raytrace_max_range: 3.0
           observation_persistence: 0.0
           expected_update_rate: 0.5
-        lidar:
-          topic: /unilidar/cloud
-          data_type: PointCloud2
-          marking: true
-          clearing: true
-          min_obstacle_height: -0.08
-          max_obstacle_height: 1.45
-          obstacle_min_range: 0.50
-          obstacle_max_range: 2.5
-          raytrace_min_range: 0.50
-          raytrace_max_range: 3.0
-          observation_persistence: 0.0
-          expected_update_rate: 0.5
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
-        inflation_radius: 0.65
-        cost_scaling_factor: 3.0
+        # Cover the padded rectangle's circumscribed radius (~1.016 m)
+        # so MPPI can use inflation costs to accelerate footprint checks.
+        inflation_radius: 1.25
+        # Higher decay makes soft wall costs fall off faster with distance.
+        cost_scaling_factor: 20.0
       always_send_full_costmap: true
 
 global_costmap:
@@ -166,17 +184,15 @@ global_costmap:
     ros__parameters:
       use_sim_time: false
       global_frame: map
-      robot_base_frame: frame_assembly
+      robot_base_frame: base_link
       transform_tolerance: 0.2
       resolution: 0.05
       update_frequency: 1.0
       publish_frequency: 1.0
       track_unknown_space: true
-      # Smac 2D plans using circular clearance. Enclose the padded local
-      # polygon: hypot(0.41, 0.93) = 1.016 m, rounded to 1.02 m.
-      # Conservative in narrow passages; an oriented planner is a later option.
-      robot_radius: 1.02
-      footprint_padding: 0.0
+      # Match the local envelope; Hybrid-A* checks it at each heading.
+      footprint: "[[0.90, 0.38], [-0.90, 0.38], [-0.90, -0.38], [0.90, -0.38]]"
+      footprint_padding: 0.03
       plugins: [static_layer, inflation_layer]
       static_layer:
         plugin: nav2_costmap_2d::StaticLayer
@@ -186,7 +202,8 @@ global_costmap:
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         inflation_radius: 1.25
-        cost_scaling_factor: 3.0
+        # Moderate clearance gradient gives global routes space away from walls.
+        cost_scaling_factor: 6.0
       always_send_full_costmap: true
 
 planner_server:
@@ -195,13 +212,17 @@ planner_server:
     expected_planner_frequency: 1.0
     planner_plugins: [GridBased]
     GridBased:
-      plugin: nav2_smac_planner::SmacPlanner2D
+      plugin: nav2_smac_planner::SmacPlannerHybrid
       tolerance: 0.20
-      allow_unknown: false
+      allow_unknown: true
       downsample_costmap: false
       max_planning_time: 2.0
-      cost_travel_multiplier: 2.0
-      use_final_approach_orientation: false
+      motion_model_for_search: REEDS_SHEPP # Forward and reverse maneuvers.
+      angle_quantization_bins: 72
+      minimum_turning_radius: 0.40 # Initial curved-path radius; tune in simulation.
+      analytic_expansion_max_length: 3.0
+      cost_penalty: 2.0 # Prefer clearance when choosing the global route.
+      smooth_path: true
 
 smoother_server:
   ros__parameters:
@@ -219,7 +240,7 @@ behavior_server:
     enable_stamped_cmd_vel: false
     local_frame: odom
     global_frame: map
-    robot_base_frame: frame_assembly
+    robot_base_frame: base_link
     local_costmap_topic: local_costmap/costmap_raw
     global_costmap_topic: global_costmap/costmap_raw
     local_footprint_topic: local_costmap/published_footprint
@@ -227,9 +248,9 @@ behavior_server:
     cycle_frequency: 10.0
     transform_tolerance: 0.2
     simulate_ahead_time: 2.0
-    max_rotational_vel: 0.60
+    max_rotational_vel: 1.20
     min_rotational_vel: 0.10
-    rotational_acc_lim: 0.80
+    rotational_acc_lim: 1.20
     behavior_plugins: [spin, backup, drive_on_heading, wait]
     spin:
       plugin: nav2_behaviors::Spin
@@ -247,10 +268,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     feedback: OPEN_LOOP
     scale_velocities: false
-    max_velocity: [0.25, 0.0, 0.60]
-    min_velocity: [-0.15, 0.0, -0.60]
-    max_accel: [0.30, 0.0, 0.80]
-    max_decel: [-0.30, 0.0, -0.80]
+    max_velocity: [0.60, 0.0, 1.20]
+    min_velocity: [-0.40, 0.0, -1.20]
+    max_accel: [0.60, 0.0, 1.20]
+    max_decel: [-0.60, 0.0, -1.20]
     odom_topic: /odom
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]

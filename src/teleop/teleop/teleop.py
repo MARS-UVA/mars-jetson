@@ -3,7 +3,7 @@ import sys
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType, FloatingPointRange
 from teleop_msgs.msg import HumanInputState, GamepadState
 
@@ -145,18 +145,22 @@ class TeleopNode(Node):
             topic='arm_control_mode',
             qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
         )
+        self.robot_state = RobotState(state=RobotState.ESTOP)
         self._robot_state_subscriber = self.create_subscription(
             msg_type=RobotState,
             topic='robot_state',
             callback=self.__on_robot_state,
-            qos_profile=QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth= 1, reliability=QoSReliabilityPolicy.RELIABLE),
+            qos_profile=QoSProfile(
+                history=QoSHistoryPolicy.KEEP_LAST, depth=1,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+                durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            ),
         )
         self.__add_parameter_event_handlers()
         self.timer = self.create_timer(2, self.__stopped_motors)
         self.cruise_control = False
         self.cmd_vel = Twist()
         self.arm_drum_control = Float64MultiArray(data=[0.0, 0.0, 0.0, 0.0])
-        self.robot_state = RobotState()
 
         self.get_logger().info(f'linear axis: {self.__drive_control_strategy.linear_axis}')
         self.get_logger().info(f'turn axis: {self.__drive_control_strategy.turn_axis}')
@@ -176,11 +180,19 @@ class TeleopNode(Node):
         self.__drive_control_strategy = copy.copy(value)
     
     def __on_robot_state(self, robot_state: RobotState) -> None:
+        if self.robot_state.state != robot_state.state:
+            # A previous teleop cruise command must not survive a mode change.
+            self.cruise_control = False
+            self.arms_raising = False
+            self.cmd_vel = Twist()
+            self.arm_drum_control = Float64MultiArray(data=[0.0] * 4)
         self.robot_state = robot_state
         self.__stopped_motors()
 
     def __on_receive_human_input_state(self, human_input_state: HumanInputState) -> None:
         if self.robot_state.state != RobotState.TELEOP:
+            # Track button edges while navigation owns the robot too.
+            self.prev_gamepad_state = human_input_state.gamepad_state
             self.get_logger().info("Robot is not in teleop mode, ignoring human input state.")
             return
 

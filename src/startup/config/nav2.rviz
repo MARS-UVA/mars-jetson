@@ -190,7 +190,7 @@ Visualization Manager:
     Current:
       Class: rviz_default_plugins/TopDownOrtho
       Name: Current View
-      Target Frame: frame_assembly
+      Target Frame: base_link
       Scale: 60
       Angle: 0
       X: 0

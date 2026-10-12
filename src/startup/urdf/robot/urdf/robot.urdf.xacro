@@ -5,6 +5,17 @@
   <xacro:include filename="$(find startup)/urdf/robot/urdf/rgbd.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
+
+  <!-- Navigation convention: +X points toward the blue drums (-Y of CAD).
+       Keep the CAD frame and UI drive reversal unchanged. A selectable-front
+       implementation can add a separate logical frame/command adapter later. -->
+  <link name="base_link" />
+  <joint name="blue_forward_base_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="frame_assembly" />
+    <origin xyz="0 0 0" rpy="0 0 ${pi / 2}" />
+  </joint>
+
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
 
   <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" />
