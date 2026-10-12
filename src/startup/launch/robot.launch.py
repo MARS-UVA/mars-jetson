@@ -62,7 +62,7 @@ def generate_launch_description():
         executable='mux',
         name='cmd_vel_mux',
         output='screen',
-        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy'],
+        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy', '/cmd_vel/navigation'],
         respawn=True
     )
     arm_drum_mux = Node(
@@ -70,7 +70,7 @@ def generate_launch_description():
         executable='mux',
         name='arm_drum_mux',
         output='screen',
-        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
+        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy', '/arm_drum_control/stop'],
         respawn=True
     )
     robot_state_controller = Node(

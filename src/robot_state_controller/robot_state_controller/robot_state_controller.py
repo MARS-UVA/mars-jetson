@@ -4,13 +4,14 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
 from topic_tools_interfaces.srv import MuxSelect
 from robot_control_msgs.msg import RobotState
-from std_msgs.msg import UInt8
+from std_msgs.msg import Float64MultiArray, UInt8
 from rclpy.client import Client
 
 TELEOP_MODE = RobotState.TELEOP
 DIG_MODE = RobotState.DIG
 DUMP_MODE = RobotState.DUMP
 ESTOP_MODE = RobotState.ESTOP
+NAVIGATION_MODE = RobotState.NAVIGATION
 
 class RobotStateControllerNode(Node):
     """A ROS 2 node which controls the mux nodes based on the /robot_state topic"""
@@ -25,6 +26,12 @@ class RobotStateControllerNode(Node):
         self.arm_drum_mux_client_ = self.create_client(
             MuxSelect,
             'arm_drum_mux/select'
+        )
+        self.arm_drum_stop_publisher_ = self.create_publisher(
+            Float64MultiArray, 'arm_drum_control/stop', 1
+        )
+        self.arm_drum_stop_timer_ = self.create_timer(
+            0.05, self.publish_navigation_arm_drum_stop
         )
         
         self.robot_state_toggle_subscriber_ = self.create_subscription(
@@ -62,10 +69,18 @@ class RobotStateControllerNode(Node):
         elif self.state == DIG_MODE or self.state == DUMP_MODE:
             self.send_mux_request('cmd_vel/autonomy', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/autonomy', self.arm_drum_mux_client_)
+        elif self.state == NAVIGATION_MODE:
+            self.send_mux_request('cmd_vel/navigation', self.cmd_vel_mux_client_)
+            self.send_mux_request('arm_drum_control/stop', self.arm_drum_mux_client_)
         elif self.state == ESTOP_MODE:
             self.send_mux_request('cmd_vel/teleop', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/teleop', self.arm_drum_mux_client_)
         self.robot_state_publisher_.publish(RobotState(state=self.state))
+
+    def publish_navigation_arm_drum_stop(self) -> None:
+        """Keep arm and drum velocities at zero while navigation is selected."""
+        if self.state == NAVIGATION_MODE:
+            self.arm_drum_stop_publisher_.publish(Float64MultiArray(data=[0.0] * 4))
 
     def send_mux_request(self, topic: str, mux_client: Client) -> None:
         """Send a request to the mux node to select the given topic."""
