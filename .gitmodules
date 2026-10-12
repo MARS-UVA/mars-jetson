@@ -8,3 +8,6 @@
 [submodule "src/unilidar_sdk2"]
 	path = src/unilidar_sdk2
 	url = https://github.com/unitreerobotics/unilidar_sdk2.git
+[submodule "src/mars-ros-interfaces"]
+	path = src/mars-ros-interfaces
+	url = https://github.com/MARS-UVA/mars-ros-interfaces
