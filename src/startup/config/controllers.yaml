@@ -18,8 +18,8 @@ base_controller:
     linear.x.min_velocity: -0.80 # Reverse speed, m/s
 
     angular.z.has_velocity_limits: true
-    angular.z.max_velocity: 1.6  # Turning speed, rad/s
-    angular.z.min_velocity: -1.6
+    angular.z.max_velocity: 2.4  # Turning speed, rad/s; matches navigation.
+    angular.z.min_velocity: -2.4
     left_wheel_names:
       - front_left_wheel_joint
       - rear_left_wheel_joint
@@ -28,8 +28,8 @@ base_controller:
       - rear_right_wheel_joint
     wheel_separation: 0.4318
     wheel_radius: 0.1778  # 14-inch diameter from wheel.stl
-    base_frame_id: frame_assembly
-    # RTAB-Map visual odometry publishes odom -> frame_assembly for this setup.
+    base_frame_id: base_link
+    # RTAB-Map visual odometry publishes odom -> base_link for this setup.
     # Restore true when using wheel odometry as the TF source.
     enable_odom_tf: false
     publish_rate: 50.0

@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, PathJoinSubstitution, LaunchConfiguration, EnvironmentVariable, PythonExpression
 from launch.actions import DeclareLaunchArgument
@@ -7,6 +7,28 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
+
+
+def launch_nav2(context):
+    if not IfCondition(LaunchConfiguration('enable_nav2')).evaluate(context):
+        return []
+    if LaunchConfiguration('robot_backend').perform(context) != 'gazebo':
+        raise RuntimeError('enable_nav2 currently requires robot_backend:=gazebo')
+    for argument in ('enable_rtabmap', 'enable_rgbd', 'enable_lidar'):
+        if not IfCondition(LaunchConfiguration(argument)).evaluate(context):
+            raise RuntimeError(f'enable_nav2 requires {argument}:=true')
+    # Resolve Nav2 packages only inside the enabled navigation launch.
+    return [IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('startup'), 'launch', 'nav2.launch.py',
+        ])),
+        launch_arguments={
+            'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
+            'odom_topic': '/rtabmap/icp_odom',
+            'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
+        }.items(),
+    )]
+
 
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
@@ -26,6 +48,12 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'enable_local_lidar', default_value='false',
+        description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
+    ), DeclareLaunchArgument(
+        'enable_nav2', default_value='false',
+        description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',
+    ), DeclareLaunchArgument(
         'enable_rtabmap', default_value='false',
         description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors in Gazebo',
     ), DeclareLaunchArgument(
@@ -123,6 +151,12 @@ def generate_launch_description():
             'enable_rtabmap': enable_rtabmap,
             'RTABMap_sync': LaunchConfiguration('RTABMap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
+            'rviz_config': PathJoinSubstitution([
+                startup_pkg, 'config', PythonExpression([
+                    "'nav2.rviz' if '", LaunchConfiguration('enable_nav2'),
+                    "'.lower() in ('true', '1') else 'RGBDRViz.rviz'",
+                ]),
+            ]),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])
@@ -143,4 +177,5 @@ def generate_launch_description():
             value=control_station_ip,
         ),
         *nodes,
+        OpaqueFunction(function=launch_nav2),
     ])

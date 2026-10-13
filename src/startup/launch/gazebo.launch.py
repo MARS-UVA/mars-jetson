@@ -25,6 +25,13 @@ from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 import os
+import math
+
+
+# Gazebo spawns the URDF root (blue-forward base_link). Preserve the original
+# CAD frame_assembly world yaw despite its fixed +pi/2 joint from base_link.
+CAD_SPAWN_YAW = 1.5708
+CAD_YAW_IN_BASE = math.pi / 2
 
 
 def launch_rgbd_sync(context):
@@ -87,7 +94,7 @@ def launch_rtabmap(context):
         ])),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'frame_id': 'frame_assembly',
+            'frame_id': 'base_link',
             'visual_odometry': 'false' if enable_lidar else 'true',
             'icp_odometry': 'true' if enable_lidar else 'false',
             'depth': 'true' if enable_rgbd and not sync_rgbd else 'false',
@@ -102,6 +109,14 @@ def launch_rtabmap(context):
             'rtabmap_args': (
                 '--Reg/Strategy 1 --Reg/Force3DoF true '
                 '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
+                # Flat arena: wheel radius 0.1778 - axle Z 0.04445 gives
+                # ground Z ~-0.133 m in base_link. Allow ~5 cm floor tolerance.
+                '--Grid/NormalsSegmentation false --Grid/MaxGroundHeight -0.08 '
+                '--Grid/MapFrameProjection false --Grid/GroundIsObstacle false '
+                # Remove body returns from occupancy grids, in blue-forward base_link axes.
+                # Use the unpadded envelope; retain obstacles outside the robot.
+                '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '
+                '--Grid/FootprintHeight 0.50 '
                 '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
                 if enable_lidar else ''
             ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
@@ -112,7 +127,6 @@ def launch_rtabmap(context):
             'qos': '2',
             'rtabmap_viz': 'true',
             'rviz': 'false',
-            'database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
     )
     if sync_rgbd:
@@ -131,16 +145,17 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
     # Nodes important for running the simulation and controlling the robot
+    # Center the robot in the assumed 2 x 2 m starting zone.
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
         output='screen',
         arguments=['-topic', 'robot_description', '-name',
                    'Bruno', '-allow_renaming', 'true',
-                    '-x', '1.09',
-                    '-y', '-1.780',
+                    '-x', '1.00',
+                    '-y', '-1.50',
                     '-z', '0.12',
-                    '-Y', '1.5708',],
+                    '-Y', str(CAD_SPAWN_YAW - CAD_YAW_IN_BASE),],
     )
 
     # Bridge
@@ -199,6 +214,12 @@ def generate_launch_description():
     ld = LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument(
+            'rviz_config', default_value=PathJoinSubstitution([
+                FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
+            ]),
+            description='RViz configuration for mapping or navigation',
+        ),
+        DeclareLaunchArgument(
             'enable_rtabmap', default_value='false',
             description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors',
         ),
@@ -224,7 +245,10 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(PathJoinSubstitution([
                 FindPackageShare('startup'), 'launch', 'rgbd_sim.launch.py',
             ])),
-            launch_arguments={'use_sim_time': use_sim_time}.items(),
+            launch_arguments={
+                'use_sim_time': use_sim_time,
+                'rviz_config': LaunchConfiguration('rviz_config'),
+            }.items(),
             condition=IfCondition(LaunchConfiguration('enable_rgbd')),
         ),
         mock_actuator_feedback,

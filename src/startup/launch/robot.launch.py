@@ -4,8 +4,9 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -62,7 +63,7 @@ def generate_launch_description():
         executable='mux',
         name='cmd_vel_mux',
         output='screen',
-        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy'],
+        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy', '/cmd_vel/navigation'],
         respawn=True
     )
     arm_drum_mux = Node(
@@ -70,7 +71,7 @@ def generate_launch_description():
         executable='mux',
         name='arm_drum_mux',
         output='screen',
-        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy'],
+        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy', '/arm_drum_control/stop'],
         respawn=True
     )
     robot_state_controller = Node(
@@ -91,6 +92,12 @@ def generate_launch_description():
         executable='twist_stamper',
         name='twist_stamper',
         output='screen',
+        parameters=[{
+            'use_sim_time': ParameterValue(PythonExpression([
+                "'", LaunchConfiguration('robot_backend', default='serial'),
+                "' == 'gazebo'",
+            ]), value_type=bool),
+        }],
         respawn=True,
         remappings=[
             ('/cmd_vel_in', '/cmd_vel'),

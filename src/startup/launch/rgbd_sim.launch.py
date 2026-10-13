@@ -10,14 +10,17 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument(
+            'rviz_config', default_value=PathJoinSubstitution([
+                FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
+            ]),
+        ),
         Node(
             package='rviz2',
             executable='rviz2',
             name='rgbd_rviz',
             output='screen',
-            arguments=['-d', PathJoinSubstitution([
-                FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
-            ])],
+            arguments=['-d', LaunchConfiguration('rviz_config')],
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
         ),
         Node(
