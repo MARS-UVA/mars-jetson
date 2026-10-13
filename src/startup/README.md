@@ -9,7 +9,7 @@ ros2 launch startup launch.py robot_backend:=gazebo enable_rgbd:=true
 ```
 
 This adds two Gazebo `rgbd_camera` sensors, facing opposite sides of the robot
-(-Y/blue and +Y/orange in `body`), each tilted 15 degrees downward.
+(-Y/blue and +Y/orange in `frame_assembly`), each tilted 15 degrees downward.
 The blue camera sits above the legacy `rear_camera` position. The
 original front/rear cameras are independent. The option defaults to `false`.
 Restart the robot launch to change it; the sensor is part of the spawned URDF.
@@ -37,7 +37,7 @@ to feed both cameras to RTAB-Map.
 The image and calibration topics use sensor-data QoS and `rgbd_blue_optical_frame`. Gazebo's RGB and depth
 share the same viewpoint and calibration; `/rgbd_blue/camera_info` describes both.
 Depth is expected as `32FC1` in meters. The optical frame uses +Z forward,
-+X right, +Y down and is connected to `body` through `rgbd_blue_link`.
++X right, +Y down and is connected to `frame_assembly` through `rgbd_blue_link`.
 
 The native point cloud uses +X forward, +Y left, +Z up. A separate bridge sets
 its header frame to `rgbd_blue_link`, preserving the optical frame for images.
@@ -63,10 +63,10 @@ ros2 topic hz /rgbd_blue/color/image_raw --qos-reliability best_effort
 ros2 topic hz /rgbd_blue/depth/image_raw --qos-reliability best_effort
 ros2 topic echo /rgbd_blue/camera_info --once --qos-reliability best_effort
 ros2 topic echo /rgbd_blue/depth/image_raw --field encoding --once --qos-reliability best_effort
-ros2 run tf2_ros tf2_echo body rgbd_blue_optical_frame
+ros2 run tf2_ros tf2_echo frame_assembly rgbd_blue_optical_frame
 ```
 
-In RViz, use `body` as the fixed frame and an Image display for each
+In RViz, use `frame_assembly` as the fixed frame and an Image display for each
 image topic, selecting Best Effort reliability.
 Add a PointCloud2 display on `/rgbd_blue/points` with Best Effort reliability and
 RGB8 color to see the colored cloud. Stop any manually started bridge for this
@@ -104,7 +104,7 @@ creating the robot description with Xacro.
 Stop any manually launched RTAB-Map instance before using this option.
 The existing controller configuration disables wheel odometry TF publication
 (`enable_odom_tf: false`), allowing RTAB-Map odometry to own
-`odom -> body`. That controller setting also applies when RTAB-Map is
+`odom -> frame_assembly`. That controller setting also applies when RTAB-Map is
 disabled; restore it to true if returning to wheel odometry, and do not run
 RTAB-Map odometry TF alongside it.
 

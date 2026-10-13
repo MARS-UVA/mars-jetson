@@ -147,17 +147,16 @@ void DigDumpActionServer::execute(
   dig_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = this->get_parameter("dig_speed").as_double();
   dig_msg.arm_drum_control.data[BACK_DRUM_INDEX] = this->get_parameter("dig_speed").as_double();
 
+  std::fill(dump_msg.arm_drum_control.data.begin(), dump_msg.arm_drum_control.data.end(), 0.0);
   if (!back_arm_control_mode) {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is false, setting dump_msg to spin front drum and drive_msg to drive forward");
-    dump_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_control.data[FRONT_DRUM_INDEX] = -this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
   } else {
     RCLCPP_INFO(this->get_logger(), "Back arm control mode is true, setting dump_msg to spin back drum and drive_msg to drive backwards");
-    dump_msg.arm_drum_control.data[BACK_DRUM_INDEX] = this->get_parameter("dump_speed").as_double();
+    dump_msg.arm_drum_control.data[BACK_DRUM_INDEX] = -this->get_parameter("dump_speed").as_double();
     drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double()*-1;
   }
-
-  drive_msg.twist.linear.x = this->get_parameter("drive_speed").as_double();
 
   rclcpp::Rate loop_rate(10);
   const int action_type = goal_handle->get_goal()->index;
@@ -237,7 +236,7 @@ void DigDumpActionServer::execute(
     }
     case 2: {
       // dump
-      // Drive forward
+      // Drive toward the selected dumping end
       double elapsed_time = 0.0;
       while (elapsed_time < move_time) {
         if (goal_handle->is_canceling()) {
