@@ -33,6 +33,19 @@
     <xacro:configure_joint joint_name="rear_arm_joint" />
     <xacro:configure_joint joint_name="front_drum_joint" />
     <xacro:configure_joint joint_name="rear_drum_joint" />
+
+    <sensor name="unilidar_imu">
+      <state_interface name="orientation.x"/>
+      <state_interface name="orientation.y"/>
+      <state_interface name="orientation.z"/>
+      <state_interface name="orientation.w"/>
+      <state_interface name="angular_velocity.x"/>
+      <state_interface name="angular_velocity.y"/>
+      <state_interface name="angular_velocity.z"/>
+      <state_interface name="linear_acceleration.x"/>
+      <state_interface name="linear_acceleration.y"/>
+      <state_interface name="linear_acceleration.z"/>
+    </sensor>
   </ros2_control>
 
 </xacro:macro>

@@ -5,10 +5,14 @@ from launch.substitutions import Command, PathJoinSubstitution, LaunchConfigurat
 from launch.actions import DeclareLaunchArgument
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
 
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
+    enable_rtabmap = LaunchConfiguration("enable_rtabmap")
+    enable_rgbd = LaunchConfiguration("enable_rgbd")
+    enable_lidar = LaunchConfiguration("enable_lidar")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
     backend_arg = DeclareLaunchArgument(
@@ -21,7 +25,22 @@ def generate_launch_description():
         default_value=EnvironmentVariable("CONTROL_STATION_IP", default_value="192.168.50.60"),
         description="IP address of the control station for network communication",
     )
-    args = [backend_arg, control_station_ip_arg]
+    args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'enable_rtabmap', default_value='false',
+        description='Run RTAB-Map with the enabled RGB-D and LiDAR sensors in Gazebo',
+    ), DeclareLaunchArgument(
+        'RTABMap_sync', default_value='false',
+        description='Synchronize blue and orange RGB-D cameras for RTAB-Map',
+    ), DeclareLaunchArgument(
+        'rtabmap_database_path', default_value='/tmp/rgbd_visual_test.db',
+        description='RTAB-Map database to save or resume',
+    ), DeclareLaunchArgument(
+        'enable_rgbd', default_value=enable_rtabmap,
+        description='Add blue and orange RGB-D cameras when using the Gazebo backend',
+    ), DeclareLaunchArgument(
+        'enable_lidar', default_value=enable_rtabmap,
+        description='Enable the simulated LiDAR when using the Gazebo backend',
+    )]
 
     startup_pkg = FindPackageShare("startup")
 
@@ -57,6 +76,8 @@ def generate_launch_description():
         ]),
         " robot_backend:=", backend,
         " camera_update_rate:=30",
+        " enable_rgbd:=", enable_rgbd,
+        " enable_lidar:=", enable_lidar,
     ])
 
 
@@ -65,7 +86,9 @@ def generate_launch_description():
         executable='robot_state_publisher',
         output='screen',
         parameters=[{
-            'robot_description': robot_description
+            'robot_description': ParameterValue(robot_description, value_type=str),
+            'use_sim_time': ParameterValue(
+                PythonExpression(["'", backend, "' == 'gazebo'"]), value_type=bool),
         }],
     ))
 
@@ -94,10 +117,22 @@ def generate_launch_description():
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'gazebo.launch.py'])),
         launch_arguments={
-            'robot_backend': backend
+            'robot_backend': backend,
+            'enable_rgbd': enable_rgbd,
+            'enable_lidar': enable_lidar,
+            'enable_rtabmap': enable_rtabmap,
+            'RTABMap_sync': LaunchConfiguration('RTABMap_sync'),
+            'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])
+        )
+    ))
+
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'lidar.launch.py'])),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'"])
         )
     ))
 
