@@ -23,7 +23,6 @@
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>digdump</exec_depend>
   <exec_depend>gstreamer</exec_depend>
-  <exec_depend>network_communication</exec_depend>
   <exec_depend>robot_controller</exec_depend>
   <exec_depend>robot_state_controller</exec_depend>
   <exec_depend>serial_node</exec_depend>
