@@ -145,14 +145,15 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
     # Nodes important for running the simulation and controlling the robot
+    # Center the robot in the assumed 2 x 2 m starting zone.
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
         output='screen',
         arguments=['-topic', 'robot_description', '-name',
                    'Bruno', '-allow_renaming', 'true',
-                    '-x', '1.09',
-                    '-y', '-1.780',
+                    '-x', '1.00',
+                    '-y', '-1.50',
                     '-z', '0.12',
                     '-Y', str(CAD_SPAWN_YAW - CAD_YAW_IN_BASE),],
     )

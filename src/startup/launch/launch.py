@@ -25,6 +25,7 @@ def launch_nav2(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
             'odom_topic': '/rtabmap/icp_odom',
+            'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
         }.items(),
     )]
 
@@ -47,6 +48,9 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'enable_local_lidar', default_value='false',
+        description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
+    ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',
     ), DeclareLaunchArgument(
