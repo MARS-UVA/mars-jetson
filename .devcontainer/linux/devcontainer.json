@@ -31,17 +31,20 @@
         "QT_X11_NO_MITSHM": "1",
         "CONTROL_STATION_IP": "mars-control-station",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
-        "ROS_DOMAIN_ID": "42"
+        "ROS_DOMAIN_ID": "42",
+        "RMW_IMPLEMENTATION": "rmw_zenoh_cpp"
     },
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
     ],
-    "postCreateCommand": "git submodule update --init --recursive && sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "postCreateCommand": "git submodule update --init --recursive && sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y && bash .devcontainer/build-workspace.sh",
     "runArgs": [
         "--network=mars-dev",
         "--network-alias=mars-jetson",
-        "--device=/dev/dri",
         "-p",
-        "8080:8080/udp"
+        "7447:7447/tcp",
+        "-p",
+        "8080:8080/udp",
+        "--device=/dev/dri"
     ]
 }

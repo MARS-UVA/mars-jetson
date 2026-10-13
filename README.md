@@ -15,6 +15,10 @@ Where:
 - *[CONTROL_STATION_IP]* is the IP address of the control station laptop
 - *[BACKEND]* is the backend for the robot hardware interface (serial, gazebo, mock)
 
+For the Gazebo backend use `./gazebo_deploy.sh`, which also cleans up a leftover
+`gz sim` server. The control station connects over ROS 2 through rosbridge on
+its side and the Zenoh router this launch starts; see `docs/rosbridge.md`.
+
 ## Structure
 This repository is a ROS2 repository and has a hierarchical structure. The root folder or workspace directory is *src/*. Under this workspace directory exists project directories containing sub-modules of the larger project:
 - *src/actions/* includes programs that make up the **actions** node. These programs decide what motor and actuator actions to perform upon subscribing to the **communications** nodes. All motor and actuator current values (all motor are controlled by current levels) are passed through a buffer or array of bytes and constructed by the **actions** node.
@@ -25,8 +29,8 @@ This repository is a ROS2 repository and has a hierarchical structure. The root 
 1) Create local *ssh* private/public key pair and add public key to your GitHub account.
 2) Clone this repository (git@github.com:MARS-UVA/mars-jetson.git)
 3) To build specific features (each of which are on separate branches as of 1/15/2025), please refer to the README.md for each branch on how to run shell scripts and CMakeLists for building.
-4) To build ROS2 nodes, run *colcon build* from *src/*
-     * To run specific project such as *src/webapp_comms*, navigate to the desired project directory and run *colcon build*
+4) Open the repository in the dev container (see *.devcontainer/README.md*). On creation the container installs dependencies with rosdep and runs *colcon build --symlink-install* for you, so a fresh clone comes up with a working *install/* folder. If *build/*, *install/*, or *log/* were left over from a checkout mounted at a different path, the container deletes them and rebuilds from scratch.
+     * You only need to re-run *colcon build --symlink-install* by hand (from the workspace root) after pulling in new upstream packages. That is the normal ROS workflow, not a dev container issue.
 
 ** Make sure to source ROS2 Jazzy (/opt/ros2/jazzy/setup.sh) in order to ensure that the *ros2* command and make files during build will work. (dev container should do this automatically)
 

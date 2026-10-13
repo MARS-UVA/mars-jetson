@@ -29,7 +29,8 @@
     "containerEnv": {
         "CONTROL_STATION_IP": "mars-control-station",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
-        "ROS_DOMAIN_ID": "42"
+        "ROS_DOMAIN_ID": "42",
+        "RMW_IMPLEMENTATION": "rmw_zenoh_cpp"
     },
     "features": {
         "ghcr.io/devcontainers/features/desktop-lite:1": {
@@ -48,10 +49,12 @@
             "onAutoForward": "openBrowser"
         }
     },
-    "postCreateCommand": "git submodule update --init --recursive && sudo apt update && sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y",
+    "postCreateCommand": "git submodule update --init --recursive && sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y && bash .devcontainer/build-workspace.sh",
     "runArgs": [
         "--network=mars-dev",
         "--network-alias=mars-jetson",
+        "-p",
+        "7447:7447/tcp",
         "-p",
         "8080:8080/udp"
     ]
