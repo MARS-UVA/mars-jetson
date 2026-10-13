@@ -88,26 +88,33 @@ def launch_rtabmap(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'frame_id': 'frame_assembly',
-            'visual_odometry': 'false' if enable_lidar else 'true',
-            'icp_odometry': 'true' if enable_lidar else 'false',
+
+            # Turn off RTAB-Map internal odometry; use Point-LIO
+            'visual_odometry': 'false',
+            'icp_odometry': 'false',
+            'publish_tf_odom': 'false',                     # Point-LIO handles odom -> body TF
+            'odom_topic': '/aft_mapped_to_init',            # Point-LIO odometry output
+
             'depth': 'true' if enable_rgbd and not sync_rgbd else 'false',
             'subscribe_rgb': 'true' if enable_rgbd and not sync_rgbd else 'false',
             'subscribe_rgbd': 'true' if sync_rgbd else 'false',
             'rgbd_sync': 'false',
-            'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
-            'scan_cloud_topic': '/unilidar/cloud',
-            'publish_tf_odom': 'true',
-            'vo_frame_id': 'odom',
-            'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
-            'rtabmap_args': (
-                '--Reg/Strategy 1 --Reg/Force3DoF true '
-                '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
-                '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
-                if enable_lidar else ''
-            ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
             'rgb_topic': '/rgbd_blue/color/image_raw',
             'depth_topic': '/rgbd_blue/depth/image_raw',
             'camera_info_topic': '/rgbd_blue/camera_info',
+
+            # Feed deskewed body cloud from Point-LIO
+            'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
+            'scan_cloud_topic': '/cloud_registered_body',
+
+            'rtabmap_args': (
+                '--Reg/Strategy 1 --Reg/Force3DoF true '
+                '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
+                '--Icp/VoxelSize 0.05 --Icp/PointToPlane false '
+                '--Icp/MaxCorrespondenceDistance 0.2'
+                if enable_lidar else ''
+            ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
+
             'approx_sync': 'true',
             'qos': '2',
             'rtabmap_viz': 'true',
@@ -164,7 +171,7 @@ def generate_launch_description():
             '/unilidar/cloud/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
         ],
         remappings=[
-            ('/unilidar/cloud/points', '/unilidar/cloud')
+            ('/unilidar/cloud/points', '/unilidar/cloud_raw')
         ],
         output='screen'
     )
@@ -194,6 +201,10 @@ def generate_launch_description():
         arguments=['-d', PathJoinSubstitution([FindPackageShare('startup'), 'config', 'robot.rviz'])],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
+    )
+
+    sim_lidar_injector = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([FindPackageShare('startup'), 'launch', 'lidar_sim.launch.py'])),
     )
 
     ld = LaunchDescription([
@@ -234,7 +245,9 @@ def generate_launch_description():
         ),
         bridge,
         lidar_bridge,
+        sim_lidar_injector,
         camera_bridge,
+        rviz,
         # Launch gazebo environment
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(

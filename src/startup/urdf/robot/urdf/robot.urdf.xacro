@@ -51,7 +51,6 @@
 
   <xacro:if value="$(arg enable_lidar)">
     <gazebo reference="unilidar_link">
-
       <!-- 1. 3D LiDAR Sensor Profile (Unitree L2 Specifications) -->
       <sensor name="unilidar_cloud" type="gpu_lidar">
         <pose>0 0 0 0 0 0</pose>
@@ -59,24 +58,33 @@
         <ray>
           <scan>
             <horizontal>
+              <!-- 360-degree horizontal coverage -->
               <samples>360</samples>
               <resolution>1</resolution>
-              <min_angle>-3.14159</min_angle>
-              <max_angle>3.14159</max_angle>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
             </horizontal>
             <vertical>
-              <samples>32</samples> <!-- Unitree L2 features a dense vertical profile -->
+              <!-- L2 90° ultra-wide FOV: approx -47° to +43° -->
+              <samples>64</samples>
               <resolution>1</resolution>
-              <min_angle>-0.261799</min_angle> <!-- -15 deg -->
-              <max_angle>0.261799</max_angle>  <!-- +15 deg -->
+              <min_angle>-0.8203</min_angle> <!-- -47 deg -->
+              <max_angle>0.7505</max_angle>  <!-- +43 deg -->
             </vertical>
           </scan>
           <range>
-            <!-- Ignore close chassis returns; RGB-D covers nearby obstacles. -->
+            <!-- L2 minimum range is 0.05m; 90% target max range ~18.0m -->
             <min>0.5</min>
-            <max>30.0</max>
-            <resolution>0.01</resolution>
+            <!-- <min>0.05</min> -->
+            <max>18.0</max>
+            <resolution>0.005</resolution>
           </range>
+          <noise>
+            <!-- L2 typical ranging accuracy: 1-2 cm -->
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.015</stddev>
+          </noise>
         </ray>
         <always_on>true</always_on>
         <visualize>false</visualize>

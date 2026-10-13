@@ -11,16 +11,6 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rgbd_rviz',
-            output='screen',
-            arguments=['-d', PathJoinSubstitution([
-                FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
-            ])],
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-        ),
-        Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
             name='rgbd_blue_points_bridge',

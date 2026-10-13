@@ -31,6 +31,7 @@ setup(
     entry_points={
         'console_scripts': [
             'actuator_position_feedback = scripts.actuator_position_feedback:main',
+            'lidar_time_injector = scripts.lidar_time_injector:main',
         ],
     },
 )
