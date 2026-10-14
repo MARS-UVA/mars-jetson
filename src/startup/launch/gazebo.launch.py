@@ -35,10 +35,10 @@ CAD_YAW_IN_BASE = math.pi / 2
 
 
 def launch_rgbd_sync(context):
-    if not IfCondition(LaunchConfiguration('RTABMap_sync')).evaluate(context):
+    if not IfCondition(LaunchConfiguration('rtabmap_sync')).evaluate(context):
         return []
     if not IfCondition(LaunchConfiguration('enable_rgbd')).evaluate(context):
-        raise RuntimeError('RTABMap_sync requires enable_rgbd:=true')
+        raise RuntimeError('rtabmap_sync requires enable_rgbd:=true')
 
     nodes = []
     for camera in ('blue', 'orange'):
@@ -83,9 +83,9 @@ def launch_rtabmap(context):
     if not (enable_rgbd or enable_lidar):
         raise RuntimeError('enable_rtabmap requires enable_rgbd:=true or enable_lidar:=true')
 
-    sync_rgbd = IfCondition(LaunchConfiguration('RTABMap_sync')).evaluate(context)
+    sync_rgbd = IfCondition(LaunchConfiguration('rtabmap_sync')).evaluate(context)
     if sync_rgbd and not enable_rgbd:
-        raise RuntimeError('RTABMap_sync requires enable_rgbd:=true')
+        raise RuntimeError('rtabmap_sync requires enable_rgbd:=true')
 
     # Resolve the optional package only when RTAB-Map is requested.
     rtabmap = IncludeLaunchDescription(
@@ -236,7 +236,7 @@ def generate_launch_description():
             description='Bridge the optional simulated LiDAR (also enable it in robot_description)',
         ),
         DeclareLaunchArgument(
-            'RTABMap_sync', default_value='false',
+            'rtabmap_sync', default_value='false',
             description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
         ),
         OpaqueFunction(function=launch_rgbd_sync),

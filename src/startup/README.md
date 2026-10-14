@@ -124,10 +124,10 @@ The controller angular velocity limits are ±1.6 rad/s (previously ±0.8 rad/s).
 ## Synchronize both RGB-D cameras for RTAB-Map
 
 ```bash
-ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true RTABMap_sync:=true
+ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true rtabmap_sync:=true
 ```
 
-`RTABMap_sync` defaults to false and requires `enable_rgbd:=true`. It starts
+`rtabmap_sync` defaults to false and requires `enable_rgbd:=true`. It starts
 one `rtabmap_sync/rgbd_sync` node per camera, producing
 `/rgbd_blue/rgbd_image` and `/rgbd_orange/rgbd_image`. A
 `rtabmap_sync/rgbdx_sync` node synchronizes both into `/rgbd_images`
