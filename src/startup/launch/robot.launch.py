@@ -3,6 +3,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
@@ -82,9 +83,12 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'WARN'],
         respawn=True
     )
+    # Old WebRTC streamers. Cameras now reach the dashboard as H.264 topics over
+    # rosbridge; this stays available with legacy_webrtc:=true until it is removed.
     gstreamer = IncludeLaunchDescription(
       PythonLaunchDescriptionSource([os.path.join(
-         get_package_share_directory('gstreamer'), 'gstreamer_launch.py')])
+         get_package_share_directory('gstreamer'), 'gstreamer_launch.py')]),
+      condition=IfCondition(LaunchConfiguration('legacy_webrtc', default='false')),
     )
 
     twist_stamper = Node(

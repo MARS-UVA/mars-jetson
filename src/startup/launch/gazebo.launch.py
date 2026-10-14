@@ -188,7 +188,24 @@ def generate_launch_description():
         package='ros_gz_image',
         executable='image_bridge',
         arguments=['/front_camera/image_raw', '/rear_camera/image_raw'],
-        parameters=[{'qos': 'sensor_data', 'use_sim_time': use_sim_time}],
+        parameters=[{
+            'qos': 'sensor_data', 'use_sim_time': use_sim_time,
+            # H.264 for the dashboard, same settings as cameras.launch.py. The
+            # bridge publishes absolute topics, so the parameter prefix is the
+            # full topic path. Check with ros2 node list, then
+            # ros2 param list /<bridge node> | grep ffmpeg
+            **{
+                f'{cam}.image_raw.ffmpeg.{key}': value
+                for cam in ('front_camera', 'rear_camera')
+                for key, value in {
+                    'encoder': 'libx264',
+                    'encoder_av_options': 'preset:superfast,tune:zerolatency,profile:baseline',
+                    'gop_size': 30,
+                    'bit_rate': 300000,
+                    'qmax': 40,
+                }.items()
+            },
+        }],
         output='screen',
     )
 

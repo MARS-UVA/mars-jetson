@@ -48,6 +48,9 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'legacy_webrtc', default_value='false',
+        description='Also run the old GStreamer/WebRTC camera streamers (fallback until they are removed)',
+    ), DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
     ), DeclareLaunchArgument(
@@ -123,8 +126,18 @@ def generate_launch_description():
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'robot.launch.py'])),
         launch_arguments={
-            'robot_backend': backend
+            'robot_backend': backend,
+            'legacy_webrtc': LaunchConfiguration('legacy_webrtc'),
         }.items()
+    ))
+
+    # Real cameras (v4l2_camera, H.264 via ffmpeg_image_transport). Hardware only:
+    # Gazebo publishes the same topics from its image_bridge.
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'cameras.launch.py'])),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'"])
+        )
     ))
 
     nodes.append(Node(
