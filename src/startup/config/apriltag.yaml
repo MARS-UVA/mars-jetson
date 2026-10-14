@@ -1,0 +1,6 @@
+apriltag_node:
+  ros__parameters:
+    family: "36h11" # yoinked from startup/models
+    size: 0.136 # similarly snatched
+    max_hamming: 0
+    use_sim_time: true

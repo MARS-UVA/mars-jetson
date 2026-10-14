@@ -68,6 +68,7 @@ def launch_rgbd_sync(context):
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'rgbd_cameras': 2, 'approx_sync': True,
             'approx_sync_max_interval': 0.02, 'qos': 2,
+            'qos_camera_info': 2, 
         }],
         remappings=[
             ('rgbd_image0', '/rgbd_blue/rgbd_image'),
@@ -110,7 +111,9 @@ def launch_rtabmap(context):
             'vo_frame_id': 'odom',
             'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
             'rtabmap_args': (
-                '--Reg/Strategy 1 --Reg/Force3DoF true '
+                '-d '
+                '--Rtabmap/CreateIntermediateNodes false ' # avoids strange weight = -1 error
+                '--Reg/Strategy 1 '
                 '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
                 # Flat arena: wheel radius 0.1778 - axle Z 0.04445 gives
                 # ground Z ~-0.133 m in base_link. Allow ~5 cm floor tolerance.
@@ -123,6 +126,8 @@ def launch_rtabmap(context):
                 '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
                 if enable_lidar else ''
             ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
+            'subscribe_tag_detections': 'true',
+            'tag_topic': '/detections', 
             'rgb_topic': '/rgbd_blue/color/image_raw',
             'depth_topic': '/rgbd_blue/depth/image_raw',
             'camera_info_topic': '/rgbd_blue/camera_info',
@@ -168,6 +173,7 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/front_camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
         ],
         output='screen',
     )
