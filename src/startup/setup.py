@@ -30,7 +30,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'navigation_cloud_filter = startup.navigation_cloud_filter:main',
             'actuator_position_feedback = scripts.actuator_position_feedback:main',
         ],
     },

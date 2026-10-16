@@ -31,9 +31,6 @@
   <!-- Actuator feedback and hardware LiDAR support. -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>sensor_msgs_py</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>serial_msgs</exec_depend>
   <exec_depend>point_lio</exec_depend>
   <exec_depend>unitree_lidar_ros2</exec_depend>
@@ -44,9 +41,7 @@
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>rviz2</exec_depend>
-  <exec_depend>nav2_bringup</exec_depend>
-  <exec_depend>nav2_common</exec_depend>
-  <exec_depend>nav2_rotation_shim_controller</exec_depend>
+  <exec_depend>robot_navigation</exec_depend>
   <exec_depend>rtabmap_launch</exec_depend>
   <exec_depend>rtabmap_sync</exec_depend>
   <exec_depend>imu_tools</exec_depend>

@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, GroupAction
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
+from launch.substitutions import (
+    Command, EnvironmentVariable, FindExecutable, IfElseSubstitution,
+    LaunchConfiguration, NotSubstitution, PathJoinSubstitution,
+)
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetRemap
@@ -125,7 +128,7 @@ def launch_rtabmap(context):
             'camera_info_topic': '/rgbd_blue/camera_info',
             'approx_sync': 'true',
             'qos': '2',
-            'rtabmap_viz': 'true',
+            'rtabmap_viz': NotSubstitution(LaunchConfiguration('no_gui', default='false')),
             'rviz': 'false',
         }.items(),
     )
@@ -209,10 +212,19 @@ def generate_launch_description():
         arguments=['-d', PathJoinSubstitution([FindPackageShare('startup'), 'config', 'robot.rviz'])],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
+        condition=UnlessCondition(LaunchConfiguration('no_gui')),
     )
 
     ld = LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument(
+            'no_gui', default_value='false',
+            description='Run simulation without Gazebo, RViz, or RTAB-Map windows',
+        ),
+        DeclareLaunchArgument(
+            'enable_rviz', default_value=NotSubstitution(LaunchConfiguration('no_gui')),
+            description='Show the RGB-D or navigation RViz view',
+        ),
         DeclareLaunchArgument(
             'rviz_config', default_value=PathJoinSubstitution([
                 FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
@@ -248,6 +260,7 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': use_sim_time,
                 'rviz_config': LaunchConfiguration('rviz_config'),
+                'enable_rviz': LaunchConfiguration('enable_rviz'),
             }.items(),
             condition=IfCondition(LaunchConfiguration('enable_rgbd')),
         ),
@@ -265,7 +278,12 @@ def generate_launch_description():
                 [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
                                        'launch',
                                        'gz_sim.launch.py'])]),
-            launch_arguments=[('gz_args', [f' -r -v 1 ', 
+            launch_arguments=[('gz_args', [
+                    IfElseSubstitution(
+                        LaunchConfiguration('no_gui'),
+                        if_value=' -s --headless-rendering -r -v 1 ',
+                        else_value=' -r -v 1 ',
+                    ),
                     PathJoinSubstitution([
                         FindPackageShare('startup'),
                         'world',
