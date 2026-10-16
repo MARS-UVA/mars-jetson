@@ -118,7 +118,13 @@ def generate_launch_description():
             ('camera_info', '/front_camera/camera_info'),
         ],
         parameters=[
-            os.path.join(get_package_share_directory('startup'), 'config', 'apriltag.yaml')
+            os.path.join(get_package_share_directory('startup'), 'config', 'apriltag.yaml'),
+            {
+                'use_sim_time': ParameterValue(PythonExpression([
+                    "'", LaunchConfiguration('robot_backend', default='serial'),
+                    "' == 'gazebo'",
+                ]), value_type=bool),
+            },
         ],
         output='screen'
     )
