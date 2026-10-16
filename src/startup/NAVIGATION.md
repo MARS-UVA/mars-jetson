@@ -26,6 +26,19 @@ The main startup launch includes `robot_navigation/launch/navigation.launch.py` 
 `./gazebo_deploy.sh enable_rtabmap:=true enable_nav2:=true` wrapper additionally
 cleans up leftover Gazebo servers.
 
+To run without simulation windows, add `no_gui:=true`:
+
+```bash
+./deploy.sh robot_backend:=gazebo enable_rtabmap:=true enable_nav2:=true no_gui:=true
+```
+
+This suppresses Gazebo's GUI, both RViz windows, and RTAB-Map's viewer. The
+simulator server, sensors, mapping, and navigation still run; Gazebo uses
+headless rendering for its simulated cameras and LiDAR. To keep only the
+navigation view, also pass `enable_nav_view:=true`. To hide just the navigation
+view while keeping the other windows, pass `enable_nav_view:=false` without
+`no_gui:=true`. GUI behavior is unchanged when neither option is supplied.
+
 In another container terminal, use the same middleware and workspace overlay:
 
 ```bash

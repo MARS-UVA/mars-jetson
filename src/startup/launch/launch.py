@@ -2,7 +2,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
-    Command, EnvironmentVariable, IfElseSubstitution, LaunchConfiguration,
+    Command, EnvironmentVariable, IfElseSubstitution, LaunchConfiguration, NotSubstitution,
     PathJoinSubstitution, PythonExpression,
 )
 from launch.actions import DeclareLaunchArgument
@@ -51,6 +51,12 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+        'no_gui', default_value='false',
+        description='Disable Gazebo, RViz, and RTAB-Map windows in simulation',
+    ), DeclareLaunchArgument(
+        'enable_nav_view', default_value=NotSubstitution(LaunchConfiguration('no_gui')),
+        description='Show navigation RViz when Nav2 is enabled; overrides no_gui for this view',
+    ), DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
     ), DeclareLaunchArgument(
@@ -149,6 +155,12 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'gazebo.launch.py'])),
         launch_arguments={
             'robot_backend': backend,
+            'no_gui': LaunchConfiguration('no_gui'),
+            'enable_rviz': IfElseSubstitution(
+                LaunchConfiguration('enable_nav2'),
+                if_value=LaunchConfiguration('enable_nav_view'),
+                else_value=NotSubstitution(LaunchConfiguration('no_gui')),
+            ),
             'enable_rgbd': enable_rgbd,
             'enable_lidar': enable_lidar,
             'enable_rtabmap': enable_rtabmap,

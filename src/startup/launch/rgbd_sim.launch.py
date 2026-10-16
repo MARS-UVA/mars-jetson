@@ -2,6 +2,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -10,6 +11,10 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument(
+            'enable_rviz', default_value='true',
+            description='Show the RGB-D or navigation RViz view',
+        ),
         DeclareLaunchArgument(
             'rviz_config', default_value=PathJoinSubstitution([
                 FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
@@ -22,6 +27,7 @@ def generate_launch_description():
             output='screen',
             arguments=['-d', LaunchConfiguration('rviz_config')],
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            condition=IfCondition(LaunchConfiguration('enable_rviz')),
         ),
         Node(
             package='ros_gz_bridge',

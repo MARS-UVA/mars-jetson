@@ -26,6 +26,12 @@ RGB-D and LiDAR sensors to enabled. Navigation remains disabled by default.
 Add `enable_local_lidar:=true` to use the simulation LiDAR filter for local
 obstacles. Start only one Nav2 instance.
 
+Add `no_gui:=true` to disable all simulation windows (Gazebo, both RViz views,
+and RTAB-Map's viewer). Add `enable_nav_view:=true` as well to show only the
+navigation RViz view. `enable_nav_view:=false` hides that view while leaving
+the other windows enabled. These options belong to the main startup launch;
+the standalone navigation launch starts no GUI.
+
 | File | Parameters |
 | --- | --- |
 | `config/planner.yaml` | Smac Hybrid-A* global path planner |
