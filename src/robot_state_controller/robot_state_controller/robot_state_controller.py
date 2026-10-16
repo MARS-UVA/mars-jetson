@@ -66,9 +66,12 @@ class RobotStateControllerNode(Node):
         if self.state == TELEOP_MODE:
             self.send_mux_request('cmd_vel/teleop', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/teleop', self.arm_drum_mux_client_)
-        elif self.state == DIG_MODE or self.state == DUMP_MODE:
-            self.send_mux_request('cmd_vel/autonomy', self.cmd_vel_mux_client_)
-            self.send_mux_request('arm_drum_control/autonomy', self.arm_drum_mux_client_)
+        elif self.state == DIG_MODE:
+            self.send_mux_request('cmd_vel/dig', self.cmd_vel_mux_client_)
+            self.send_mux_request('arm_drum_control/dig', self.arm_drum_mux_client_)
+        elif self.state == DUMP_MODE:
+            self.send_mux_request('cmd_vel/dump', self.cmd_vel_mux_client_)
+            self.send_mux_request('arm_drum_control/dump', self.arm_drum_mux_client_)
         elif self.state == NAVIGATION_MODE:
             self.send_mux_request('cmd_vel/navigation', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/stop', self.arm_drum_mux_client_)
