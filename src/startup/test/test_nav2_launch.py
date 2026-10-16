@@ -78,7 +78,7 @@ def test_enabled_navigation_includes_new_package_and_matching_arguments(sim_time
     source = actions[0].launch_description_source
     source.get_launch_description(ctx)
     path = Path(source.location)
-    package_share = Path(FindPackageShare('nav2_config').perform(ctx))
+    package_share = Path(FindPackageShare('robot_navigation').perform(ctx))
     assert path == package_share / 'launch/navigation.launch.py'
     assert path.is_file()
 
@@ -94,14 +94,14 @@ def test_rviz_selection_only_resolves_navigation_package_when_enabled(enabled, m
     original_find = FindPackageShare.find
 
     def find_package(self, package_name):
-        if enabled in ('false', '0') and package_name == 'nav2_config':
+        if enabled in ('false', '0') and package_name == 'robot_navigation':
             raise AssertionError('Nav2 package resolved while navigation is disabled')
         return original_find(self, package_name)
 
     monkeypatch.setattr(FindPackageShare, 'find', find_package)
     rviz = dict(gazebo.launch_arguments)['rviz_config'].perform(ctx)
     if enabled in ('true', '1'):
-        package_share = Path(FindPackageShare('nav2_config').perform(ctx))
+        package_share = Path(FindPackageShare('robot_navigation').perform(ctx))
         expected = package_share / 'rviz/navigation.rviz'
     else:
         expected = Path(FindPackageShare('startup').perform(ctx)) / 'config/RGBDRViz.rviz'

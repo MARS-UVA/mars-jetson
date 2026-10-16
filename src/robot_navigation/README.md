@@ -8,9 +8,9 @@ server or localization system.
 Build and launch in a sourced ROS 2 Jazzy workspace:
 
 ```bash
-colcon build --symlink-install --packages-select nav2_config
+colcon build --symlink-install --packages-select robot_navigation
 source install/setup.bash
-ros2 launch nav2_config navigation.launch.py use_sim_time:=true
+ros2 launch robot_navigation navigation.launch.py use_sim_time:=true
 ```
 
 The main `startup` launch includes this package when `enable_nav2:=true` and

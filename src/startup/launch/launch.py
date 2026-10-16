@@ -23,7 +23,7 @@ def launch_nav2(context):
     # Resolve Nav2 packages only inside the enabled navigation launch.
     return [IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
-            FindPackageShare('nav2_config'), 'launch', 'navigation.launch.py',
+            FindPackageShare('robot_navigation'), 'launch', 'navigation.launch.py',
         ])),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
@@ -157,7 +157,7 @@ def generate_launch_description():
             'rviz_config': IfElseSubstitution(
                 LaunchConfiguration('enable_nav2'),
                 if_value=PathJoinSubstitution([
-                    FindPackageShare('nav2_config'), 'rviz', 'navigation.rviz',
+                    FindPackageShare('robot_navigation'), 'rviz', 'navigation.rviz',
                 ]),
                 else_value=PathJoinSubstitution([
                     startup_pkg, 'config', 'RGBDRViz.rviz',

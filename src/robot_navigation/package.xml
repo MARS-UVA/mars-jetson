@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>nav2_config</name>
+  <name>robot_navigation</name>
   <version>0.0.0</version>
   <description>Robot-specific Nav2 launch, tuning, and simulation cloud filtering.</description>
   <maintainer email="surya.selvam03@gmail.com">Surya Selvam</maintainer>

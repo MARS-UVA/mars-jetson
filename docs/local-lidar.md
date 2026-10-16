@@ -1,6 +1,6 @@
 # Local navigation LiDAR
 
-RGB-D remains the default local obstacle source. After rebuilding `nav2_config`
+RGB-D remains the default local obstacle source. After rebuilding `robot_navigation`
 and `startup`, enable filtered LiDAR in simulation with:
 
 ```bash
@@ -22,7 +22,7 @@ exit means its startup traceback must be resolved before navigation.
 ## Hardware preparation
 
 The integrated navigation launch currently requires Gazebo. The standalone
-`ros2 launch nav2_config navigation.launch.py` supports
+`ros2 launch robot_navigation navigation.launch.py` supports
 `enable_local_lidar:=true use_sim_time:=false`, but the
 hardware map, odometry TF, command routing, and observation sources must be
 configured separately before enabling robot motion.
@@ -32,7 +32,7 @@ The hardware driver uses cloud frame `unilidar_lidar`; the URDF currently has
 origin and axes to the model. Do not merely relabel the cloud. Confirm points
 line up with the robot and obstacles in RViz before using them for navigation.
 
-The filter now belongs to `nav2_config`; its parameters are in
+The filter now belongs to `robot_navigation`; its parameters are in
 `config/local_costmap.yaml`. Calibrate `navigation_cloud_filter`'s body bounds
 and `min_height_in_base` / `max_height_in_base` in your hardware configuration
 directory (passed with `config_dir`). The defaults assume this

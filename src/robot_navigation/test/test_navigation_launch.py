@@ -80,7 +80,7 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
             'navigation_cloud_filter']['ros__parameters']
         assert cloud_filter['use_sim_time'] is (sim_time == 'true')
         assert cloud_filter['output_topic'] == local['voxel_layer']['lidar']['topic']
-        assert nodes['navigation_cloud_filter'].node_package == 'nav2_config'
+        assert nodes['navigation_cloud_filter'].node_package == 'robot_navigation'
     assert local['voxel_layer']['observation_sources'] == expected_sources
 
     for name in ('controller_server', 'behavior_server'):

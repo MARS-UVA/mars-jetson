@@ -21,7 +21,7 @@ The deploy script builds the workspace and sources its overlay. The launch requi
 enabled. Enabling RTAB-Map supplies the latter two defaults. Hardware/serial Nav2
 startup is not integrated yet.
 
-The main startup launch includes `nav2_config/launch/navigation.launch.py` when
+The main startup launch includes `robot_navigation/launch/navigation.launch.py` when
 `enable_nav2:=true`. `deploy.sh` forwards all ROS launch arguments. The optional
 `./gazebo_deploy.sh enable_rtabmap:=true enable_nav2:=true` wrapper additionally
 cleans up leftover Gazebo servers.
@@ -80,7 +80,7 @@ used by the global costmap. Confirm `/rtabmap/map` publication and QoS at runtim
 The drive controller has `enable_odom_tf: false`; keep one publisher for each TF
 edge. This navigation launch starts neither AMCL nor a map server.
 
-`nav2_config/launch/navigation.launch.py` starts the controller, planner, smoother,
+`robot_navigation/launch/navigation.launch.py` starts the controller, planner, smoother,
 behavior, BT navigator, and velocity smoother servers plus their lifecycle
 manager. Both controller and
 recovery velocities pass through the same velocity smoother and mux. The launch
@@ -102,10 +102,10 @@ by this integration.
 
 ## Configuration and tuning assumptions
 
-Edit the split YAML files in [nav2_config/config](../nav2_config/config) for
+Edit the split YAML files in [robot_navigation/config](../robot_navigation/config) for
 planning, controller, costmaps, behaviors, and both smoothers. See the
-[package guide](../nav2_config/README.md) for the file layout and launch arguments.
-[navigation.rviz](../nav2_config/rviz/navigation.rviz) defines the navigation view.
+[package guide](../robot_navigation/README.md) for the file layout and launch arguments.
+[navigation.rviz](../robot_navigation/rviz/navigation.rviz) defines the navigation view.
 
 - **Planner:** Smac Hybrid-A* checks the rectangular footprint at each heading,
   with forward/reverse Reeds-Shepp paths and built-in smoothing. The initial

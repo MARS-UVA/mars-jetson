@@ -50,7 +50,7 @@ def launch_navigation(context):
     nodes = []
     if local_lidar:
         nodes.append(Node(
-            package='nav2_config', executable='navigation_cloud_filter',
+            package='robot_navigation', executable='navigation_cloud_filter',
             name='navigation_cloud_filter', output='screen',
             parameters=[configured_params['local_costmap.yaml']],
         ))
@@ -89,7 +89,7 @@ def generate_launch_description():
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
         DeclareLaunchArgument(
             'config_dir', default_value=PathJoinSubstitution([
-                FindPackageShare('nav2_config'), 'config',
+                FindPackageShare('robot_navigation'), 'config',
             ]),
             description='Directory containing the seven Nav2 parameter files',
         ),
