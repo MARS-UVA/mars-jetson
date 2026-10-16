@@ -18,7 +18,7 @@
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
 
-  <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" />
+  <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" serial_port="$(arg serial_port)" />
 
   <xacro:macro name="gazebo_camera" params="name">
     <gazebo reference="${name}_camera_link">

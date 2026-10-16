@@ -36,6 +36,7 @@ def generate_launch_description():
     enable_rgbd = LaunchConfiguration("enable_rgbd")
     enable_lidar = LaunchConfiguration("enable_lidar")
     control_station_ip = LaunchConfiguration("control_station_ip")
+    serial_port = LaunchConfiguration("serial_port")
 
     backend_arg = DeclareLaunchArgument(
         "robot_backend",
@@ -68,6 +69,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
+    ), DeclareLaunchArgument(
+        'serial_port', default_value='/dev/ttyUSB0',
+        description='Serial port for the robot hardware interface when using the serial backend',
     )]
 
     startup_pkg = FindPackageShare("startup")
@@ -106,6 +110,7 @@ def generate_launch_description():
         " camera_update_rate:=30",
         " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
+        " serial_port:=", serial_port
     ])
 
 
@@ -125,21 +130,6 @@ def generate_launch_description():
         launch_arguments={
             'robot_backend': backend
         }.items()
-    ))
-
-    nodes.append(Node(
-        package='serial_node',
-        executable='op_reader',
-        name='serial_node',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN'],
-        parameters=[
-            {'mock_serial': EnvironmentVariable('MOCK_SERIAL', default_value='0')}
-        ],
-        respawn=True,
-        condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'"])
-        )
     ))
 
     nodes.append(IncludeLaunchDescription(
@@ -164,7 +154,10 @@ def generate_launch_description():
     ))
 
     nodes.append(IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'lidar.launch.py'])),
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'physical.launch.py'])),
+        launch_arguments={
+            'robot_description': robot_description,
+        }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'serial'"])
         )

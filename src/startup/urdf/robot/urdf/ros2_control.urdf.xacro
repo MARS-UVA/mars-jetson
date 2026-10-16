@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<xacro:macro name="robot_ros2_control" params="robot_backend">
+<xacro:macro name="robot_ros2_control" params="robot_backend serial_port">
 
   <ros2_control name="RobotSystem" type="system">
     <hardware>
@@ -12,7 +12,9 @@
         <plugin>mock_components/GenericSystem</plugin>
       </xacro:if>
       <xacro:if value="${robot_backend == 'serial'}">
-        <plugin>mock_components/GenericSystem</plugin>
+        <plugin>robot_serial_hardware/RobotSerialHardware</plugin>
+        <param name="port">${serial_port}</param>
+        <param name="baudrate">115200</param>
       </xacro:if>
     </hardware>
 
