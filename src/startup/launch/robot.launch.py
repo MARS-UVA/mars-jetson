@@ -32,22 +32,32 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'WARN'],
         respawn=True
     )
-    digdump = Node(
-        package='digdump',
-        executable='action_server',
-        name='digdump',
+    dig = Node(
+        package='digdump_actions',
+        executable='dig_node',
+        name='dig_node',
         output='screen',
         parameters=[{
             'actuator_speed_aerial': 1.0,
             'actuator_speed_ground': 0.75,
             'dig_speed': 0.75,
-            'dump_speed': 1.0,
-            'drive_speed': 0.25,
             'dig_time': 3.0,
-            'dump_time': 6.0,
-            'move_time': 6.0,
             'actuator_extend_length_aerial': 0.69,
             'actuator_extend_length_ground': 0.9,
+            'actuator_raise_target': 0.6,
+        }],
+        respawn=True
+    )
+    dump = Node(
+        package='digdump_actions',
+        executable='dump_node',
+        name='dump_node',
+        output='screen',
+        parameters=[{
+            'dump_speed': 1.0,
+            'drive_speed': 0.25,
+            'dump_time': 6.0,
+            'move_time': 6.0,
         }],
         respawn=True
     )
@@ -64,7 +74,7 @@ def generate_launch_description():
         executable='mux',
         name='cmd_vel_mux',
         output='screen',
-        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/autonomy', '/cmd_vel/navigation'],
+        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/dig', '/cmd_vel/dump', '/cmd_vel/navigation'],
         respawn=True
     )
     arm_drum_mux = Node(
@@ -72,7 +82,7 @@ def generate_launch_description():
         executable='mux',
         name='arm_drum_mux',
         output='screen',
-        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/autonomy', '/arm_drum_control/stop'],
+        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/dig', '/arm_drum_control/dump', '/arm_drum_control/stop'],
         respawn=True
     )
     robot_state_controller = Node(
@@ -150,7 +160,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         teleop, 
-        digdump,
+        dig,
+        dump,
         controller,
         cmd_vel_mux,
         arm_drum_mux,
