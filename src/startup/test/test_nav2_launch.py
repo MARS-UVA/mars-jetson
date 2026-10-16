@@ -1,12 +1,13 @@
-"""Check optional startup, parameter rewriting, and the complete command path."""
+"""Check optional Nav2 integration, prerequisites, and RViz selection."""
 from pathlib import Path
 import runpy
 
 import pytest
-import yaml
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
+from launch.utilities import perform_substitutions
+from launch_ros.substitutions import FindPackageShare
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,57 +48,62 @@ def test_integrated_navigation_requires_gazebo():
         launch['launch_nav2'](context(enable_nav2='true', robot_backend='serial'))
 
 
-@pytest.mark.parametrize('sim_time,odom_topic', [
-    ('true', '/rtabmap/icp_odom'), ('false', '/rtabmap/visual_odom')])
-def test_navigation_routes_commands_and_rewrites_all_parameters(sim_time, odom_topic):
-    launch = runpy.run_path(str(ROOT / 'launch/nav2.launch.py'))
-    ctx = context(params_file=str(ROOT / 'config/nav2.yaml'),
-                  use_sim_time=sim_time, odom_topic=odom_topic, autostart='true')
-    nodes = launch['launch_navigation'](ctx)
-    assert all(isinstance(node, Node) for node in nodes)
-    for node in nodes:
-        # Expand the real launch substitutions without starting any processes.
-        node._perform_substitutions(ctx)
-    by_name = {node.node_name.lstrip('/'): node for node in nodes}
-    assert set(by_name) == {
-        'controller_server', 'planner_server', 'smoother_server',
-        'behavior_server', 'bt_navigator', 'velocity_smoother',
-        'lifecycle_manager_navigation'}
-    for name in ('controller_server', 'behavior_server'):
-        assert by_name[name].expanded_remapping_rules == [
-            ('cmd_vel', '/cmd_vel/navigation_raw')]
-    assert by_name['velocity_smoother'].expanded_remapping_rules == [
-        ('cmd_vel', '/cmd_vel/navigation_raw'),
-        ('cmd_vel_smoothed', '/cmd_vel/navigation')]
-    filename = by_name['controller_server']._Node__expanded_parameter_arguments[0][0]
-    params = yaml.safe_load(Path(filename).read_text())
-    def check(value):
-        if not isinstance(value, dict):
-            return
-        for key, item in value.items():
-            if key == 'use_sim_time':
-                assert item == (sim_time == 'true')
-            if key == 'odom_topic':
-                assert item == odom_topic
-            check(item)
-    check(params)
-    assert params['local_costmap']['local_costmap']['ros__parameters']['use_sim_time'] == (sim_time == 'true')
-    lifecycle_file = by_name['lifecycle_manager_navigation']._Node__expanded_parameter_arguments[0][0]
-    # launch_ros serializes normalized string arrays as YAML tuples.
-    lifecycle = yaml.full_load(Path(lifecycle_file).read_text())
-    manager = lifecycle['/lifecycle_manager_navigation']['ros__parameters']
-    assert manager['autostart'] is True
-    assert set(manager['node_names']) == set(by_name) - {'lifecycle_manager_navigation'}
+def test_deploy_arguments_supply_sensor_defaults_and_simulation_clock():
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    ctx = context(robot_backend='gazebo', enable_rtabmap='true', enable_nav2='true')
+    for action in launch['generate_launch_description']().entities:
+        if isinstance(action, DeclareLaunchArgument):
+            action.execute(ctx)
+    assert ctx.launch_configurations['enable_rgbd'] == 'true'
+    assert ctx.launch_configurations['enable_lidar'] == 'true'
+    navigation = launch['launch_nav2'](ctx)
+    arguments = dict(navigation[0].launch_arguments)
+    assert perform_substitutions(ctx, [arguments['use_sim_time']]) == 'true'
+    assert perform_substitutions(ctx, [arguments['enable_local_lidar']]) == 'false'
 
 
-def test_enabled_navigation_includes_matching_odometry_and_clock():
-    from launch.utilities import perform_substitutions
+@pytest.mark.parametrize('sim_time', ['true', 'false'])
+@pytest.mark.parametrize('local_lidar', ['true', 'false'])
+def test_enabled_navigation_includes_new_package_and_matching_arguments(sim_time, local_lidar):
     launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
     ctx = context(enable_nav2='true', robot_backend='gazebo',
                   enable_rtabmap='true', enable_rgbd='true', enable_lidar='true',
-                  use_sim_time='true')
+                  use_sim_time=sim_time, enable_local_lidar=local_lidar)
     actions = launch['launch_nav2'](ctx)
     assert len(actions) == 1
     arguments = dict(actions[0].launch_arguments)
     assert arguments['odom_topic'] == '/rtabmap/icp_odom'
-    assert perform_substitutions(ctx, [arguments['use_sim_time']]) == 'true'
+    assert perform_substitutions(ctx, [arguments['use_sim_time']]) == sim_time
+    assert perform_substitutions(ctx, [arguments['enable_local_lidar']]) == local_lidar
+    source = actions[0].launch_description_source
+    source.get_launch_description(ctx)
+    path = Path(source.location)
+    package_share = Path(FindPackageShare('robot_navigation').perform(ctx))
+    assert path == package_share / 'launch/navigation.launch.py'
+    assert path.is_file()
+
+
+@pytest.mark.parametrize('enabled', ['true', '1', 'false', '0'])
+def test_rviz_selection_only_resolves_navigation_package_when_enabled(enabled, monkeypatch):
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    description = launch['generate_launch_description']()
+    ctx = context(enable_nav2=enabled)
+    gazebo = next(action for action in description.entities
+                  if isinstance(action, IncludeLaunchDescription)
+                  and 'rviz_config' in dict(action.launch_arguments))
+    original_find = FindPackageShare.find
+
+    def find_package(self, package_name):
+        if enabled in ('false', '0') and package_name == 'robot_navigation':
+            raise AssertionError('Nav2 package resolved while navigation is disabled')
+        return original_find(self, package_name)
+
+    monkeypatch.setattr(FindPackageShare, 'find', find_package)
+    rviz = dict(gazebo.launch_arguments)['rviz_config'].perform(ctx)
+    if enabled in ('true', '1'):
+        package_share = Path(FindPackageShare('robot_navigation').perform(ctx))
+        expected = package_share / 'rviz/navigation.rviz'
+    else:
+        expected = Path(FindPackageShare('startup').perform(ctx)) / 'config/RGBDRViz.rviz'
+    assert Path(rviz) == expected
+    assert expected.is_file()

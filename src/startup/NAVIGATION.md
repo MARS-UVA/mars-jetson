@@ -13,13 +13,31 @@ before resolving workspace dependencies and building, including the interface
 submodule that defines `RobotState.NAVIGATION`.
 
 ```bash
-./gazebo_deploy.sh enable_rtabmap:=true enable_nav2:=true
+./deploy.sh robot_backend:=gazebo enable_rtabmap:=true enable_nav2:=true
 ```
 
 The deploy script builds the workspace and sources its overlay. The launch requires
 `enable_rtabmap`, `enable_rgbd`, and `enable_lidar` to be true when navigation is
 enabled. Enabling RTAB-Map supplies the latter two defaults. Hardware/serial Nav2
 startup is not integrated yet.
+
+The main startup launch includes `robot_navigation/launch/navigation.launch.py` when
+`enable_nav2:=true`. `deploy.sh` forwards all ROS launch arguments. The optional
+`./gazebo_deploy.sh enable_rtabmap:=true enable_nav2:=true` wrapper additionally
+cleans up leftover Gazebo servers.
+
+To run without simulation windows, add `no_gui:=true`:
+
+```bash
+./deploy.sh robot_backend:=gazebo enable_rtabmap:=true enable_nav2:=true no_gui:=true
+```
+
+This suppresses Gazebo's GUI, both RViz windows, and RTAB-Map's viewer. The
+simulator server, sensors, mapping, and navigation still run; Gazebo uses
+headless rendering for its simulated cameras and LiDAR. To keep only the
+navigation view, also pass `enable_nav_view:=true`. To hide just the navigation
+view while keeping the other windows, pass `enable_nav_view:=false` without
+`no_gui:=true`. GUI behavior is unchanged when neither option is supplied.
 
 In another container terminal, use the same middleware and workspace overlay:
 
@@ -75,16 +93,18 @@ used by the global costmap. Confirm `/rtabmap/map` publication and QoS at runtim
 The drive controller has `enable_odom_tf: false`; keep one publisher for each TF
 edge. This navigation launch starts neither AMCL nor a map server.
 
-`nav2.launch.py` starts the controller, planner, smoother, behavior, BT navigator,
-and velocity smoother servers plus their lifecycle manager. Both controller and
+`robot_navigation/launch/navigation.launch.py` starts the controller, planner, smoother,
+behavior, BT navigator, and velocity smoother servers plus their lifecycle
+manager. Both controller and
 recovery velocities pass through the same velocity smoother and mux. The launch
 does not start a collision monitor, route server, docking server, or waypoint follower.
 
 The configuration uses `/odom` as a placeholder parameter value. The navigation
 launch rewrites each `odom_topic` to `/rtabmap/icp_odom` for the integrated launch;
 it does not create a new `/odom` publisher. The standalone launch accepts
-`odom_topic`, `params_file`, `use_sim_time`, and `autostart`, assuming that its caller
-already provides map, TF, sensors, and command selection. Avoid starting a second
+`odom_topic`, `config_dir`, `use_sim_time`, `autostart`, and `enable_local_lidar`,
+assuming that its caller already provides map, TF, sensors, and command selection.
+Avoid starting a second
 Nav2 instance alongside the integrated launch.
 
 During navigation, arms and drums are held at zero through their mux. Recovery
@@ -95,8 +115,10 @@ by this integration.
 
 ## Configuration and tuning assumptions
 
-Edit [config/nav2.yaml](config/nav2.yaml) for planning, controller, and costmaps;
-[config/nav2.rviz](config/nav2.rviz) defines the navigation view.
+Edit the split YAML files in [robot_navigation/config](../robot_navigation/config) for
+planning, controller, costmaps, behaviors, and both smoothers. See the
+[package guide](../robot_navigation/README.md) for the file layout and launch arguments.
+[navigation.rviz](../robot_navigation/rviz/navigation.rviz) defines the navigation view.
 
 - **Planner:** Smac Hybrid-A* checks the rectangular footprint at each heading,
   with forward/reverse Reeds-Shepp paths and built-in smoothing. The initial

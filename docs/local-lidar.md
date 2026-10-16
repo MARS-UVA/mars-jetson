@@ -1,7 +1,7 @@
 # Local navigation LiDAR
 
-RGB-D remains the default local obstacle source. After rebuilding `startup`,
-enable filtered LiDAR in simulation with:
+RGB-D remains the default local obstacle source. After rebuilding `robot_navigation`
+and `startup`, enable filtered LiDAR in simulation with:
 
 ```bash
 ./gazebo_deploy.sh enable_rtabmap:=true enable_nav2:=true enable_local_lidar:=true
@@ -22,7 +22,8 @@ exit means its startup traceback must be resolved before navigation.
 ## Hardware preparation
 
 The integrated navigation launch currently requires Gazebo. The standalone
-`nav2.launch.py` supports `enable_local_lidar:=true use_sim_time:=false`, but the
+`ros2 launch robot_navigation navigation.launch.py` supports
+`enable_local_lidar:=true use_sim_time:=false`, but the
 hardware map, odometry TF, command routing, and observation sources must be
 configured separately before enabling robot motion.
 
@@ -31,8 +32,10 @@ The hardware driver uses cloud frame `unilidar_lidar`; the URDF currently has
 origin and axes to the model. Do not merely relabel the cloud. Confirm points
 line up with the robot and obstacles in RViz before using them for navigation.
 
-Calibrate `navigation_cloud_filter`'s body bounds and `min_height_in_base` /
-`max_height_in_base` in your hardware parameter file. The defaults assume this
+The filter now belongs to `robot_navigation`; its parameters are in
+`config/local_costmap.yaml`. Calibrate `navigation_cloud_filter`'s body bounds
+and `min_height_in_base` / `max_height_in_base` in your hardware configuration
+directory (passed with `config_dir`). The defaults assume this
 simulation's flat floor at roughly Z=-0.13 m. They are not ground segmentation
 for slopes or uneven terrain. The voxel layer's height limits are instead in
 `odom`; those also need to match your hardware odometry origin. Check raised
