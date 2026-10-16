@@ -1,7 +1,10 @@
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, PathJoinSubstitution, LaunchConfiguration, EnvironmentVariable, PythonExpression
+from launch.substitutions import (
+    Command, EnvironmentVariable, IfElseSubstitution, LaunchConfiguration,
+    PathJoinSubstitution, PythonExpression,
+)
 from launch.actions import DeclareLaunchArgument
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
@@ -20,7 +23,7 @@ def launch_nav2(context):
     # Resolve Nav2 packages only inside the enabled navigation launch.
     return [IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
-            FindPackageShare('startup'), 'launch', 'nav2.launch.py',
+            FindPackageShare('nav2_config'), 'launch', 'navigation.launch.py',
         ])),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
@@ -151,12 +154,15 @@ def generate_launch_description():
             'enable_rtabmap': enable_rtabmap,
             'rtabmap_sync': LaunchConfiguration('rtabmap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
-            'rviz_config': PathJoinSubstitution([
-                startup_pkg, 'config', PythonExpression([
-                    "'nav2.rviz' if '", LaunchConfiguration('enable_nav2'),
-                    "'.lower() in ('true', '1') else 'RGBDRViz.rviz'",
+            'rviz_config': IfElseSubstitution(
+                LaunchConfiguration('enable_nav2'),
+                if_value=PathJoinSubstitution([
+                    FindPackageShare('nav2_config'), 'rviz', 'navigation.rviz',
                 ]),
-            ]),
+                else_value=PathJoinSubstitution([
+                    startup_pkg, 'config', 'RGBDRViz.rviz',
+                ]),
+            ),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

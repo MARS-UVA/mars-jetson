@@ -13,13 +13,18 @@ source install/setup.bash
 ros2 launch nav2_config navigation.launch.py use_sim_time:=true
 ```
 
-Start only one Nav2 instance. During the initial extraction, startup still uses
-its original navigation launch; switching startup to this package is a separate
-step. The existing integrated entry point remains:
+The main `startup` launch includes this package when `enable_nav2:=true` and
+selects its RViz configuration. To build and run the integrated simulation:
 
 ```bash
 ./deploy.sh robot_backend:=gazebo enable_rtabmap:=true enable_nav2:=true
 ```
+
+`deploy.sh` forwards its arguments to the startup launch. `robot_backend:=gazebo`
+selects simulation; `enable_rtabmap:=true` supplies mapping and defaults both
+RGB-D and LiDAR sensors to enabled. Navigation remains disabled by default.
+Add `enable_local_lidar:=true` to use the simulation LiDAR filter for local
+obstacles. Start only one Nav2 instance.
 
 | File | Parameters |
 | --- | --- |

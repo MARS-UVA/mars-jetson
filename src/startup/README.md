@@ -19,7 +19,7 @@ Restart the robot launch to change it; the sensor is part of the spawned URDF.
 `launch.py` passes `enable_rgbd` to both Xacro and `gazebo.launch.py`. The latter
 conditionally includes `rgbd_sim.launch.py`, which starts the dedicated
 ROS bridges and RViz with `config/RGBDRViz.rviz` and simulation time enabled.
-With `enable_nav2:=true`, RViz instead loads `config/nav2.rviz`.
+With `enable_nav2:=true`, RViz instead loads `nav2_config/rviz/navigation.rviz`.
 It does not start another simulator or spawn a separate camera.
 If including `gazebo.launch.py` from another launch file, pass
 `enable_rgbd:=true` there **and** when generating that launch's robot description.
