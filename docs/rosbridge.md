@@ -94,7 +94,11 @@ rosbridge logging "Cannot infer topic type" on the other.
 | `/arm_control_mode` | `robot_controller` | out |
 | `/human_input_state` | `teleop` | in |
 | `/robot_state/toggle` (`std_msgs/UInt8`) | `robot_state_controller` | in |
-| `/digdump` action | `digdump` | in |
+| `/dig`, `/dump` actions | `digdump_actions` | in |
+
+Dig and dump now use separate `autonomy_msgs/action/Dig` and
+`autonomy_msgs/action/Dump` types, each with Bruno variant `index=0` and
+`string phase` feedback. The legacy `/digdump` endpoint is no longer launched.
 
 The control station treats the ESP as online when any of the three serial
 topics arrived in the last 2 s, the same rule `udp_client` uses. In Gazebo there
@@ -104,11 +108,11 @@ disabled.
 ## Known gaps
 
 - `robot_state_controller` has no ESTOP latch: a non-ESTOP toggle received
-  while in ESTOP becomes the new state. `digdump` publishes TELEOP to
-  `/robot_state/toggle` on cancel and on completion. So an ESTOP during a dig or
-  dump ends in TELEOP once the goal is cancelled, not in a held ESTOP. Fix:
-  ignore non-ESTOP toggles while in ESTOP, and have `digdump` subscribe to
-  `/robot_state` and abort on ESTOP instead of publishing TELEOP.
+  while in ESTOP becomes the new state. The new dig and dump servers abort
+  when displaced from their mode and do not restore TELEOP over a different
+  observed state. However, a new action still requests DIG or DUMP through
+  the existing toggle mechanism, which can leave ESTOP. A controller-level
+  latch remains a separate change.
 - `udp_client` and `udp_server` (`network_communication`) still launch and talk
   to nothing, since the control station's UDP gateway is gone. `udp_client` is
   also what publishes ESTOP when ESP feedback stops for 2 s, which is why the
