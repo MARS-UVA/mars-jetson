@@ -36,6 +36,7 @@ def generate_launch_description():
     enable_rgbd = LaunchConfiguration("enable_rgbd")
     enable_lidar = LaunchConfiguration("enable_lidar")
     control_station_ip = LaunchConfiguration("control_station_ip")
+    choose_map = LaunchConfiguration("choose_map")
 
     backend_arg = DeclareLaunchArgument(
         "robot_backend",
@@ -47,6 +48,7 @@ def generate_launch_description():
         default_value=EnvironmentVariable("CONTROL_STATION_IP", default_value="192.168.50.60"),
         description="IP address of the control station for network communication",
     )
+    
     args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
@@ -68,8 +70,11 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
-    )]
-
+    ), DeclareLaunchArgument(
+        'choose_map', default_value='arena_nasa.world',
+        description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, or arena_nasa_copy_2.world)',
+    )
+    ] 
     startup_pkg = FindPackageShare("startup")
 
     nodes = []
@@ -155,8 +160,9 @@ def generate_launch_description():
                 startup_pkg, 'config', PythonExpression([
                     "'nav2.rviz' if '", LaunchConfiguration('enable_nav2'),
                     "'.lower() in ('true', '1') else 'RGBDRViz.rviz'",
-                ]),
+                ]), 
             ]),
+            'choose_map': choose_map,
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

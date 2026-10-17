@@ -144,6 +144,7 @@ def generate_launch_description():
     # Launch Arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
+    os.environ['GAZEBO_MODEL_PATH'] = f"$GAZEBO_MODEL_PATH:{get_package_share_directory('startup')}/models"
     # Nodes important for running the simulation and controlling the robot
     # Center the robot in the assumed 2 x 2 m starting zone.
     gz_spawn_entity = Node(
@@ -239,6 +240,10 @@ def generate_launch_description():
             'rtabmap_sync', default_value='false',
             description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
         ),
+        DeclareLaunchArgument(
+            'choose_map', default_value='arena_nasa.world',
+            description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, or arena_nasa_copy_2.world)',
+        ),
         OpaqueFunction(function=launch_rgbd_sync),
         OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
@@ -269,7 +274,7 @@ def generate_launch_description():
                     PathJoinSubstitution([
                         FindPackageShare('startup'),
                         'world',
-                        'arena_nasa.world'
+                        LaunchConfiguration('choose_map'),
                     ])
             ])]
         ),
