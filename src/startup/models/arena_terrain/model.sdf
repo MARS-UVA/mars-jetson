@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="arena_terrain">
+    <static>true</static>
+    <!-- White pixels give z=0; black pixels give z=-0.25 m. -->
+    <link name="terrain">
+      <collision name="terrain_collision">
+        <geometry>
+          <heightmap>
+            <uri>model://arena_terrain/materials/textures/craters.png</uri>
+            <size>6.88 5 0.25</size>
+            <pos>0 0 -0.25</pos>
+            <sampling>1</sampling>
+          </heightmap>
+        </geometry>
+        <surface>
+          <friction><ode><mu>100</mu><mu2>50</mu2></ode></friction>
+        </surface>
+      </collision>
+      <visual name="terrain_visual">
+        <geometry>
+          <heightmap>
+            <uri>model://arena_terrain/materials/textures/craters.png</uri>
+            <size>6.88 5 0.25</size>
+            <pos>0 0 -0.25</pos>
+            <sampling>1</sampling>
+            <!-- Ogre2 terrain needs a detail texture layer. -->
+            <texture>
+              <size>1</size>
+              <diffuse>model://arena_terrain/materials/textures/soil.png</diffuse>
+              <normal>model://arena_terrain/materials/textures/soil_normal.png</normal>
+            </texture>
+          </heightmap>
+        </geometry>
+        <material>
+          <ambient>0.55 0.50 0.42 1</ambient>
+          <diffuse>0.65 0.60 0.50 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
