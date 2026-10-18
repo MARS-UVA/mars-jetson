@@ -1,17 +1,8 @@
 planner_server:
   ros__parameters:
-    use_sim_time: false
-    expected_planner_frequency: 1.0
-    planner_plugins: [GridBased]
+    planner_plugin_types: ["nav2_theta_star_planner::ThetaStarPlanner"]
+    planner_plugin_ids: ["GridBased"]
     GridBased:
-      plugin: nav2_smac_planner::SmacPlannerHybrid
-      tolerance: 0.20
-      allow_unknown: true
-      downsample_costmap: false
-      max_planning_time: 2.0
-      motion_model_for_search: REEDS_SHEPP # Forward and reverse maneuvers.
-      angle_quantization_bins: 72
-      minimum_turning_radius: 0.40 # Initial curved-path radius; tune in simulation.
-      analytic_expansion_max_length: 3.0
-      cost_penalty: 2.0 # Prefer clearance when choosing the global route.
-      smooth_path: true
+      how_many_corners: 8
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
