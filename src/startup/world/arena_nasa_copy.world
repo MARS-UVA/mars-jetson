@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<sdf version="1.4">
+<sdf version="1.6">
   <world name="arena">
 
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
@@ -39,81 +39,54 @@
          Starting zone (assumed 2 m square): x=0..2, y=-2.5..-0.5.
          Construction zone: x=3.88..6.88, y=-2.5..-1.0.
          Rock placement is approximate; no craters or berm are modeled yet. -->
-    <population name="obs_population1">
-      <model name="obs1">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>4.69 1 0 0 0 0</pose> <!-- Middle of obstacle zone -->
-      <box>
-        <size>3.98 2.7 0.1</size> <!-- Size of obstacle zone minus a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
-
-    <population name="obs_population2">
-      <model name="obs2">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>1.25 1 0 0 0 0</pose> <!-- Middle of excavation zone -->
-      <box>
-        <size>2.1 2.7 0.1</size> <!-- Size of excavation zone - a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
-
-      <population name="obs_population3">
-      <model name="obs3">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>3.10 -1.55 0 0 0 0</pose> <!-- Middle of small obstacle zone (right of starting) -->
-      <box>
-        <size>0.8 1.2 0.1</size> <!-- Size of small obstacle zone - a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
 
     <!--
       INSERT OBSTACLES HERE
     -->
       
-    <!--Population tags seem to not work-->
+    <!--right in front of central pole-->
     <include>
       <uri>model://rock_rough</uri>
       <name>rock_rough_1</name>
-      <pose>3 0.35 0.2 0 0 0.68</pose>
+      <pose>2.7 0.25 0 0 0 0.68</pose>
     </include>
-    
+    <!--far left corner, farthest from robot-->
+    <include>
+      <uri>model://rock_flat_wide</uri>
+      <name>rock_flat_wide_1</name>
+      <pose>5.3 1.28 0 0 0 2.45</pose>
+    </include>
+    <!--in between starting zone and construction zone-->
+    <include>
+      <uri>model://rock_flat</uri>
+      <name>rock_flat_1</name>
+      <pose>3.54 -0.72 0 0 0 1.12</pose>
+    </include>
+    <!--in between starting zone and construction zone--> 
+    <include>
+      <uri>model://rock_huge</uri>
+      <name>rock_huge_1</name>
+      <pose>2.5 -2.0 0 0 0 1.12</pose>
+    </include>
+    <!--back of arena , right above the construction zone-->
+    <include>
+      <uri>model://rock_huge</uri>
+      <name>rock_huge_2</name>
+      <pose>5.8 0.25 0 0 0 1.12</pose>
+    </include>
+    <!--bottom left corner in excavation zone-->
     <include>
       <uri>model://rock_rough</uri>
       <name>rock_rough_2</name>
-      <pose>4.95 1.28 0.2 0 0 2.45</pose>
+      <pose>0.8 1.8 0 0 0 1.12</pose>
     </include>
-    
-    <include>
-      <uri>model://rock_rough</uri>
-      <name>rock_rough_3</name>
-      <pose>3.54 -0.72 0.2 0 0 1.12</pose>
-    </include>
-    
 
+    <include>
+      <uri>model://rock_small</uri>
+      <name>rock_small_1</name>
+      <pose>2.4, -0.65 0 0 0 1.12</pose>
+    </include>
+    
     <!-- Own physics settings to speed up simulation -->
     <physics type='dart'>
       <max_step_size>0.01</max_step_size>

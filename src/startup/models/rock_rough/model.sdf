@@ -7,7 +7,7 @@
         <geometry>
           <mesh>
             <uri>model://rock_rough/rock_rough.stl</uri>
-            <scale>3.0 3.0 3.0</scale>
+            <scale>3 3 3</scale>
           </mesh>
         </geometry>
       </collision>
@@ -15,7 +15,7 @@
         <geometry>
           <mesh>
             <uri>model://rock_rough/rock_rough.dae</uri>
-            <scale>3.0 3.0 3.0</scale>
+            <scale>3 3 3</scale>
           </mesh>
         </geometry>
       </visual>
