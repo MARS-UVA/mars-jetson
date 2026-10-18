@@ -130,6 +130,7 @@ def launch_rtabmap(context):
             'qos': '2',
             'rtabmap_viz': NotSubstitution(LaunchConfiguration('no_gui', default='false')),
             'rviz': 'false',
+            'database_path': LaunchConfiguration('rtabmap_database_path'),
         }.items(),
     )
     if sync_rgbd:
