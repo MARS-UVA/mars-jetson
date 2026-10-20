@@ -161,3 +161,19 @@ change it. It does not affect the RGB-D cameras, which are always color.
 The same flag applies to the real cameras (`robot_backend:=serial`): by default
 `v4l2_camera` converts the YUYV frames to `mono8` before the H.264 encoder, and
 `color_cameras:=true` publishes the native `yuv422_yuy2` instead.
+### Arena diagram with all obstacles converted to craters
+
+`world/arena_nasa_craters.world` uses a fixed layout matching the supplied arena
+illustration approximately. All seven blue rock markers become 0.35 m diameter,
+0.18 m deep bowls. All three orange crater markers become 0.45 m diameter,
+0.25 m deep bowls. These diameters use the midpoints of the diagram's 30–40 cm
+and 40–50 cm ranges; depths are simulation choices, not specified by the image.
+The starting and construction zones stay flat, and the central column remains.
+Random rock populations have been removed from this world.
+
+Centers are estimated from the illustration. The arena interior remains
+x=0..6.88 m, y=-2.5..2.5 m; subtract 2.5 m from diagram Y coordinates. Edit
+`models/arena_terrain/generate_heightmap.py` to change positions or dimensions,
+then run it to regenerate the PNG and visual/collision mesh. The mesh uses
+257 x 257 vertices to resolve the smaller bowls. Restart deployment with a fresh
+RTAB-Map database after replacing the terrain.
