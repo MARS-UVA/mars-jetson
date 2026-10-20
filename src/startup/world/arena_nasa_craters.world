@@ -35,74 +35,23 @@
       <pose frame=''>0 0 0 0 -0 0</pose>
     </include>
 
-<!-- Coordinates follow the supplied arena diagram, with y shifted by -2.5 m.
-         Excavation: x=0..2.5. Obstacle zone: x=2.5..6.88.
-         Starting zone (assumed 2 m square): x=0..2, y=-2.5..-0.5.
-         Construction zone: x=3.88..6.88, y=-2.5..-1.0.
-         Rock placement is approximate; two fixed craters are defined by arena_terrain.
-         No berm is modeled yet. -->
-    <population name="obs_population1">
-      <model name="obs1">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>4.69 1 0 0 0 0</pose> <!-- Middle of obstacle zone -->
-      <box>
-        <size>3.98 2.7 0.1</size> <!-- Size of obstacle zone minus a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
-
-    <population name="obs_population2">
-      <model name="obs2">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>1.25 1 0 0 0 0</pose> <!-- Middle of excavation zone -->
-      <box>
-        <size>2.1 2.7 0.1</size> <!-- Size of excavation zone - a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
-
-      <population name="obs_population3">
-      <model name="obs3">
-        <include>
-          <static>true</static>
-          <uri>model://obstacle</uri>
-        </include>
-      </model>
-      <pose>3.10 -1.55 0 0 0 0</pose> <!-- Middle of small obstacle zone (right of starting) -->
-      <box>
-        <size>0.8 1.2 0.1</size> <!-- Size of small obstacle zone - a small bit -->
-      </box>
-      <model_count>1</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population>
-
-    <!--
-      INSERT OBSTACLES HERE
-    -->
+    <!-- Fixed layout digitized from the supplied 6.88 x 5 m arena diagram.
+         World coordinates use diagram y minus 2.5 m.
+         All seven rock markers are 0.35 m diameter craters; all three crater
+         markers are 0.45 m diameter craters. Their positions, radii and depths
+         are defined in arena_terrain/generate_heightmap.py and baked into the
+         shared visual/collision mesh. No random rock populations are used.
+         Starting zone: x=0..2, y=-2.5..-0.5 (kept flat).
+         Construction zone: x=3.88..6.88, y=-2.5..-1.0 (kept flat).
+         The arena frame retains the central column. No berm is modeled. -->
 
     <!-- Own physics settings to speed up simulation -->
     <physics type='dart'>
-      <!-- Match Gazebo's heightmap example: use Bullet collision with DART. -->
+      <!-- Use Bullet collision with DART for the static terrain mesh. -->
       <dart><collision_detector>bullet</collision_detector></dart>
-      <max_step_size>0.01</max_step_size>
+      <max_step_size>0.001</max_step_size>
       <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>100</real_time_update_rate>
+      <real_time_update_rate>1000</real_time_update_rate>
       <gravity>0 0 -9.81</gravity>
     </physics>
   </world>
