@@ -38,6 +38,7 @@ def generate_launch_description():
     enable_rtabmap = LaunchConfiguration("enable_rtabmap")
     enable_rgbd = LaunchConfiguration("enable_rgbd")
     enable_lidar = LaunchConfiguration("enable_lidar")
+    color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
     backend_arg = DeclareLaunchArgument(
@@ -56,6 +57,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_nav_view', default_value=NotSubstitution(LaunchConfiguration('no_gui')),
         description='Show navigation RViz when Nav2 is enabled; overrides no_gui for this view',
+    ), DeclareLaunchArgument(
+        'legacy_webrtc', default_value='false',
+        description='Also run the old GStreamer/WebRTC camera streamers (fallback until they are removed)',
     ), DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
@@ -77,6 +81,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
+    ), DeclareLaunchArgument(
+        'color_cameras', default_value='false',
+        description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     )]
 
     startup_pkg = FindPackageShare("startup")
@@ -115,6 +122,7 @@ def generate_launch_description():
         " camera_update_rate:=30",
         " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
+        " color_cameras:=", color_cameras,
     ])
 
 
@@ -132,8 +140,19 @@ def generate_launch_description():
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'robot.launch.py'])),
         launch_arguments={
-            'robot_backend': backend
+            'robot_backend': backend,
+            'legacy_webrtc': LaunchConfiguration('legacy_webrtc'),
         }.items()
+    ))
+
+    # Real cameras (v4l2_camera, H.264 via ffmpeg_image_transport). Hardware only:
+    # Gazebo publishes the same topics from its image_bridge.
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'cameras.launch.py'])),
+        launch_arguments={'color_cameras': color_cameras}.items(),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'"])
+        )
     ))
 
     nodes.append(Node(

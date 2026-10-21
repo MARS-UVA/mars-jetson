@@ -12,6 +12,7 @@
   <depend>ros2_controllers</depend>
   <depend>xacro</depend>
   <depend>v4l2_camera</depend>
+  <exec_depend>ffmpeg_image_transport</exec_depend>
   <depend>rmw_zenoh_cpp</depend>
   
   <!-- Launch libraries and robot runtime nodes. -->

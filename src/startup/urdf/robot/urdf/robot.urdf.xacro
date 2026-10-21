@@ -2,6 +2,9 @@
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot">
   <xacro:arg name="enable_rgbd" default="false"/>
   <xacro:arg name="enable_lidar" default="false"/>
+  <!-- Front/rear Gazebo cameras render grayscale by default to match the
+       monochrome OV9281 cameras on the robot; set true for color. -->
+  <xacro:arg name="color_cameras" default="false"/>
   <xacro:include filename="$(find startup)/urdf/robot/urdf/rgbd.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
@@ -37,7 +40,11 @@
           <image>
             <width>640</width>
             <height>480</height>
-            <format>R8G8B8</format>
+            <!-- L8 (grayscale) is published by ros_gz_bridge as mono8 and
+                 R8G8B8 as rgb8; the H.264 encoder and the WebRTC streamer
+                 accept either. -->
+            <xacro:if value="$(arg color_cameras)"><format>R8G8B8</format></xacro:if>
+            <xacro:unless value="$(arg color_cameras)"><format>L8</format></xacro:unless>
           </image>
           <clip>
             <near>0.05</near>
