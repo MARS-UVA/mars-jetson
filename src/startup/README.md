@@ -131,11 +131,17 @@ poses computed from the board placement in `world/arena_nasa.world` and
 yaw in radians:
 
 ```bash
-1 0 0.18 0.25 1.570796 0 -1.570796
-2 0 0.18 0.43 1.570796 0 -1.570796
-3 0 0 0.43 1.570796 0 -1.570796
-4 0 0 0.25 1.570796 0 -1.570796
+1 0 0 0.25 1.570796 0 -1.570796
+2 0 0 0.43 1.570796 0 -1.570796
+3 0 0.18 0.43 1.570796 0 -1.570796
+4 0 0.18 0.25 1.570796 0 -1.570796
 ```
+
+With the board rotation in `arena_nasa.world`, its local X and Y tag offsets
+become vertical and horizontal offsets respectively. Both center-to-center
+spacings are 0.18 m. The RTAB-Map map Y direction is opposite the board's
+Gazebo world Y direction, so IDs 3 and 4 use map Y = 0.18 m. The launch writes
+linear and angular prior variances of 0.000001 to the RTAB-Map INI.
 
 The board SDF gives tag centers but does not declare separate tag-frame or
 texture-UV rotations. These orientations assume the tag images are upright on

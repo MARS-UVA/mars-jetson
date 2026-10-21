@@ -126,6 +126,8 @@ def launch_rtabmap(context):
                 '[Core]\n'
                 f'Optimizer\\Strategy = {marker_optimizer}\n'
                 'Optimizer\\PriorsIgnored = false\n'
+                'Marker\\PriorsVarianceLinear = 0.000001\n'
+                'Marker\\PriorsVarianceAngular = 0.000001\n'
                 f'Marker\\Priors = {marker_priors}\n'
             )
             marker_config_path = marker_config.name
