@@ -38,6 +38,7 @@ def generate_launch_description():
     enable_rtabmap = LaunchConfiguration("enable_rtabmap")
     enable_rgbd = LaunchConfiguration("enable_rgbd")
     enable_lidar = LaunchConfiguration("enable_lidar")
+    color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
 
     backend_arg = DeclareLaunchArgument(
@@ -80,6 +81,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
+    ), DeclareLaunchArgument(
+        'color_cameras', default_value='false',
+        description='Render the Gazebo front/rear cameras in color instead of grayscale',
     )]
 
     startup_pkg = FindPackageShare("startup")
@@ -118,6 +122,7 @@ def generate_launch_description():
         " camera_update_rate:=30",
         " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
+        " color_cameras:=", color_cameras,
     ])
 
 

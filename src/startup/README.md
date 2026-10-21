@@ -145,3 +145,15 @@ visual estimation uses `Vis/EstimationType=0`. LiDAR ICP settings remain active
 when LiDAR is enabled. Use a fresh `rtabmap_database_path` when changing inputs.
 The sync pipeline can also run with RTAB-Map disabled by setting
 `enable_rgbd:=true RTABMap_sync:=true`.
+
+## Front/rear camera color
+
+The simulated front and rear cameras render in grayscale (`mono8`) by default,
+matching the monochrome OV9281 cameras on the robot. For color (`rgb8`), launch with:
+
+```bash
+ros2 launch startup launch.py robot_backend:=gazebo color_cameras:=true
+```
+
+Like `enable_rgbd`, this is baked into the spawned URDF, so restart the launch to
+change it. It does not affect the RGB-D cameras, which are always color.
