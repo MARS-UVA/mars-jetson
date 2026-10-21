@@ -131,10 +131,10 @@ poses computed from the board placement in `world/arena_nasa.world` and
 yaw in radians:
 
 ```bash
-1 0.05 -2.0 0.34 -1.571593 0 1.570796
-2 0.050143 -2.0 0.160000 -1.571593 0 1.570796
-3 0.050143 -1.82 0.160000 -1.571593 0 1.570796
-4 0.05 -1.82 0.34 -1.571593 0 1.570796
+1 0 0.18 0.25 1.570796 0 -1.570796
+2 0 0.18 0.43 1.570796 0 -1.570796
+3 0 0 0.43 1.570796 0 -1.570796
+4 0 0 0.25 1.570796 0 -1.570796
 ```
 
 The board SDF gives tag centers but does not declare separate tag-frame or
