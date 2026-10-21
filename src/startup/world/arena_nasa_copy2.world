@@ -84,13 +84,13 @@
     <include>
       <uri>model://rock_small</uri>
       <name>rock_small_1</name>
-      <pose>6.2, -0.65 0 0 0 1.12</pose>
+      <pose>6.2 -0.65 0 0 0 1.12</pose>
     </include>
 
     <include>
       <uri>model://rock_small</uri>
       <name>rock_small_2</name>
-      <pose>2.8, 2.3 0 0 0 1.12</pose>
+      <pose>2.8 2.3 0 0 0 1.12</pose>
     </include>
     
     <!-- Own physics settings to speed up simulation -->

@@ -88,7 +88,7 @@ def generate_launch_description():
         description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     ), DeclareLaunchArgument(
         'choose_map', default_value='arena_nasa.world',
-        description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, or arena_nasa_copy_2.world)',
+        description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
     )
     ] 
     startup_pkg = FindPackageShare("startup")
@@ -190,12 +190,15 @@ def generate_launch_description():
             'enable_rtabmap': enable_rtabmap,
             'rtabmap_sync': LaunchConfiguration('rtabmap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
-            'rviz_config': PathJoinSubstitution([
-                startup_pkg, 'config', PythonExpression([
-                    "'nav2.rviz' if '", LaunchConfiguration('enable_nav2'),
-                    "'.lower() in ('true', '1') else 'RGBDRViz.rviz'",
-                ]), 
-            ]),
+            'rviz_config': IfElseSubstitution(
+                LaunchConfiguration('enable_nav2'),
+                if_value=PathJoinSubstitution([
+                    FindPackageShare('robot_navigation'), 'rviz', 'navigation.rviz',
+                ]),
+                else_value=PathJoinSubstitution([
+                    startup_pkg, 'config', 'RGBDRViz.rviz',
+                ]),
+            ),
             'choose_map': choose_map,
         }.items(),
         condition=IfCondition(

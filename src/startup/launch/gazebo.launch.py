@@ -271,7 +271,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'choose_map', default_value='arena_nasa.world',
-            description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, or arena_nasa_copy_2.world)',
+            description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
         ),
         OpaqueFunction(function=launch_rgbd_sync),
         OpaqueFunction(function=launch_rtabmap),
