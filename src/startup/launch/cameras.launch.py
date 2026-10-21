@@ -1,4 +1,6 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 # H.264 encoding for the dashboard (ffmpeg_image_transport). The plugin adds an
@@ -15,8 +17,21 @@ FFMPEG_ENCODER = {
     'image_raw.ffmpeg.qmax': 40,           # plugin default of 10 ignores bit_rate
 }
 
+# The OV9281 sensors are monochrome, so publish mono8 by default: v4l2_camera
+# converts the YUYV frames with cv_bridge (YUV2GRAY_YUY2), which halves the
+# raw image size and gives the H.264 encoder exactly neutral chroma.
+# color_cameras:=true keeps the camera's native YUYV output instead.
+OUTPUT_ENCODING = PythonExpression([
+    "'yuv422_yuy2' if '", LaunchConfiguration('color_cameras'),
+    "'.lower() == 'true' else 'mono8'",
+])
+
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'color_cameras', default_value='false',
+            description='Publish the native YUYV (color) output instead of mono8',
+        ),
         Node(
            package='v4l2_camera',
            namespace='front_camera',
@@ -27,8 +42,7 @@ def generate_launch_description():
                'video_device': '/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2:1.0-video-index0',
                'image_size': [480, 320],
                'time_per_frame': [1, 15],  # 15 fps
-               # If the encoder rejects yuv422_yuy2, use 'mono8' (the cameras are monochrome).
-               'output_encoding': 'yuv422_yuy2',
+               'output_encoding': OUTPUT_ENCODING,
                **FFMPEG_ENCODER,
 
             #    'camera_info_url': 'file:///home/ericzn248/.ros/camera_info/narrow_stereo.yaml', fill out later
@@ -45,7 +59,7 @@ def generate_launch_description():
                'image_size': [480, 320],
                # 'image_size': [1280, 720],
                'time_per_frame': [1, 15],  # 15 fps
-               'output_encoding': 'yuv422_yuy2',
+               'output_encoding': OUTPUT_ENCODING,
                **FFMPEG_ENCODER,
             #    'camera_info_url': 'file:///home/ericzn248/.ros/camera_info/narrow_stereo.yaml',
            }]

@@ -83,7 +83,7 @@ def generate_launch_description():
         description='Enable the simulated LiDAR when using the Gazebo backend',
     ), DeclareLaunchArgument(
         'color_cameras', default_value='false',
-        description='Render the Gazebo front/rear cameras in color instead of grayscale',
+        description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     )]
 
     startup_pkg = FindPackageShare("startup")
@@ -149,6 +149,7 @@ def generate_launch_description():
     # Gazebo publishes the same topics from its image_bridge.
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'cameras.launch.py'])),
+        launch_arguments={'color_cameras': color_cameras}.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'serial'"])
         )

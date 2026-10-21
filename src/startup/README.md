@@ -157,3 +157,7 @@ ros2 launch startup launch.py robot_backend:=gazebo color_cameras:=true
 
 Like `enable_rgbd`, this is baked into the spawned URDF, so restart the launch to
 change it. It does not affect the RGB-D cameras, which are always color.
+
+The same flag applies to the real cameras (`robot_backend:=serial`): by default
+`v4l2_camera` converts the YUYV frames to `mono8` before the H.264 encoder, and
+`color_cameras:=true` publishes the native `yuv422_yuy2` instead.
