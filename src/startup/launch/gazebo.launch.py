@@ -150,6 +150,7 @@ def generate_launch_description():
     os.environ['GAZEBO_MODEL_PATH'] = f"$GAZEBO_MODEL_PATH:{get_package_share_directory('startup')}/models"
     # Nodes important for running the simulation and controlling the robot
     # Center the robot in the assumed 2 x 2 m starting zone.
+    # Tires reach 0.13335 m below base_link; start clear of the floor and settle.
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
@@ -158,7 +159,7 @@ def generate_launch_description():
                    'Bruno', '-allow_renaming', 'true',
                     '-x', '1.00',
                     '-y', '-1.50',
-                    '-z', '0.12',
+                    '-z', '0.16',
                     '-Y', str(CAD_SPAWN_YAW - CAD_YAW_IN_BASE),],
     )
 

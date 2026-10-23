@@ -175,5 +175,8 @@ Centers are estimated from the illustration. The arena interior remains
 x=0..6.88 m, y=-2.5..2.5 m; subtract 2.5 m from diagram Y coordinates. Edit
 `models/arena_terrain/generate_heightmap.py` to change positions or dimensions,
 then run it to regenerate the PNG and visual/collision mesh. The mesh uses
-257 x 257 vertices to resolve the smaller bowls. Restart deployment with a fresh
-RTAB-Map database after replacing the terrain.
+fine cells around craters and coarse triangles over flat ground. Its maximum
+subdivision depth of 8 keeps the former grid's roughly 2.7 x 2 cm crater detail,
+with shared edge vertices so the different resolutions meet without cracks.
+The generated OBJ has about 4,200 vertices and 8,300 triangles (0.54 MB).
+Restart deployment with a fresh RTAB-Map database after replacing the terrain.

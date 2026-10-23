@@ -1,11 +1,12 @@
 """Regenerate the crater PNG and aligned terrain mesh with the standard library."""
 from pathlib import Path
+from bisect import bisect_left, bisect_right
 import math
 import struct
 import zlib
 
 RESOLUTION = 513
-MESH_RESOLUTION = 257  # Resolve the diagram's smallest, 35 cm diameter bowls.
+MESH_MAX_DEPTH = 8  # Finest cells: ~2.7 x 2 cm, matching the former 257 x 257 grid.
 WIDTH, LENGTH, DEPTH = 6.88, 5.0, 0.25
 # World x, world y, radius, depth (metres), digitized from the arena diagram.
 # Diagram coordinates span x=0..6.88, y=0..5; world y is shifted by -2.5 m.
@@ -41,6 +42,69 @@ def chunk(kind, data):
             + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff))
 
 
+def build_mesh():
+    """Refine crater cells and stitch their edges to the coarse, flat floor."""
+    # Doubled integer coordinates also represent the centers of the finest cells.
+    extent = 2 << MESH_MAX_DEPTH
+    leaves = []
+
+    def subdivide(x, y, size):
+        left, right = x * WIDTH / extent, (x + size) * WIDTH / extent
+        bottom = y * LENGTH / extent - LENGTH / 2
+        top = (y + size) * LENGTH / extent - LENGTH / 2
+        intersects = any(
+            (cx - min(max(cx, left), right)) ** 2
+            + (cy - min(max(cy, bottom), top)) ** 2 < radius ** 2
+            for cx, cy, radius, _ in CRATERS
+        )
+        if size > 2 and intersects:
+            half = size // 2
+            for dx, dy in ((0, 0), (half, 0), (half, half), (0, half)):
+                subdivide(x + dx, y + dy, half)
+        else:
+            leaves.append((x, y, size))
+
+    subdivide(0, 0, extent)
+
+    # Shared boundary vertices prevent cracks where coarse and fine cells meet.
+    horizontal, vertical = {}, {}
+    for x, y, size in leaves:
+        for px, py in ((x, y), (x + size, y), (x + size, y + size), (x, y + size)):
+            horizontal.setdefault(py, set()).add(px)
+            vertical.setdefault(px, set()).add(py)
+    horizontal = {y: sorted(xs) for y, xs in horizontal.items()}
+    vertical = {x: sorted(ys) for x, ys in vertical.items()}
+    vertices, faces, indices = [], [], {}
+
+    def vertex(px, py):
+        key = px, py
+        if key not in indices:
+            wx, wy = px * WIDTH / extent, py * LENGTH / extent - LENGTH / 2
+            indices[key] = len(vertices)
+            vertices.append((wx - WIDTH / 2, wy, elevation(wx, wy)))
+        return indices[key]
+
+    def side(values, low, high, reverse=False):
+        if reverse:
+            return reversed(values[bisect_right(values, low):bisect_right(values, high)])
+        return values[bisect_left(values, low):bisect_left(values, high)]
+
+    for x, y, size in leaves:
+        right, top = x + size, y + size
+        # Counterclockwise perimeter, with each corner included exactly once.
+        boundary = [vertex(px, y) for px in side(horizontal[y], x, right)]
+        boundary += [vertex(right, py) for py in side(vertical[right], y, top)]
+        boundary += [vertex(px, top) for px in side(horizontal[top], x, right, True)]
+        boundary += [vertex(x, py) for py in side(vertical[x], y, top, True)]
+        if len(boundary) == 4:
+            a, b, c, d = boundary
+            faces.extend(((a, b, c), (a, c, d)))
+        else:
+            center = vertex(x + size // 2, y + size // 2)
+            faces.extend((center, a, b) for a, b in zip(boundary, boundary[1:] + boundary[:1]))
+    return vertices, faces
+
+
 def write_mesh():
     # Local mesh bounds are centred on the model's world pose (3.44, 0, 0).
     # Unlike Ogre heightmaps, meshes preserve rectangular dimensions and poses.
@@ -48,31 +112,23 @@ def write_mesh():
     target.parent.mkdir(parents=True, exist_ok=True)
     target.with_suffix('.mtl').write_text(
         'newmtl soil\nKa 0.55 0.55 0.55\nKd 0.65 0.65 0.65\n')
+    vertices, faces = build_mesh()
     with target.open('w') as mesh:
         mesh.write('# Arena floor: 6.88 m x 5 m, upward-facing triangles\n')
         mesh.write('mtllib terrain.mtl\no terrain\nusemtl soil\n')
-        for row in range(MESH_RESOLUTION):
-            y = -LENGTH / 2 + row * LENGTH / (MESH_RESOLUTION - 1)
-            for col in range(MESH_RESOLUTION):
-                x = col * WIDTH / (MESH_RESOLUTION - 1)
-                mesh.write(f'v {x - WIDTH / 2:.6f} {y:.6f} {elevation(x, y):.6f}\n')
+        for x, y, z in vertices:
+            mesh.write(f'v {x:.6f} {y:.6f} {z:.6f}\n')
         # DART requires one normal per vertex for static triangle meshes.
         epsilon = 0.0001
-        for row in range(MESH_RESOLUTION):
-            y = -LENGTH / 2 + row * LENGTH / (MESH_RESOLUTION - 1)
-            for col in range(MESH_RESOLUTION):
-                x = col * WIDTH / (MESH_RESOLUTION - 1)
-                nx = -(elevation(x + epsilon, y) - elevation(x - epsilon, y)) / (2 * epsilon)
-                ny = -(elevation(x, y + epsilon) - elevation(x, y - epsilon)) / (2 * epsilon)
-                length = math.sqrt(nx * nx + ny * ny + 1)
-                mesh.write(f'vn {nx / length:.6f} {ny / length:.6f} {1 / length:.6f}\n')
-        for row in range(MESH_RESOLUTION - 1):
-            for col in range(MESH_RESOLUTION - 1):
-                a = row * MESH_RESOLUTION + col + 1
-                b, c, d = a + 1, a + MESH_RESOLUTION, a + MESH_RESOLUTION + 1
-                mesh.write(f'f {a}//{a} {b}//{b} {d}//{d}\n'
-                           f'f {a}//{a} {d}//{d} {c}//{c}\n')
-    print(f'Wrote {target}')
+        for x, y, _ in vertices:
+            x += WIDTH / 2
+            nx = -(elevation(x + epsilon, y) - elevation(x - epsilon, y)) / (2 * epsilon)
+            ny = -(elevation(x, y + epsilon) - elevation(x, y - epsilon)) / (2 * epsilon)
+            length = math.sqrt(nx * nx + ny * ny + 1)
+            mesh.write(f'vn {nx / length:.6f} {ny / length:.6f} {1 / length:.6f}\n')
+        for triangle in faces:
+            mesh.write('f ' + ' '.join(f'{i + 1}//{i + 1}' for i in triangle) + '\n')
+    print(f'Wrote {target}: {len(vertices)} vertices, {len(faces)} triangles')
 
 
 def main():

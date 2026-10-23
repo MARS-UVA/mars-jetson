@@ -98,9 +98,10 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <!-- Solid tire contact; STL triangle collisions can pass through terrain meshes. -->
+      <origin xyz="0 0 -0.0396875" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="file://$(find startup)/urdf/robot/assets/wheel.stl"/>
+        <cylinder radius="0.1778" length="0.079375"/>
       </geometry>
     </collision>
   </link>
@@ -129,9 +130,9 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 1.38778e-17 -0.0396875" rpy="1.5708 1.5708 0"/>
+      <origin xyz="0 0 -0.0396875" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="file://$(find startup)/urdf/robot/assets/wheel.stl"/>
+        <cylinder radius="0.1778" length="0.079375"/>
       </geometry>
     </collision>
   </link>
@@ -160,9 +161,9 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <origin xyz="0 0 -0.0396875" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="file://$(find startup)/urdf/robot/assets/wheel.stl"/>
+        <cylinder radius="0.1778" length="0.079375"/>
       </geometry>
     </collision>
   </link>
@@ -191,9 +192,9 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 -1.38778e-17 -0.0396875" rpy="-1.5708 -1.5708 0"/>
+      <origin xyz="0 0 -0.0396875" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="file://$(find startup)/urdf/robot/assets/wheel.stl"/>
+        <cylinder radius="0.1778" length="0.079375"/>
       </geometry>
     </collision>
   </link>
