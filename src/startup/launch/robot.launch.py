@@ -146,6 +146,14 @@ def generate_launch_description():
             namespace="/"
         )
     ]
+    
+    obstacle_detection = Node (
+        package='obstacle_detection',
+        executable='obstacle_detection',
+        name='obstacle_detection',
+        output='screen',
+        remappings=[ ]
+    )
 
 
     return LaunchDescription([
@@ -157,6 +165,7 @@ def generate_launch_description():
         robot_state_controller,
         gstreamer,
         twist_stamper,
+        obstacle_detection,
         *controllers
     ])
 
