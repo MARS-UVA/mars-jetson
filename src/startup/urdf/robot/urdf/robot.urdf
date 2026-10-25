@@ -411,8 +411,8 @@
     </collision>
   </link>
   <joint name="front_camera_joint" type="fixed">
-    <!-- With the optical-frame rotation, this aims 15 degrees below horizontal. -->
-    <origin xyz="-0.1159 0.2921 0.0508" rpy="-1.5708 1.308996939 -1.5708"/>
+    <!-- Blue/front (-Y of CAD), aimed 15 degrees below horizontal. -->
+    <origin xyz="0.1159 -0.2921 0.0508" rpy="-1.5708 1.308996939 1.5708"/>
     <parent link="frame_assembly"/>
     <child link="front_camera_link"/>
   </joint>
@@ -477,8 +477,8 @@
     </collision>
   </link>
   <joint name="rear_camera_joint" type="fixed">
-    <!-- With the optical-frame rotation, this aims 15 degrees below horizontal. -->
-    <origin xyz="0.1159 -0.2921 0.0508" rpy="-1.5708 1.308996939 1.5708"/>
+    <!-- Orange/rear (+Y of CAD), aimed 15 degrees below horizontal. -->
+    <origin xyz="-0.1159 0.2921 0.0508" rpy="-1.5708 1.308996939 -1.5708"/>
     <parent link="frame_assembly"/>
     <child link="rear_camera_link"/>
   </joint>
