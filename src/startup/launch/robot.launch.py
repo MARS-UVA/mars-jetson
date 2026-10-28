@@ -108,6 +108,42 @@ def generate_launch_description():
             ('/cmd_vel_out', '/base_controller/cmd_vel')
         ]
     )
+    
+    apriltag = Node(
+        package='apriltag_ros',
+        executable='apriltag_node',
+        name='apriltag_node',
+        remappings=[
+            ('image_rect', '/front_camera/image_raw'),
+            ('camera_info', '/front_camera/camera_info'),
+            ('/detections', '/apriltag/detections'),
+        ],
+        parameters=[
+            os.path.join(get_package_share_directory('startup'), 'config', 'apriltag.yaml'),
+            {
+                'use_sim_time': ParameterValue(PythonExpression([
+                    "'", LaunchConfiguration('robot_backend', default='serial'),
+                    "' == 'gazebo'",
+                ]), value_type=bool),
+            },
+        ],
+        output='screen'
+    )
+    
+    apriltaggate = Node(
+        
+        package='robot_perception',
+        executable="AprilTagGate",
+        name="apriltag_service_node",
+        output="screen",
+    )
+    
+    apriltaggateclient = Node(
+        package='robot_perception',
+        executable='AprilTagClient',
+        name="apriltag_client_node",
+        output="screen"
+    )
 
     controllers = [
         Node(
@@ -157,6 +193,9 @@ def generate_launch_description():
         robot_state_controller,
         gstreamer,
         twist_stamper,
+        apriltag,
+        apriltaggate,
+        apriltaggateclient,
         *controllers
     ])
 
