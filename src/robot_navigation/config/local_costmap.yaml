@@ -47,7 +47,7 @@ local_costmap:
       publish_frequency: 2.0
       footprint: "[[0.83, 0.37], [-0.83, 0.37], [-0.83, -0.37], [0.83, -0.37]]"
       footprint_padding: 0.03
-      plugins: [voxel_layer, inflation_layer]
+      plugins: [voxel_layer, semantic_segmentation_layer, inflation_layer]
       voxel_layer:
         plugin: nav2_costmap_2d::VoxelLayer
         enabled: true
@@ -101,6 +101,65 @@ local_costmap:
           raytrace_max_range: 3.0
           observation_persistence: 0.0
           expected_update_rate: 0.5
+      semantic_segmentation_layer:
+        plugin: semantic_segmentation_layer::SemanticSegmentationLayer
+        enabled: true
+        observation_sources: semantic_blue semantic_orange
+        semantic_blue:
+          segmentation_topic: /obstacles/blue/mask
+          confidence_topic: /obstacles/blue/confidence
+          labels_topic: /obstacles/label_info
+          # This organized cloud is paired with /rgbd_blue/color/image_raw.
+          # The layer consumes the cloud directly, not depth or CameraInfo.
+          pointcloud_topic: /rgbd_blue/points
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+          max_obstacle_distance: 2.5
+          min_obstacle_distance: 0.3
+          tile_map_decay_time: 2.0
+          use_cost_selection: false
+          class_types: [traversable, obstacle]
+          traversable:
+            classes: [traversable]
+            base_cost: 0
+            max_cost: 0
+            mark_confidence: 0
+            samples_to_max_cost: 1
+            dominant_priority: false
+          obstacle:
+            classes: [rock]
+            base_cost: 254
+            max_cost: 254
+            mark_confidence: 0
+            samples_to_max_cost: 1
+            dominant_priority: true
+        semantic_orange:
+          segmentation_topic: /obstacles/orange/mask
+          confidence_topic: /obstacles/orange/confidence
+          labels_topic: /obstacles/label_info
+          # This organized cloud is paired with /rgbd_orange/color/image_raw.
+          pointcloud_topic: /rgbd_orange/points
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+          max_obstacle_distance: 2.5
+          min_obstacle_distance: 0.3
+          tile_map_decay_time: 2.0
+          use_cost_selection: false
+          class_types: [traversable, obstacle]
+          traversable:
+            classes: [traversable]
+            base_cost: 0
+            max_cost: 0
+            mark_confidence: 0
+            samples_to_max_cost: 1
+            dominant_priority: false
+          obstacle:
+            classes: [rock]
+            base_cost: 254
+            max_cost: 254
+            mark_confidence: 0
+            samples_to_max_cost: 1
+            dominant_priority: true
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         # Cover the padded rectangle's circumscribed radius (~0.949 m)
