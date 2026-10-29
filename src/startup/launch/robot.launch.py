@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PythonExpression
@@ -148,15 +148,46 @@ def generate_launch_description():
     ]
     
     obstacle_detection = Node (
-        package='obstacle_detection',
-        executable='obstacle_detection',
-        name='obstacle_detection',
-        output='screen',
-        remappings=[ ]
-    )
+            package='obstacle_detection',
+            executable='obstacle_detection',
+            name='obstacle_detection',
+            output='screen',
+            parameters=[{
+                'model_path': LaunchConfiguration('obstacle_model_path'),
+                'blue_input_topic': LaunchConfiguration('obstacle_input_topic_blue'),
+                'orange_input_topic': LaunchConfiguration('obstacle_input_topic_orange'),
+                'obstacle_threshold': ParameterValue(
+                    LaunchConfiguration('obstacle_threshold'), value_type=float
+                ),
+            }],
+            remappings=[ ]
+        )
 
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'obstacle_model_path',
+            default_value=(
+                '/home/ws/src/obstacle_detection/model_training/'
+                'train-YOLOv11m-seg-1/test_unet_256s_5e_clean.pth'
+            ),
+            description='Path to the obstacle segmentation model checkpoint',
+        ),
+        DeclareLaunchArgument(
+            'obstacle_input_topic_blue',
+            default_value='/rgbd_blue/color/image_raw',
+            description='Blue image topic for obstacle segmentation',
+        ),
+        DeclareLaunchArgument(
+            'obstacle_input_topic_orange',
+            default_value='/rgbd_orange/color/image_raw',
+            description='Orange image topic for obstacle segmentation',
+        ),
+        DeclareLaunchArgument(
+            'obstacle_threshold',
+            default_value='0.5',
+            description='Rock probability cutoff used to generate the binary mask',
+        ),
         teleop, 
         digdump,
         controller,

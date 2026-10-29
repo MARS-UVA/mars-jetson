@@ -89,6 +89,22 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'choose_map', default_value='arena_nasa.world',
         description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
+    ), DeclareLaunchArgument(
+        'obstacle_model_path',
+        default_value=(
+            '/home/ws/src/obstacle_detection/model_training/'
+            'train-YOLOv11m-seg-1/test_unet_256s_5e_clean.pth'
+        ),
+        description='Path to the obstacle segmentation model checkpoint',
+    ), DeclareLaunchArgument(
+        'obstacle_input_topic_blue', default_value='/rgbd_blue/color/image_raw',
+        description='Blue RGB image topic for obstacle segmentation',
+    ), DeclareLaunchArgument(
+        'obstacle_input_topic_orange', default_value='/rgbd_orange/color/image_raw',
+        description='Orange RGB image topic for obstacle segmentation',
+    ), DeclareLaunchArgument(
+        'obstacle_threshold', default_value='0.5',
+        description='Rock probability cutoff used to generate the binary mask',
     )
     ] 
     startup_pkg = FindPackageShare("startup")
@@ -147,6 +163,10 @@ def generate_launch_description():
         launch_arguments={
             'robot_backend': backend,
             'legacy_webrtc': LaunchConfiguration('legacy_webrtc'),
+            'obstacle_model_path': LaunchConfiguration('obstacle_model_path'),
+            'obstacle_input_topic_blue': LaunchConfiguration('obstacle_input_topic_blue'),
+            'obstacle_input_topic_orange': LaunchConfiguration('obstacle_input_topic_orange'),
+            'obstacle_threshold': LaunchConfiguration('obstacle_threshold'),
         }.items()
     ))
 

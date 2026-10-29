@@ -1,4 +1,4 @@
-"""Run the trained binary rock segmentation model on the front camera."""
+"""Run the trained binary rock segmentation model on an RGB-D camera image."""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,14 @@ import segmentation_models_pytorch as smp
 import torch
 from PIL import Image as PILImage
 from rclpy.node import Node
+from rclpy.qos import (
+    DurabilityPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 from sensor_msgs.msg import Image
+from vision_msgs.msg import LabelInfo, VisionClass
 
 
 DEFAULT_MODEL = (
@@ -26,22 +33,69 @@ def resize_with_padding(image, width, height):
     canvas = PILImage.new("L", (width, height), 0)
     offset = ((width - size[0]) // 2, (height - size[1]) // 2)
     canvas.paste(resized, offset)
-    return canvas
+    return canvas, (offset[0], offset[1], size[0], size[1])
+
+
+def restore_source_scale(model_output, source_size, content_bounds):
+    """Remove letterbox padding and resize a model output to the camera frame."""
+    left, top, content_width, content_height = content_bounds
+    content = model_output[
+        top : top + content_height,
+        left : left + content_width,
+    ]
+    return np.asarray(
+        PILImage.fromarray(content.astype(np.float32), mode="F").resize(
+            source_size, PILImage.Resampling.BILINEAR
+        ),
+        dtype=np.float32,
+    )
 
 
 class ObstacleDetectionNode(Node):
     def __init__(self):
         super().__init__("obstacle_detection")
         self.declare_parameter("model_path", DEFAULT_MODEL)
-        self.declare_parameter("input_topic", "/front_camera/image_raw")
-        self.declare_parameter("threshold", 0.5)
+        self.declare_parameter("blue_input_topic", "/rgbd_blue/color/image_raw")
+        self.declare_parameter("orange_input_topic", "/rgbd_orange/color/image_raw")
+        self.declare_parameter("obstacle_threshold", 0.5)
 
         self.load_model()
 
-        self.mask_publisher = self.create_publisher(Image, "/obstacles/mask", 10)
-        self.confidence_publisher = self.create_publisher(Image, "/obstacles/confidence", 10)
-        topic = str(self.get_parameter("input_topic").value)
-        self.image_subscription = self.create_subscription(Image, topic, self.camera_ingest, 10)
+        self.mask_publishers = {}
+        self.confidence_publishers = {}
+        for camera in ("blue", "orange"):
+            self.mask_publishers[camera] = self.create_publisher(
+                Image, f"/obstacles/{camera}/mask", 10
+            )
+            self.confidence_publishers[camera] = self.create_publisher(
+                Image, f"/obstacles/{camera}/confidence", 10
+            )
+        labels_qos = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        self.labels_publisher = self.create_publisher(
+            LabelInfo, "/obstacles/label_info", labels_qos
+        )
+        labels = LabelInfo()
+        labels.class_map = [
+            VisionClass(class_id=0, class_name="traversable"),
+            VisionClass(class_id=1, class_name="rock"),
+        ]
+        labels.threshold = self.threshold
+        self.labels_publisher.publish(labels)
+        self.image_subscriptions = []
+        for camera in ("blue", "orange"):
+            topic = str(self.get_parameter(f"{camera}_input_topic").value)
+            self.image_subscriptions.append(
+                self.create_subscription(
+                    Image,
+                    topic,
+                    lambda message, camera=camera: self.camera_ingest(message, camera),
+                    qos_profile_sensor_data,
+                )
+            )
 
     def load_model(self):
         """Load the checkpoint and prepare the model for inference."""
@@ -63,45 +117,62 @@ class ObstacleDetectionNode(Node):
         state = checkpoint.get("model_state_dict", checkpoint)
         self.model.load_state_dict(state)
         self.model.eval()
-        self.threshold = float(str(self.get_parameter("threshold").value))
+        self.threshold = float(str(self.get_parameter("obstacle_threshold").value))
         self.get_logger().info(
             f"Loaded {model_path} on {self.device}; model input {self.width}x{self.height}"
         )
 
-    def camera_ingest(self, message):
-        if message.encoding != "mono8":
+    def camera_ingest(self, message, camera):
+        channels_by_encoding = {"mono8": 1, "rgb8": 3, "bgr8": 3}
+        channels = channels_by_encoding.get(message.encoding)
+        if channels is None:
             self.get_logger().warning(
-                f"Expected mono8 image, received {message.encoding}; skipping frame",
+                f"Unsupported image encoding {message.encoding}; "
+                "expected mono8, rgb8, or bgr8",
                 throttle_duration_sec=5.0,
             )
             return
 
-        image = np.frombuffer(message.data, dtype=np.uint8).reshape(
+        row = np.frombuffer(message.data, dtype=np.uint8).reshape(
             message.height, message.step
-        )[:, : message.width]
-        source = PILImage.fromarray(image, mode="L")
-        model_image = resize_with_padding(source, self.width, self.height)
+        )
+        image = row[:, : message.width * channels]
+        if channels == 1:
+            source = PILImage.fromarray(
+                image.reshape(message.height, message.width), mode="L"
+            )
+        else:
+            image = image.reshape(message.height, message.width, channels)
+            if message.encoding == "bgr8":
+                image = image[:, :, ::-1]
+            source = PILImage.fromarray(image, mode="RGB").convert("L")
+        model_image, content_bounds = resize_with_padding(source, self.width, self.height)
         input_array = np.asarray(model_image, dtype=np.float32).copy() / 255.0
         tensor = torch.from_numpy(input_array).unsqueeze(0).unsqueeze(0).to(self.device)
 
         with torch.inference_mode():
             rock_probability = torch.sigmoid(self.model(tensor))[0, 0].cpu().numpy()
 
+        rock_probability = restore_source_scale(
+            rock_probability,
+            (message.width, message.height),
+            content_bounds,
+        )
         # Training labels are 0=traversable and nonzero=non-traversable (rock).
         binary_mask = (rock_probability >= self.threshold).astype(np.uint8)
         class_confidence = np.where(
             binary_mask != 0, rock_probability, 1.0 - rock_probability
         )
         # Use class IDs 0 and 1 (rather than display intensities 0 and 255).
-        mask_image = PILImage.fromarray(binary_mask, mode="L").resize(
-            (message.width, message.height), PILImage.Resampling.NEAREST
-        )
+        mask_image = PILImage.fromarray(binary_mask, mode="L")
         confidence_image = PILImage.fromarray(
             np.clip(class_confidence * 255.0, 0, 255).astype(np.uint8), mode="L"
-        ).resize((message.width, message.height), PILImage.Resampling.BILINEAR)
+        )
 
-        self.mask_publisher.publish(self.make_image_message(message, mask_image, "mono8"))
-        self.confidence_publisher.publish(
+        self.mask_publishers[camera].publish(
+            self.make_image_message(message, mask_image, "mono8")
+        )
+        self.confidence_publishers[camera].publish(
             self.make_image_message(message, confidence_image, "mono8")
         )
 
