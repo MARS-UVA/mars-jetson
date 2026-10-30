@@ -134,6 +134,31 @@ def generate_launch_description():
             )
         ]
     )
+    
+    rear_arm_cropbox_config = os.path.join(
+        get_package_share_directory('startup'),
+        'config',
+        'rear_arm_cropbox.yaml'
+    )
+    
+    rear_arm_cropbox = ComposableNodeContainer(
+        name='pcl_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='crop_box_filter',
+                remappings=[
+                    ('/input', '/unilidar/cloud_no_front_arm'),
+                    ('/output', '/unilidar/cloud_filtered')
+                ],
+                parameters=[rear_arm_cropbox_config]
+            )
+        ]
+    )
 
     controllers = [
         Node(
@@ -184,6 +209,7 @@ def generate_launch_description():
         gstreamer,
         twist_stamper,
         front_arm_cropbox,
+        rear_arm_cropbox,
         *controllers
     ])
 
