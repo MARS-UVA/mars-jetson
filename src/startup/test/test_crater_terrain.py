@@ -125,3 +125,44 @@ def test_mesh_preserves_the_previous_uniform_grid_surface(mesh):
                     for p, q in zip(triangle, triangle[1:] + triangle[:1])]
         for x, y, z in samples:
             assert z == pytest.approx(previous_height(x, y), abs=3e-6)
+
+
+def test_generate_independent_models(tmp_path):
+    import json
+
+    layouts = ([[1.0, 1.0, 0.2, 0.15]], [[5.0, 1.0, 0.3, 0.2]])
+    original = (TERRAIN / 'meshes/terrain.obj').read_bytes()
+    outputs = []
+    for index, layout in enumerate(layouts):
+        layout_path = tmp_path / f'layout_{index}.json'
+        layout_path.write_text(json.dumps(layout))
+        output = tmp_path / f'terrain_{index}'
+        MODEL['main'](['--layout', str(layout_path), '--output-dir', str(output)])
+        sdf = ET.parse(output / 'model.sdf')
+        assert sdf.find('model').get('name') == output.name
+        assert [uri.text for uri in sdf.findall('.//mesh/uri')] == [
+            f'model://{output.name}/meshes/terrain.obj'] * 2
+        assert ET.parse(output / 'model.config').findtext('sdf') == 'model.sdf'
+        assert json.loads((output / 'layout.json').read_text()) == layout
+        assert (output / 'materials/textures/craters.png').read_bytes().startswith(b'\x89PNG')
+        assert (output / 'meshes/terrain.mtl').is_file()
+        vertices = [list(map(float, line.split()[1:]))
+                    for line in (output / 'meshes/terrain.obj').read_text().splitlines()
+                    if line.startswith('v ')]
+        x, y, _, depth = layout[0]
+        nearest = min(vertices, key=lambda v: (v[0] + 3.44 - x)**2 + (v[1] - y)**2)
+        assert nearest[2] == pytest.approx(-depth, abs=0.005)
+        outputs.append((output / 'meshes/terrain.obj').read_bytes())
+    assert outputs[0] != outputs[1]
+    assert (TERRAIN / 'meshes/terrain.obj').read_bytes() == original
+
+
+@pytest.mark.parametrize('layout', [None, [[1, 1, 0, 0.1]], [[0, 0, 1, 0.1]],
+                                        [[1, 1, 0.1]], [[1, 1, 0.1, float('nan')]]])
+def test_reject_invalid_layout(tmp_path, layout):
+    import json
+
+    path = tmp_path / 'layout.json'
+    path.write_text(json.dumps(layout))
+    with pytest.raises(ValueError):
+        MODEL['load_layout'](path)
