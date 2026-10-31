@@ -69,34 +69,21 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'WARN'],
         respawn=True
     )
-    cmd_vel_mux = Node(
-        package='topic_tools',
-        executable='mux',
-        name='cmd_vel_mux',
-        output='screen',
-        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/dig', '/cmd_vel/dump', '/cmd_vel/navigation', '/cmd_vel/full_auto'],
-        respawn=True
-    )
-    arm_drum_mux = Node(
-        package='topic_tools',
-        executable='mux',
-        name='arm_drum_mux',
-        output='screen',
-        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/dig', '/arm_drum_control/dump', '/arm_drum_control/stop', '/arm_drum_control/full_auto'],
-        respawn=True
-    )
-    robot_state_controller = Node(
-        package='robot_state_controller',
-        executable='robot_state_controller',
-        name='robot_state_controller',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN'],
-        respawn=True
-    )
-    full_auto = Node(
+    control_config = os.path.join(
+        get_package_share_directory('robot_super_intelligence'), 'config', 'control.yaml')
+    command_mux = Node(
         package='robot_super_intelligence',
-        executable='full_auto',
+        executable='command_mux',
+        name='command_mux',
+        parameters=[control_config],
+        output='screen',
+        respawn=True,
+    )
+    state_manager = Node(
+        package='robot_super_intelligence',
+        executable='state_manager',
         name='robot_super_intelligence',
+        parameters=[control_config],
         output='screen',
         respawn=True,
     )
@@ -190,10 +177,8 @@ def generate_launch_description():
         dig,
         dump,
         controller,
-        cmd_vel_mux,
-        arm_drum_mux,
-        robot_state_controller,
-        full_auto,
+        command_mux,
+        state_manager,
         gstreamer,
         twist_stamper,
         apriltag,

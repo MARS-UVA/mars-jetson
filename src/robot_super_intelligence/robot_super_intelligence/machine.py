@@ -1,4 +1,4 @@
-"""ROS-independent transition graph and run deadline."""
+"""Transition graph advanced by state completion events."""
 
 import math
 import time
@@ -24,7 +24,7 @@ for state_type in STATE_TYPES[:-1]:
 
 
 class Machine:
-    """Advance one state per tick; injected states support future routines."""
+    """Consume state outcomes; the manager owns the run deadline."""
 
     def __init__(self, time_limit_sec, states=None, clock=time.monotonic):
         if not math.isfinite(time_limit_sec) or time_limit_sec <= 0:
@@ -59,14 +59,9 @@ class Machine:
             self.current = RunEnd
             self.state.enter()
 
-    def tick(self):
+    def advance(self, outcome):
+        """Consume one completed state's outcome."""
         if self.done:
-            return
-        if self.current is not RunEnd and self.elapsed >= self.time_limit_sec:
-            self.end(Outcome.TIME_LIMIT_REACHED)
-            return
-        outcome = self.state.tick()
-        if outcome is None:
             return
         if outcome not in self.state.outcomes:
             raise ValueError(f'{self.current.__name__} returned undeclared outcome: {outcome}')

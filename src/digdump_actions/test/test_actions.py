@@ -103,22 +103,12 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(RoutineServer.on_goal(node, SimpleNamespace(index=0)),
                          GoalResponse.REJECT)
 
-    def test_displacement_aborts_without_restoring_teleop(self):
-        node = SimpleNamespace(goal=Mock(), mode=RobotState.DIG, owns_mode=False,
-                               finish=Mock())
-        RoutineServer.on_state(node, SimpleNamespace(state=RobotState.DIG))
-        self.assertTrue(node.owns_mode)
-        RoutineServer.on_state(node, SimpleNamespace(state=RobotState.DUMP))
-        node.finish.assert_called_once_with('aborted', restore_mode=False)
-
-    def test_waits_for_mode_before_advancing_and_honors_cancel(self):
-        node = SimpleNamespace(goal=SimpleNamespace(is_cancel_requested=False),
-                               owns_mode=False, routine=Mock(), finish=Mock())
-        RoutineServer.tick(node)
-        node.routine.step.assert_not_called()
-        node.goal.is_cancel_requested = True
+    def test_cancel_stops_without_mode_ownership(self):
+        node = SimpleNamespace(goal=SimpleNamespace(is_cancel_requested=True),
+                               routine=Mock(), finish=Mock())
         RoutineServer.tick(node)
         node.finish.assert_called_once_with('canceled')
+        node.routine.step.assert_not_called()
 
     def test_manual_cancel_uses_standard_action_cancel_service(self):
         from unique_identifier_msgs.msg import UUID
@@ -151,7 +141,7 @@ class LifecycleTests(unittest.TestCase):
         RoutineServer.tick(node)
         node.finish.assert_called_once_with('aborted')
 
-    def test_accepted_goal_snapshots_parameters_and_requests_its_mode(self):
+    def test_accepted_goal_snapshots_parameters_without_requesting_a_mode(self):
         parameters = {'dig_time': 3.0}
         node = SimpleNamespace(
             results={}, parameter_names=('dig_time',),
@@ -163,9 +153,8 @@ class LifecycleTests(unittest.TestCase):
         RoutineServer.on_accepted(node, goal)
         parameters['dig_time'] = 10.0
         node.make_routine.assert_called_once_with(0, {'dig_time': 3.0})
-        self.assertEqual(node.state_pub.publish.call_args.args[0].data, RobotState.DIG)
+        node.state_pub.publish.assert_not_called()
         goal.execute.assert_called_once()
-        self.assertFalse(node.owns_mode)
 
     def test_finish_stops_and_returns_result_once(self):
         for outcome in ['succeeded', 'canceled', 'aborted']:
@@ -178,9 +167,7 @@ class LifecycleTests(unittest.TestCase):
                 goal = node.goal
                 RoutineServer.finish(node, outcome)
                 node.publish.assert_called_once_with(Command())
-                node.state_pub.publish.assert_called_once()
-                self.assertEqual(node.state_pub.publish.call_args.args[0].data,
-                                 RobotState.TELEOP)
+                node.state_pub.publish.assert_not_called()
                 result = node.result_future.set_result.call_args.args[0]
                 self.assertEqual(result.success, outcome == 'succeeded')
                 getattr(goal, {'succeeded': 'succeed', 'canceled': 'canceled',

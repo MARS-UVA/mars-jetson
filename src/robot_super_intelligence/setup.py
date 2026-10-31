@@ -1,3 +1,4 @@
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'robot_super_intelligence'
@@ -7,7 +8,8 @@ setup(
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name, ['package.xml', 'LICENSE']),
+        ('share/' + package_name + '/config', glob('config/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -16,6 +18,7 @@ setup(
     description='ROS 2 action orchestration for autonomous excavation runs.',
     license='Apache-2.0',
     entry_points={'console_scripts': [
-        'full_auto = robot_super_intelligence.server:main',
+        'state_manager = robot_super_intelligence.manager:main',
+        'command_mux = robot_super_intelligence.command_mux:main',
     ]},
 )

@@ -1,7 +1,7 @@
 """Bruno's selected-end dump sequence and its action server."""
 
 from autonomy_msgs.action import Dump
-from robot_control_msgs.msg import ArmControlMode, RobotState
+from robot_control_msgs.msg import ArmControlMode
 
 from digdump_actions.server import Command, RoutineServer, run
 
@@ -41,7 +41,7 @@ class BrunoDump:
 
 class DumpNode(RoutineServer):
     def __init__(self):
-        super().__init__('dump', Dump, RobotState.DUMP, DEFAULTS,
+        super().__init__('dump', Dump, DEFAULTS,
                          {Dump.Goal.BRUNO_INDEX: BrunoDump})
         self.back_selected = False
         self.selection_sub = self.create_subscription(

@@ -16,3 +16,4 @@ class Outcome(str, Enum):
     CANCELED = 'CANCELED'
     MODE_EXITED = 'MODE_EXITED'
     SHUTDOWN = 'SHUTDOWN'
+    ESTOP = 'ESTOP'

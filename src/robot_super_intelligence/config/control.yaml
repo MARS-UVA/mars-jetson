@@ -1,0 +1,19 @@
+# Loaded by startup/launch/robot.launch.py. Restart nodes after changing policy.
+command_mux:
+  ros__parameters:
+    sources: [teleop, navigation, dig, dump]
+    arm_drum_sources: [teleop, dig, dump]
+    priorities:
+      teleop: 100
+      navigation: 50
+      dig: 50
+      dump: 50
+    command_timeout_sec: 0.5
+    manager_timeout_sec: 0.5
+    lock:
+      topic: control/locks/stop
+      initially_locked: true
+robot_super_intelligence:
+  ros__parameters:
+    heartbeat_period_sec: 0.1
+    stop_lock_topic: control/locks/stop

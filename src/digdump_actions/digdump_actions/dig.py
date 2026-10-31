@@ -3,7 +3,6 @@
 import math
 
 from autonomy_msgs.action import Dig
-from robot_control_msgs.msg import RobotState
 from serial_msgs.msg import Position
 
 from digdump_actions.server import Command, RoutineServer, run
@@ -67,7 +66,7 @@ class BrunoDig:
 
 class DigNode(RoutineServer):
     def __init__(self):
-        super().__init__('dig', Dig, RobotState.DIG, DEFAULTS,
+        super().__init__('dig', Dig, DEFAULTS,
                          {Dig.Goal.BRUNO_INDEX: BrunoDig})
         self.actuator_positions = None
         self.position_sub = self.create_subscription(Position, 'position', self.on_position, 10)

@@ -20,7 +20,7 @@ class FakeState:
     def enter(self):
         self.entries += 1
 
-    def tick(self):
+    def start(self, dispatch):
         return self.outcome
 
     def cancel(self):
@@ -45,7 +45,7 @@ def test_complete_cycle_loops_and_reenters_construction():
     machine = Machine(100, states, clock=lambda: 0)
     for expected in (TraverseToConstruction, DumpMaterial,
                      TraverseToExcavation, Excavate, TraverseToConstruction):
-        machine.tick()
+        machine.advance(machine.state.outcome)
         assert machine.current is expected
     assert machine.completed_cycles == 1
     assert machine.latest_outcome == 'EXCAVATE_SUCCESS'
@@ -55,28 +55,23 @@ def test_complete_cycle_loops_and_reenters_construction():
 
 def test_real_placeholder_aborts_instead_of_simulating_success():
     machine = Machine(100, clock=lambda: 0)
-    machine.tick()
-    machine.tick()
+    machine.advance(Outcome.START_SUCCESS)
+    machine.advance(Outcome.NOT_IMPLEMENTED)
     assert machine.current is RunEnd
     assert machine.result is Outcome.NOT_IMPLEMENTED
     assert machine.completed_cycles == 0
-    machine.tick()
+    machine.advance(Outcome.RUN_END)
     assert machine.done
 
 
 def test_deadline_interrupts_running_state_and_executes_run_end():
-    now = [0]
     states = simulated_states()
-    states[RunStart].outcome = None
-    machine = Machine(5, states, clock=lambda: now[0])
-    machine.tick()
-    assert machine.current is RunStart
-    now[0] = 5
-    machine.tick()
+    machine = Machine(5, states, clock=lambda: 0)
+    machine.end(Outcome.TIME_LIMIT_REACHED)
     assert states[RunStart].canceled
     assert machine.current is RunEnd
     assert machine.result is Outcome.TIME_LIMIT_REACHED
-    machine.tick()
+    machine.advance(Outcome.RUN_END)
     assert machine.done
 
 
@@ -87,7 +82,7 @@ def test_interrupt_cleans_up_and_preserves_termination_reason(outcome):
     machine = Machine(10, states, clock=lambda: 0)
     machine.end(outcome)
     machine.end(Outcome.TIME_LIMIT_REACHED)
-    machine.tick()
+    machine.advance(machine.state.outcome)
     assert states[RunStart].canceled
     assert machine.result is outcome
     assert machine.done
@@ -98,7 +93,7 @@ def test_undeclared_outcome_is_rejected():
     machine = Machine(10, states, clock=lambda: 0)
     states[RunStart].outcome = Outcome.DUMP_SUCCESS
     with pytest.raises(ValueError, match='undeclared outcome'):
-        machine.tick()
+        machine.advance(machine.state.outcome)
 
 
 def test_cleanup_exception_still_transitions_to_run_end():

@@ -1,28 +1,32 @@
-"""Cooperative state lifecycle; each tick must return promptly."""
+"""States complete through futures rather than periodic orchestration ticks."""
 
 from abc import ABC, abstractmethod
+
+from rclpy.task import Future
 
 from ..outcomes import Outcome
 
 
-class State(ABC):
-    """Return None while running, or one of outcomes when finished."""
+def completed(outcome):
+    future = Future()
+    future.set_result(outcome)
+    return future
 
+
+class State(ABC):
     outcomes = frozenset()
 
     def enter(self):
-        """Initialize this invocation of the state."""
+        """Reset per-invocation data; state objects are reused across cycles."""
 
     @abstractmethod
-    def tick(self):
-        """Advance without blocking ROS callbacks."""
+    def start(self, dispatch):
+        """Return a future resolving to a declared Outcome; never block."""
 
     def cancel(self):
-        """Cancel owned work; future child action handles belong here."""
+        """Release local work; the manager cancels the dispatched child action."""
 
 
 class Placeholder(State):
-    """Fail explicitly until an actual routine is implemented."""
-
-    def tick(self):
-        return Outcome.NOT_IMPLEMENTED
+    def start(self, dispatch):
+        return completed(Outcome.NOT_IMPLEMENTED)

@@ -2,67 +2,81 @@
 
 ## Architecture
 
-- `server.py` owns the `full_auto` ROS 2 action, mode monitoring, feedback, and
-  stop requests. Its steady-clock timer advances the machine at 20 Hz without
-  blocking subscription or cancellation callbacks. Only one goal runs at a time;
-  goals require `FULL_AUTO` mode and a positive, finite `time_limit_sec`.
-- `machine.py` is independent of ROS. `STATE_TYPES` registers the state classes,
-  and `TRANSITIONS` maps `(state class, Outcome)` to the next class. The machine
-  tracks elapsed wall-clock time, completed excavation cycles, and the latest
-  outcome. Feedback reports these alongside the current state; the action result
-  reports why the entire run ended.
-- `states/` contains one class per state. `outcomes.py` defines the shared
-  `Outcome` constants; each state declares its allowed return values in `outcomes`.
+This package replaces `robot_state_controller` and owns robot modes, command
+routing, and action supervision. Startup launches two nodes:
 
-The normal path is:
+- `manager.py` exposes `/manage_robot` (`autonomy_msgs/ManageRobot`). An operation
+  enum selects navigation, dig, dump, or full-auto. `action_clients.py` adapts the
+  request to Nav2 `NavigateToPose`, `Dig`, or `Dump`, forwarding feedback and results.
+- `command_mux.py` arbitrates both drive and arm/drum commands. `arbitration.py`
+  applies eligible-source grants, configurable priorities, a shared stop lock, and
+  command timeouts. The manager atomically grants both channels through the
+  internal `/control/select` service before dispatching a child action.
+
+`config/control.yaml` defines source priorities, the shared lock topic and initial
+state, command/manager timeouts, and the manager heartbeat period. Startup loads this
+file for both nodes; restart them after editing it.
+
+The manager grants one source at a time. Priorities compare only explicitly
+eligible sources; a higher priority never bypasses ownership or the shared stop lock.
+Both outputs always use the same winning source, with zero for missing channels.
+The arbiter also supports multiple eligible sources for future policies. Every
+operation owns wheels and arms/drums together. Navigation keeps arm/drum outputs
+at zero under that same grant. Full-auto has no motion channel;
+its current step receives the appropriate routine's grant.
+
+`full_auto.py` runs the existing `machine.py` transition graph internally, using
+state-completion futures rather than calling the public manager action again:
 
 ```text
-RunStart -> TraverseToConstruction -> DumpMaterial -> TraverseToExcavation -> Excavate
-                    ^                                                          |
-                    +----------------------------------------------------------+
+Client -> manage_robot -> navigation / dig / dump action
+                      -> full-auto states -> same internal dispatcher
 ```
 
-Successful excavation increments the cycle count. The deadline interrupts the
-active state and enters `RunEnd`, completing the action successfully. Failures,
-cancellation, and leaving `FULL_AUTO` also end the run. Explicit action cancellation
-returns CANCELED; leaving the mode returns ABORTED with `MODE_EXITED`. Every finished
-run stops its command channels and requests ESTOP through `robot_state/set`, which
-sets the mode directly rather than toggling it.
+The sequence remains RunStart, construction traversal, dump, excavation traversal,
+excavate, then back to construction. Operational states are still placeholders
+returning `NOT_IMPLEMENTED`; a full-auto goal currently aborts without motion.
 
-The controller selects `cmd_vel/full_auto` and `arm_drum_control/full_auto` in
-`FULL_AUTO`. Operational states currently return `NOT_IMPLEMENTED`, so real goals
-stop at the first traversal without commanding motion.
+## Ownership and stopping
 
-## Extending the machine
+The robot starts in ESTOP. `/robot_state/estop` (`std_srvs/SetBool`) engages the
+stop with `true`; `false` clears it to IDLE without enabling teleop or resuming work.
+`/robot_state/teleop` enables teleop with `true`, or selects idle with `false`.
+Autonomous goals are explicit and rejected while stopped or busy.
 
-1. Implement the relevant class in `states/`, replacing its `Placeholder` base
-   with `State`. Use `enter()` to reset per-invocation data and start asynchronous
-   work. State objects are reused on subsequent cycles.
-2. Implement `tick()` to return `None` while work is pending, then a declared
-   `Outcome` when complete. Keep it nonblocking: future ROS action clients should
-   send goals asynchronously and inspect their futures on later ticks. Complex
-   routines can delegate to helper modules beneath `states/`.
-3. Implement `cancel()` to stop owned work, including child actions and commands.
-   The machine calls it when ending a run. Normal successful transitions do not
-   call it, so finish normal cleanup before returning a completion outcome.
-4. For a new state, export it from `states/__init__.py`, register it in
-   `STATE_TYPES`, and add its transitions. Add new return conditions to `Outcome`
-   and the state's `outcomes`, with a transition for each nonterminal outcome.
-   Update the failure-transition registration if the new state needs it.
-5. Supply ROS dependencies from `server.py`: construct state instances there and
-   pass a class-to-instance mapping as `Machine(..., states=...)`. Keep ROS clients
-   out of the transition engine. Before adding motion, replace the server's current
-   unconditional neutral-command publishing with appropriate command ownership.
+E-stop locks both outputs immediately and cancels the child action. Parent goals
+remain reserved until the child reports a terminal result, including goals still
+awaiting acceptance. Completed operations restore TELEOP after the child is
+terminal; an explicitly activated E-stop stays latched. The full-auto deadline
+succeeds; standalone operation deadlines abort. Action cancellation
+returns CANCELED; E-stop and mode exit abort the parent.
 
-`test/test_machine.py` uses injected states and a clock to test transitions and
-deadlines. `test/test_action.py` exercises the ROS action lifecycle. Extend these
-when adding new transitions or child-action behavior.
+Command watchdogs output zero for stale inputs. Loss of the manager heartbeat
+locks the mux until a new grant; restoring the heartbeat alone does not resume
+motion. These watchdogs and the one-shot run deadline use steady time. Routine
+servers retain their own control-loop timers and no longer change global modes.
+The legacy mode topics accept stop/teleop/idle requests but cannot start autonomy;
+repeated ESTOP requests never toggle it off. The old `/full_auto` action endpoint
+is replaced by `/manage_robot` with `operation: 3`.
+
+## Extending
+
+Each class in `states/` declares allowed `Outcome` values. `enter()` resets data
+for each visit; `start(dispatch)` returns a future resolving to an outcome. States
+are reused across cycles. Use the supplied `dispatch(ManageRobot.Goal(...))` for
+child operations; map its result string to the state's outcome in a completion
+callback. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cleans
+up local work; the manager cancels and waits for the dispatched child.
+
+For a new state, export it from `states/__init__.py`, add it to `STATE_TYPES`, and
+add its success and failure entries to `TRANSITIONS`. For a new operation, extend
+`ManageRobot.action`, the typed adapters in `action_clients.py`, manager mode
+mapping, and mux source configuration. Tests cover the graph separately from
+ROS delegation, cancellation races, and command arbitration.
 
 ## Run
 
-The startup robot launch includes the server. To select full-auto and send a goal:
-
 ```bash
-ros2 topic pub --once /robot_state/set std_msgs/msg/UInt8 '{data: 5}'
-ros2 action send_goal /full_auto autonomy_msgs/action/FullAuto '{time_limit_sec: 600.0}' --feedback
+ros2 service call /robot_state/estop std_srvs/srv/SetBool '{data: false}'
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, time_limit_sec: 600.0}' --feedback
 ```
