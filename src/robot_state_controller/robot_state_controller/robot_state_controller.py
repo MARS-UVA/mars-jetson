@@ -12,6 +12,7 @@ DIG_MODE = RobotState.DIG
 DUMP_MODE = RobotState.DUMP
 ESTOP_MODE = RobotState.ESTOP
 NAVIGATION_MODE = RobotState.NAVIGATION
+FULL_AUTO_MODE = RobotState.FULL_AUTO
 
 class RobotStateControllerNode(Node):
     """A ROS 2 node which controls the mux nodes based on the /robot_state topic"""
@@ -41,6 +42,10 @@ class RobotStateControllerNode(Node):
             QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, reliability=QoSReliabilityPolicy.RELIABLE)
         )
 
+        self.robot_state_set_subscriber_ = self.create_subscription(
+            UInt8, 'robot_state/set', self.robot_state_set_callback, 1
+        )
+
         self.robot_state_publisher_ = self.create_publisher(
             RobotState,
             'robot_state',
@@ -61,6 +66,15 @@ class RobotStateControllerNode(Node):
 
         self.control_robot_state()
     
+    def robot_state_set_callback(self, msg: UInt8) -> None:
+        """Set a mode directly, including repeated ESTOP requests."""
+        if msg.data not in (TELEOP_MODE, DIG_MODE, DUMP_MODE, ESTOP_MODE,
+                            NAVIGATION_MODE, FULL_AUTO_MODE):
+            self.get_logger().warn(f'Ignoring unknown robot mode: {msg.data}')
+            return
+        self.state = msg.data
+        self.control_robot_state()
+
     def control_robot_state(self) -> None:
         """Control the robot's state based on the current state."""
         if self.state == TELEOP_MODE:
@@ -72,6 +86,9 @@ class RobotStateControllerNode(Node):
         elif self.state == DUMP_MODE:
             self.send_mux_request('cmd_vel/dump', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/dump', self.arm_drum_mux_client_)
+        elif self.state == FULL_AUTO_MODE:
+            self.send_mux_request('cmd_vel/full_auto', self.cmd_vel_mux_client_)
+            self.send_mux_request('arm_drum_control/full_auto', self.arm_drum_mux_client_)
         elif self.state == NAVIGATION_MODE:
             self.send_mux_request('cmd_vel/navigation', self.cmd_vel_mux_client_)
             self.send_mux_request('arm_drum_control/stop', self.arm_drum_mux_client_)

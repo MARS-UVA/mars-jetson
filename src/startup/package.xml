@@ -26,6 +26,7 @@
   <exec_depend>gstreamer</exec_depend>
   <exec_depend>robot_controller</exec_depend>
   <exec_depend>robot_state_controller</exec_depend>
+  <exec_depend>robot_super_intelligence</exec_depend>
   <exec_depend>serial_node</exec_depend>
   <exec_depend>teleop</exec_depend>
 

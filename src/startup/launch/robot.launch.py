@@ -74,7 +74,7 @@ def generate_launch_description():
         executable='mux',
         name='cmd_vel_mux',
         output='screen',
-        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/dig', '/cmd_vel/dump', '/cmd_vel/navigation'],
+        arguments=['/cmd_vel', '/cmd_vel/teleop', '/cmd_vel/dig', '/cmd_vel/dump', '/cmd_vel/navigation', '/cmd_vel/full_auto'],
         respawn=True
     )
     arm_drum_mux = Node(
@@ -82,7 +82,7 @@ def generate_launch_description():
         executable='mux',
         name='arm_drum_mux',
         output='screen',
-        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/dig', '/arm_drum_control/dump', '/arm_drum_control/stop'],
+        arguments=['/arm_drum_controller/commands', '/arm_drum_control/teleop', '/arm_drum_control/dig', '/arm_drum_control/dump', '/arm_drum_control/stop', '/arm_drum_control/full_auto'],
         respawn=True
     )
     robot_state_controller = Node(
@@ -92,6 +92,13 @@ def generate_launch_description():
         output='screen',
         arguments=['--ros-args', '--log-level', 'WARN'],
         respawn=True
+    )
+    full_auto = Node(
+        package='robot_super_intelligence',
+        executable='full_auto',
+        name='robot_super_intelligence',
+        output='screen',
+        respawn=True,
     )
     # Old WebRTC streamers. Cameras now reach the dashboard as H.264 topics over
     # rosbridge; this stays available with legacy_webrtc:=true until it is removed.
@@ -186,6 +193,7 @@ def generate_launch_description():
         cmd_vel_mux,
         arm_drum_mux,
         robot_state_controller,
+        full_auto,
         gstreamer,
         twist_stamper,
         apriltag,
