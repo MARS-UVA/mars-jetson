@@ -1,8 +1,8 @@
 """TraverseToConstruction state."""
 
-from .base import Placeholder
+from .traverse import Traverse
 from ..outcomes import Outcome
 
 
-class TraverseToConstruction(Placeholder):
+class TraverseToConstruction(Traverse):
     outcomes = frozenset({Outcome.CONSTRUCTION_REACHED, Outcome.FAILED, Outcome.NOT_IMPLEMENTED})

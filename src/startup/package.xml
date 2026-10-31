@@ -8,6 +8,9 @@
   <license>TODO: License declaration</license>
 
   <depend>twist_stamper</depend>
+  <exec_depend>twist_mux</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
   <depend>ros2_controllers</depend>
   <depend>xacro</depend>
   <depend>v4l2_camera</depend>

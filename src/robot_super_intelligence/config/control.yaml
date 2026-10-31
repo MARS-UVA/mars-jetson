@@ -1,19 +1,52 @@
-# Loaded by startup/launch/robot.launch.py. Restart nodes after changing policy.
-command_mux:
+# Standard mux configuration. Restart the launch after changing policy.
+/**/command_mux:
   ros__parameters:
-    sources: [teleop, navigation, dig, dump]
-    arm_drum_sources: [teleop, dig, dump]
-    priorities:
-      teleop: 100
-      navigation: 50
-      dig: 50
-      dump: 50
-    command_timeout_sec: 0.5
-    manager_timeout_sec: 0.5
-    lock:
-      topic: control/locks/stop
-      initially_locked: true
-robot_super_intelligence:
+    use_stamped: false
+    topics:
+      stop:
+        topic: cmd_vel/stop
+        timeout: 0.15
+        priority: 255
+      teleop:
+        topic: cmd_vel/teleop
+        timeout: 0.5
+        priority: 100
+      navigation:
+        topic: cmd_vel/navigation
+        timeout: 0.5
+        priority: 50
+      dig:
+        topic: cmd_vel/dig
+        timeout: 0.5
+        priority: 50
+      dump:
+        topic: cmd_vel/dump
+        timeout: 0.5
+        priority: 50
+    locks:
+      stop:
+        topic: control/locks/stop
+        timeout: 0.5
+        priority: 255
+/**/arm_drum_mux:
+  ros__parameters:
+    input_topics:
+      - arm_drum_control/stop
+      - arm_drum_control/teleop
+      - arm_drum_control/dig
+      - arm_drum_control/dump
+    initial_topic: arm_drum_control/stop
+    output_topic: arm_drum_controller/commands
+    lazy: false
+/**/robot_super_intelligence:
   ros__parameters:
     heartbeat_period_sec: 0.1
     stop_lock_topic: control/locks/stop
+    stop_velocity_topic: cmd_vel/stop
+    arm_stop_topic: arm_drum_control/stop
+    # Must cover the longest normal twist_mux input timeout above.
+    source_transition_sec: 0.5
+    arm_topics:
+      teleop: arm_drum_control/teleop
+      dig: arm_drum_control/dig
+      dump: arm_drum_control/dump

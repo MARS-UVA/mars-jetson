@@ -3,27 +3,23 @@
 ## Architecture
 
 This package replaces `robot_state_controller` and owns robot modes, command
-routing, and action supervision. Startup launches two nodes:
+routing, and action supervision. Startup uses the manager and standard muxes:
 
 - `manager.py` exposes `/manage_robot` (`autonomy_msgs/ManageRobot`). An operation
-  enum selects navigation, dig, dump, or full-auto. `action_clients.py` adapts the
-  request to Nav2 `NavigateToPose`, `Dig`, or `Dump`, forwarding feedback and results.
-- `command_mux.py` arbitrates both drive and arm/drum commands. `arbitration.py`
-  applies eligible-source grants, configurable priorities, a shared stop lock, and
-  command timeouts. The manager atomically grants both channels through the
-  internal `/control/select` service before dispatching a child action.
+  enum selects navigation, dig, dump, or full-auto. It selects the command source,
+  supervises cancellation, and forwards feedback and results.
+- `states/excavate.py`, `states/dump_material.py`, and `states/traverse.py` own their
+  typed ROS action clients, goal validation, and goal construction. Both traversal
+  states inherit the Nav2 client from `Traverse`.
+- Standard `twist_mux` selects drive commands by priority and lock settings.
+  Standard `topic_tools mux` selects the arm/drum input through its service.
 
-`config/control.yaml` defines source priorities, the shared lock topic and initial
-state, command/manager timeouts, and the manager heartbeat period. Startup loads this
-file for both nodes; restart them after editing it.
-
-The manager grants one source at a time. Priorities compare only explicitly
-eligible sources; a higher priority never bypasses ownership or the shared stop lock.
-Both outputs always use the same winning source, with zero for missing channels.
-The arbiter also supports multiple eligible sources for future policies. Every
-operation owns wheels and arms/drums together. Navigation keeps arm/drum outputs
-at zero under that same grant. Full-auto has no motion channel;
-its current step receives the appropriate routine's grant.
+`config/control.yaml` holds the standard mux configuration, priorities, shared
+lock topic, timeouts, and manager settings. The manager keeps both outputs stopped
+while changing sources, waits for previous velocity inputs to expire, then starts
+the next operation. Keep `source_transition_sec` at least as large as the longest
+normal `twist_mux` input timeout. Navigation selects the zero arm/drum input.
+Full-auto dispatches its current step through the same manager path.
 
 `full_auto.py` runs the existing `machine.py` transition graph internally, using
 state-completion futures rather than calling the public manager action again:
@@ -44,17 +40,18 @@ stop with `true`; `false` clears it to IDLE without enabling teleop or resuming 
 `/robot_state/teleop` enables teleop with `true`, or selects idle with `false`.
 Autonomous goals are explicit and rejected while stopped or busy.
 
-E-stop locks both outputs immediately and cancels the child action. Parent goals
-remain reserved until the child reports a terminal result, including goals still
+E-stop publishes zero drive commands, selects the zero arm/drum input, and cancels
+the child action. Parent goals remain reserved until the child reports a terminal result, including goals still
 awaiting acceptance. Completed operations restore TELEOP after the child is
 terminal; an explicitly activated E-stop stays latched. The full-auto deadline
 succeeds; standalone operation deadlines abort. Action cancellation
 returns CANCELED; E-stop and mode exit abort the parent.
 
-Command watchdogs output zero for stale inputs. Loss of the manager heartbeat
-locks the mux until a new grant; restoring the heartbeat alone does not resume
-motion. These watchdogs and the one-shot run deadline use steady time. Routine
-servers retain their own control-loop timers and no longer change global modes.
+`twist_mux` input timeouts and the wheel controller's `cmd_vel_timeout` handle
+stale drive commands. The manager refreshes the drive lock and publishes zeros
+while stopped. The arm/drum controller has no command timeout: lost arm/drum
+commands do not automatically stop those joints. No extra watchdog node is used.
+Routine servers retain their own control-loop timers and do not change modes.
 The legacy mode topics accept stop/teleop/idle requests but cannot start autonomy;
 repeated ESTOP requests never toggle it off. The old `/full_auto` action endpoint
 is replaced by `/manage_robot` with `operation: 3`.
@@ -69,10 +66,13 @@ callback. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cl
 up local work; the manager cancels and waits for the dispatched child.
 
 For a new state, export it from `states/__init__.py`, add it to `STATE_TYPES`, and
-add its success and failure entries to `TRANSITIONS`. For a new operation, extend
-`ManageRobot.action`, the typed adapters in `action_clients.py`, manager mode
-mapping, and mux source configuration. Tests cover the graph separately from
-ROS delegation, cancellation races, and command arbitration.
+add its success and failure entries to `TRANSITIONS`. A standalone operation state
+owns its `client`, `valid(request)`, and `send_goal(request, feedback)`, plus its
+`source` and `mode`. Register it in the manager's `operations` mapping and extend
+`ManageRobot.action` and mux source configuration as needed. Construct states with
+a ROS node to create their clients. Their current full-auto `start()` methods
+remain placeholders; standalone operations use `send_goal()`. Tests cover the
+graph separately from ROS delegation, cancellation races, and command routing.
 
 ## Run
 

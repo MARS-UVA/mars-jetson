@@ -269,6 +269,8 @@ class TeleopNode(Node):
         self.prev_gamepad_state = gamepad_state
     
     def __stopped_motors(self) -> None:
+        if self.robot_state.state != RobotState.TELEOP:
+            return
         self._cmd_vel_publisher.publish(Twist())
         self._arm_drum_control_publisher.publish(Float64MultiArray(data=[0.0, 0.0, 0.0, 0.0]))
 

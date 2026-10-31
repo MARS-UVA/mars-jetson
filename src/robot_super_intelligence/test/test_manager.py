@@ -1,11 +1,15 @@
 """Real ROS action delegation, E-stop, ownership, and cancellation races."""
 
 import time
+import subprocess
+import tempfile
+from pathlib import Path
 from itertools import count
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import yaml
 import rclpy
 from action_msgs.msg import GoalStatus
 from autonomy_msgs.action import Dig, Dump, ManageRobot
@@ -14,12 +18,13 @@ from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.parameter import Parameter
+from ament_index_python.packages import get_package_prefix
 from rclpy.task import Future
 from robot_control_msgs.msg import RobotState
 from std_msgs.msg import Float64MultiArray
 from std_srvs.srv import SetBool
 
-from robot_super_intelligence.command_mux import CommandMux
 from robot_super_intelligence.manager import StateManager
 from robot_super_intelligence.states.base import completed
 from robot_super_intelligence.outcomes import Outcome
@@ -74,18 +79,33 @@ class Routine(Node):
 
 
 @pytest.fixture
-def system():
+def system(request):
     rclpy.init(args=['--ros-args', '-r', f'__ns:=/manager_test_{next(NAMESPACES)}'])
     executor = SingleThreadedExecutor()
-    mux = CommandMux()
-    manager = StateManager()
+    manager = StateManager(parameter_overrides=[Parameter('source_transition_sec', value=0.06)])
     client_node = Node('manager_test_client')
     routines = {ManageRobot.Goal.DIG: Routine('dig', Dig),
                 ManageRobot.Goal.DUMP: Routine('dump', Dump),
                 ManageRobot.Goal.NAVIGATE: Routine('navigate_to_pose', NavigateToPose)}
-    nodes = [mux, manager, client_node, *routines.values()]
+    nodes = [manager, client_node, *routines.values()]
     for node in nodes:
         executor.add_node(node)
+    config = str(Path(__file__).resolve().parents[1] / 'config/control.yaml')
+    namespace = manager.get_namespace()
+    ros_args = ['--ros-args', '-r', f'__ns:={namespace}', '--params-file', config]
+    logs = [tempfile.TemporaryFile(mode='w+t'), tempfile.TemporaryFile(mode='w+t')]
+    twist_args = [str(Path(get_package_prefix('twist_mux')) / 'lib/twist_mux/twist_mux'),
+                  *ros_args, '-r', '__node:=command_mux', '-r', 'cmd_vel_out:=cmd_vel']
+    for source in ('teleop', 'navigation', 'dig', 'dump'):
+        twist_args.extend(['-p', f'topics.{source}.timeout:=0.05'])
+    twist_args.extend(['-p', 'topics.stop.timeout:=0.01'])
+    with open(config, encoding='utf-8') as config_file:
+        arm_config = yaml.safe_load(config_file)['/**/arm_drum_mux']['ros__parameters']
+    arm_args = [str(Path(get_package_prefix('topic_tools')) / 'lib/topic_tools/mux'),
+                arm_config['output_topic'], *arm_config['input_topics'],
+                *ros_args, '-r', '__node:=arm_drum_mux']
+    processes = [subprocess.Popen(command, stdout=log, stderr=log)
+                 for command, log in zip((twist_args, arm_args), logs)]
     action = ActionClient(client_node, ManageRobot, 'manage_robot')
     estop = client_node.create_client(SetBool, 'robot_state/estop')
     teleop = client_node.create_client(SetBool, 'robot_state/teleop')
@@ -97,6 +117,11 @@ def system():
         deadline = time.monotonic() + timeout
         while not predicate() and time.monotonic() < deadline:
             executor.spin_once(timeout_sec=0.01)
+        if not predicate():
+            for log in logs:
+                log.flush()
+                log.seek(0)
+                print(log.read()[-3000:])
         assert predicate(), 'ROS operation timed out'
 
     def call(client, data):
@@ -113,30 +138,43 @@ def system():
         until(future.done)
         return future.result()
 
+    def cleanup():
+        # Complete fake children left active by an assertion, so teardown is clean.
+        for routine in routines.values():
+            if routine.result is not None and not routine.result.done():
+                routine.finish(canceled=routine.goal.is_cancel_requested)
+        for process in processes:
+            process.terminate()
+        for process, log in zip(processes, logs):
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=3)
+            log.close()
+        executor.shutdown()
+        action.destroy()
+        for routine in routines.values():
+            routine.server.destroy()
+        for node in nodes:
+            node.destroy_node()
+        rclpy.shutdown()
+
+    request.addfinalizer(cleanup)
     until(lambda: action.server_is_ready() and estop.service_is_ready()
           and manager.control.service_is_ready()
-          and all(client.server_is_ready() for client in manager.actions.clients.values())
-          and mux.healthy())
-    yield SimpleNamespace(manager=manager, mux=mux, routines=routines, node=client_node,
+          and all(state.client.server_is_ready() for state in manager.operations.values())
+          )
+    yield SimpleNamespace(manager=manager, routines=routines, node=client_node,
                           until=until, call=call, send=send, estop=estop, teleop=teleop,
                           velocities=velocities, arms=arms, executor=executor)
-    # Complete fake children left active by an assertion, so teardown is clean.
-    for routine in routines.values():
-        if routine.result is not None and not routine.result.done():
-            routine.finish(canceled=routine.goal.is_cancel_requested)
-    executor.shutdown()
-    action.destroy()
-    for routine in routines.values():
-        routine.server.destroy()
-    for node in nodes:
-        node.destroy_node()
-    rclpy.shutdown()
+
 
 
 def clear(s):
     assert s.call(s.estop, False).success
     assert s.manager.mode == RobotState.IDLE
-    s.until(lambda: not s.mux.arbiter.stop_lock)
+    assert s.manager.outputs_locked
 
 
 def result(s, goal):
@@ -149,10 +187,10 @@ def test_startup_stop_and_explicit_clear_does_not_enable_teleop(system):
     s = system
     assert not s.send().accepted
     clear(s)
-    assert not s.mux.arbiter.allowed
+    assert s.manager.outputs_locked
     assert s.call(s.teleop, True).success
     assert s.manager.mode == RobotState.TELEOP
-    assert s.mux.arbiter.allowed == {'teleop'}
+    assert not s.manager.outputs_locked
     assert s.call(s.estop, True).success
     assert s.call(s.estop, True).success
     assert s.manager.mode == RobotState.ESTOP
@@ -167,8 +205,7 @@ def test_typed_delegation_success_and_grant_release(system, operation):
     assert goal.accepted
     routine = s.routines[operation]
     s.until(lambda: routine.goal is not None)
-    expected = s.manager.actions.sources[operation]
-    assert s.mux.arbiter.allowed == {expected}
+    assert s.manager.mode == s.manager.operations[operation].mode
     routine.finish()
     response = result(s, goal)
     assert response.status == GoalStatus.STATUS_SUCCEEDED
@@ -177,7 +214,7 @@ def test_typed_delegation_success_and_grant_release(system, operation):
     assert not s.manager.busy
     assert not s.manager.estopped
     assert s.manager.mode == RobotState.TELEOP
-    assert s.mux.arbiter.allowed == {'teleop'}
+    assert not s.manager.outputs_locked
 
 
 @pytest.mark.parametrize('limit', [0, -1, float('nan'), float('inf')])
@@ -245,12 +282,15 @@ def test_estop_blocks_commands_before_child_acknowledges_stop(system):
     drive = s.node.create_publisher(Twist, 'cmd_vel/dig', 1)
     arm = s.node.create_publisher(Float64MultiArray, 'arm_drum_control/dig', 1)
     s.until(lambda: drive.get_subscription_count() > 0 and arm.get_subscription_count() > 0)
-    drive.publish(Twist(linear=Vector3(x=0.2)))
-    arm.publish(Float64MultiArray(data=[1.0]*4))
+    def publish_commands():
+        drive.publish(Twist(linear=Vector3(x=0.2)))
+        arm.publish(Float64MultiArray(data=[1.0]*4))
+    stream = s.node.create_timer(0.02, publish_commands)
     s.until(lambda: s.velocities and s.velocities[-1].linear.x == 0.2
             and s.arms and list(s.arms[-1].data) == [1.0]*4)
+    s.node.destroy_timer(stream)
     assert s.call(s.estop, True).success
-    s.until(lambda: s.mux.arbiter.stop_lock)
+    assert s.manager.outputs_locked
     s.until(lambda: s.velocities[-1].linear.x == 0.0 and not any(s.arms[-1].data))
     assert s.manager.busy
     s.until(lambda: routine.goal.is_cancel_requested)
@@ -284,15 +324,23 @@ def test_full_auto_placeholder_uses_internal_coordinator(system):
     assert not any(routine.goal for routine in s.routines.values())
 
 
-def test_manager_heartbeat_loss_latches_arbiter_until_new_grant(system):
+def test_twist_mux_lock_timeout_blocks_drive_when_manager_disappears(system):
     s = system
     clear(s)
     assert s.call(s.teleop, True).success
+    drive = s.node.create_publisher(Twist, 'cmd_vel/teleop', 1)
+    s.until(lambda: drive.get_subscription_count() > 0)
+    stream = s.node.create_timer(0.02, lambda: drive.publish(Twist(linear=Vector3(x=0.2))))
+    s.until(lambda: s.velocities and s.velocities[-1].linear.x == 0.2)
+    s.node.destroy_timer(stream)
     s.manager.heartbeat_timer.cancel()
-    s.until(lambda: s.mux.arbiter.locked and not s.mux.arbiter.allowed)
-    s.manager.heartbeat_timer.reset()
-    s.until(s.mux.healthy)
-    assert s.mux.arbiter.locked
+    expired = time.monotonic() + 0.6
+    s.until(lambda: time.monotonic() >= expired)
+    count = len(s.velocities)
+    drive.publish(Twist(linear=Vector3(x=0.4)))
+    settled = time.monotonic() + 0.1
+    s.until(lambda: time.monotonic() >= settled)
+    assert len(s.velocities) == count
 
 
 def test_rejected_child_cancel_does_not_release_ownership_early(system):
@@ -400,11 +448,11 @@ def test_estop_during_teleop_handoff_is_not_cleared(system):
     pending = Future(executor=s.executor)
     original_select = s.manager.select
     handing_off = []
-    async def delayed_select(source='', locked=False):
+    async def delayed_select(source=''):
         if source == 'teleop':
             handing_off.append(True)
             await pending
-        return await original_select(source, locked)
+        return await original_select(source)
     with patch.object(s.manager, 'select', delayed_select):
         routine.finish()
         s.until(lambda: bool(handing_off))
@@ -414,7 +462,7 @@ def test_estop_during_teleop_handoff_is_not_cleared(system):
     assert s.manager.estopped
     assert s.manager.mode == RobotState.ESTOP
     assert response.status == GoalStatus.STATUS_ABORTED
-    s.until(lambda: s.mux.arbiter.stop_lock)
+    assert s.manager.outputs_locked
 
 
 def test_cancel_during_terminal_handoff_still_restores_teleop(system):
@@ -426,11 +474,11 @@ def test_cancel_during_terminal_handoff_still_restores_teleop(system):
     pending = Future(executor=s.executor)
     handing_off = []
     original_select = s.manager.select
-    async def delayed_select(source='', locked=False):
+    async def delayed_select(source=''):
         if source == 'teleop':
             handing_off.append(True)
             await pending
-        return await original_select(source, locked)
+        return await original_select(source)
     with patch.object(s.manager, 'select', delayed_select):
         routine.finish()
         s.until(lambda: bool(handing_off))
@@ -441,4 +489,13 @@ def test_cancel_during_terminal_handoff_still_restores_teleop(system):
     assert response.status == GoalStatus.STATUS_CANCELED
     assert s.manager.mode == RobotState.TELEOP
     assert not s.manager.estopped
-    s.until(lambda: not s.mux.arbiter.stop_lock)
+    assert not s.manager.outputs_locked
+
+
+@pytest.mark.parametrize('operation', [ManageRobot.Goal.DIG, ManageRobot.Goal.DUMP])
+def test_state_rejects_unsupported_routine_before_dispatch(system, operation):
+    s = system
+    clear(s)
+    assert not s.send(operation, routine_index=99).accepted
+    assert s.routines[operation].goal is None
+    assert not s.manager.busy

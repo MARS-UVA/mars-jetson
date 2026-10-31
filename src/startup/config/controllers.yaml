@@ -44,4 +44,4 @@ arm_drum_controller:
       - rear_arm_joint
       - front_drum_joint
       - rear_drum_joint
-    command_timeout: 0.5
+    # JointGroupVelocityController has no command timeout.

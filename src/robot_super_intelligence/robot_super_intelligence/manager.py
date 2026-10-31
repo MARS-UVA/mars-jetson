@@ -1,6 +1,7 @@
 """Public operation action, command ownership, and E-stop lifecycle."""
 
 from dataclasses import dataclass, field
+import math
 import time
 
 import rclpy
@@ -13,11 +14,13 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from robot_control_msgs.msg import RobotState
-from robot_control_msgs.srv import SetControl
-from std_msgs.msg import Bool, UInt8
+from geometry_msgs.msg import Twist
+from topic_tools_interfaces.srv import MuxSelect
+from rclpy.task import Future
+from std_msgs.msg import Bool, Float64MultiArray, UInt8
 from std_srvs.srv import SetBool
 
-from .action_clients import ActionClients
+from .states import DumpMaterial, Excavate, Traverse
 from .full_auto import FullAuto
 from .outcomes import Outcome
 
@@ -39,8 +42,8 @@ class Run:
 
 
 class StateManager(Node):
-    def __init__(self):
-        super().__init__('robot_super_intelligence')
+    def __init__(self, **kwargs):
+        super().__init__('robot_super_intelligence', **kwargs)
         self.busy = False
         self.estopped = True
         self.mode = RobotState.ESTOP
@@ -53,9 +56,22 @@ class StateManager(Node):
         self.state_pub = self.create_publisher(RobotState, 'robot_state', latched)
         lock_topic = self.declare_parameter('stop_lock_topic', 'control/locks/stop').value
         self.lock_pub = self.create_publisher(Bool, lock_topic, latched)
-        self.heartbeat_pub = self.create_publisher(Bool, 'control/heartbeat', 1)
-        self.control = self.create_client(SetControl, 'control/select')
-        self.actions = ActionClients(self)
+        self.outputs_locked = True
+        self.stop_future = None
+        self.transition_sec = self.declare_parameter('source_transition_sec', 0.5).value
+        self.arm_stop_topic = self.declare_parameter('arm_stop_topic', 'arm_drum_control/stop').value
+        self.arm_topics = {source: self.declare_parameter(
+            f'arm_topics.{source}', f'arm_drum_control/{source}').value
+            for source in ('teleop', 'dig', 'dump')}
+        stop_topic = self.declare_parameter('stop_velocity_topic', 'cmd_vel/stop').value
+        self.stop_velocity_pub = self.create_publisher(Twist, stop_topic, 1)
+        self.stop_arm_pub = self.create_publisher(Float64MultiArray, self.arm_stop_topic, 1)
+        self.control = self.create_client(MuxSelect, 'arm_drum_mux/select')
+        self.operations = {
+            ManageRobot.Goal.NAVIGATE: Traverse(self),
+            ManageRobot.Goal.DIG: Excavate(self),
+            ManageRobot.Goal.DUMP: DumpMaterial(self),
+        }
         self.action_server = ActionServer(
             self, ManageRobot, 'manage_robot', self.execute,
             goal_callback=self.on_goal, cancel_callback=self.on_cancel)
@@ -73,22 +89,60 @@ class StateManager(Node):
         self.heartbeat()
 
     def heartbeat(self):
-        self.heartbeat_pub.publish(Bool(data=True))
+        self.lock_pub.publish(Bool(data=self.outputs_locked))
+        if self.outputs_locked:
+            self.stop_velocity_pub.publish(Twist())
+            self.stop_arm_pub.publish(Float64MultiArray(data=[0.0] * 4))
 
     def publish_mode(self, mode):
         self.mode = mode
         self.state_pub.publish(RobotState(state=mode))
 
-    async def select(self, source='', locked=False):
+    def hold_outputs(self):
+        self.outputs_locked = True
+        self.heartbeat()
+        if self.control.service_is_ready():
+            self.stop_future = self.control.call_async(MuxSelect.Request(topic=self.arm_stop_topic))
+        else:
+            self.stop_future = None
+
+    async def select(self, source=''):
         if not self.control.service_is_ready():
-            raise RuntimeError('Command arbiter unavailable')
-        response = await self.control.call_async(SetControl.Request(sources=[source] if source else [], locked=locked))
+            raise RuntimeError('Arm/drum mux unavailable')
+        if source not in ('', 'teleop', 'navigation', 'dig', 'dump'):
+            raise ValueError(f'Unknown operation source: {source}')
+        self.hold_outputs()
+        response = await self.stop_future
         if not response.success:
-            raise RuntimeError(response.message or 'Command grant rejected')
+            raise RuntimeError('Arm/drum mux rejected the stop input')
+        if not source:
+            return
+        # Drain previous velocity inputs while both outputs remain stopped.
+        if self.transition_sec > 0:
+            future = Future(executor=self.executor)
+            def elapsed():
+                timer.cancel()
+                future.set_result(None)
+            timer = self.create_timer(self.transition_sec, elapsed, clock=self.steady_clock)
+            try:
+                await future
+            finally:
+                self.destroy_timer(timer)
+        if self.estopped or (self.run and self.run.reason and source != 'teleop'):
+            raise RuntimeError('Operation interrupted during source transition')
+        topic = self.arm_topics.get(source, self.arm_stop_topic)
+        response = await self.control.call_async(MuxSelect.Request(topic=topic))
+        if not response.success:
+            raise RuntimeError(f'Arm/drum mux rejected {topic}')
+        if self.estopped or (self.run and self.run.reason and source != 'teleop'):
+            self.hold_outputs()
+            raise RuntimeError('Operation interrupted during source transition')
+        self.outputs_locked = False
+        self.heartbeat()
 
     def lock_outputs(self):
         self.safety_epoch += 1
-        self.lock_pub.publish(Bool(data=True))
+        self.hold_outputs()
 
     def engage_stop(self):
         self.lock_outputs()
@@ -131,6 +185,13 @@ class StateManager(Node):
     async def on_estop(self, request, response):
         if request.data:
             self.stop_run('ESTOP')
+            if self.stop_future is None:
+                response.message = 'Drive stopped, but arm/drum mux is unavailable'
+                return response
+            stopped = await self.stop_future
+            if not stopped.success:
+                response.message = 'Arm/drum mux rejected the stop input'
+                return response
             response.success = True
             response.message = 'E-stop engaged; active work is being canceled'
             return response
@@ -145,7 +206,6 @@ class StateManager(Node):
                 response.message = 'A newer stop request superseded this clear'
                 return response
             self.estopped = False
-            self.lock_pub.publish(Bool(data=False))
             self.publish_mode(RobotState.IDLE)
             response.success = True
             response.message = 'E-stop cleared; robot is idle'
@@ -194,12 +254,15 @@ class StateManager(Node):
             self.stop_run(Outcome.MODE_EXITED.value)
 
     def on_goal(self, request):
-        if self.busy or self.changing_mode or self.estopped or not self.actions.valid(request):
+        if (self.busy or self.changing_mode or self.estopped
+                or not math.isfinite(request.time_limit_sec) or request.time_limit_sec <= 0):
+            return GoalResponse.REJECT
+        state = self.operations.get(request.operation)
+        if request.operation != ManageRobot.Goal.FULL_AUTO and (state is None or not state.valid(request)):
             return GoalResponse.REJECT
         if not self.control.service_is_ready():
             return GoalResponse.REJECT
-        client = self.actions.clients.get(request.operation)
-        if client is not None and not client.server_is_ready():
+        if state is not None and not state.client.server_is_ready():
             return GoalResponse.REJECT
         self.busy = True
         return GoalResponse.ACCEPT
@@ -233,7 +296,7 @@ class StateManager(Node):
             return await self.dispatch_child(run, request)
         finally:
             try:
-                await self.select(locked=bool(run.reason))
+                await self.select()
             finally:
                 run.dispatching = False
 
@@ -241,10 +304,12 @@ class StateManager(Node):
         """Shared by standalone goals and full-auto steps, without recursion."""
         if run.reason:
             return run.reason
-        client = self.actions.clients.get(request.operation)
-        if client is None or not client.server_is_ready():
+        state = self.operations.get(request.operation)
+        if state is None or not state.client.server_is_ready():
             return 'SERVER_UNAVAILABLE'
-        source = self.actions.sources[request.operation]
+        if not state.valid(request):
+            return 'INVALID_GOAL'
+        source = state.source
         await self.select(source)
         if run.reason:
             return run.reason
@@ -256,7 +321,7 @@ class StateManager(Node):
                 self.feedback(run)
         # Keep the run reserved while awaiting acceptance. A late-accepted goal
         # is canceled below if a stop arrived during this await.
-        child = await client.send_goal_async(self.actions.goal(request), child_feedback)
+        child = await state.send_goal(request, child_feedback)
         if not child.accepted:
             return 'GOAL_REJECTED'
         run.child = child
@@ -302,10 +367,7 @@ class StateManager(Node):
                     for task in run.steps:
                         await task
             elif not run.reason:
-                modes = {ManageRobot.Goal.NAVIGATE: RobotState.NAVIGATION,
-                         ManageRobot.Goal.DIG: RobotState.DIG,
-                         ManageRobot.Goal.DUMP: RobotState.DUMP}
-                self.publish_mode(modes[request.operation])
+                self.publish_mode(self.operations[request.operation].mode)
                 outcome = await self.dispatch(run, request)
             outcome = run.reason or outcome
         except Exception as error:
@@ -324,12 +386,12 @@ class StateManager(Node):
                 try:
                     await self.select('teleop')
                     if not self.estopped:
-                        self.lock_pub.publish(Bool(data=False))
                         self.publish_mode(RobotState.TELEOP)
                 except Exception as error:
-                    self.get_logger().error(f'Cannot restore teleop: {error}')
-                    self.engage_stop()
-                    run.reason = Outcome.FAILED.value
+                    if not self.estopped:
+                        self.get_logger().error(f'Cannot restore teleop: {error}')
+                        self.engage_stop()
+                        run.reason = Outcome.FAILED.value
             outcome = run.reason or outcome
             result = ManageRobot.Result(
                 success=outcome == 'SUCCESS' or (
@@ -350,8 +412,8 @@ class StateManager(Node):
 
     def destroy_node(self):
         self.action_server.destroy()
-        for client in self.actions.clients.values():
-            client.destroy()
+        for state in self.operations.values():
+            state.client.destroy()
         return super().destroy_node()
 
 

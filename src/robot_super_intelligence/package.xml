@@ -9,6 +9,11 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>nav2_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
+  <exec_depend>topic_tools_interfaces</exec_depend>
+  <test_depend>ament_index_python</test_depend>
+  <test_depend>python3-yaml</test_depend>
+  <test_depend>twist_mux</test_depend>
+  <test_depend>topic_tools</test_depend>
   <exec_depend>action_msgs</exec_depend>
   <exec_depend>autonomy_msgs</exec_depend>
   <exec_depend>robot_control_msgs</exec_depend>

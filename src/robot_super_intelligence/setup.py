@@ -19,6 +19,5 @@ setup(
     license='Apache-2.0',
     entry_points={'console_scripts': [
         'state_manager = robot_super_intelligence.manager:main',
-        'command_mux = robot_super_intelligence.command_mux:main',
     ]},
 )

@@ -1,5 +1,7 @@
 import os
 
+import yaml
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
@@ -72,9 +74,21 @@ def generate_launch_description():
     control_config = os.path.join(
         get_package_share_directory('robot_super_intelligence'), 'config', 'control.yaml')
     command_mux = Node(
-        package='robot_super_intelligence',
-        executable='command_mux',
+        package='twist_mux',
+        executable='twist_mux',
         name='command_mux',
+        remappings=[('cmd_vel_out', 'cmd_vel')],
+        parameters=[control_config],
+        output='screen',
+        respawn=True,
+    )
+    with open(control_config, encoding='utf-8') as config_file:
+        arm_config = yaml.safe_load(config_file)['/**/arm_drum_mux']['ros__parameters']
+    arm_drum_mux = Node(
+        package='topic_tools',
+        executable='mux',
+        name='arm_drum_mux',
+        arguments=[arm_config['output_topic'], *arm_config['input_topics']],
         parameters=[control_config],
         output='screen',
         respawn=True,
@@ -178,6 +192,7 @@ def generate_launch_description():
         dump,
         controller,
         command_mux,
+        arm_drum_mux,
         state_manager,
         gstreamer,
         twist_stamper,
