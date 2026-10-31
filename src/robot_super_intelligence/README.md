@@ -6,7 +6,7 @@ This package replaces `robot_state_controller` and owns robot modes, command
 routing, and action supervision. Startup uses the manager and standard muxes:
 
 - `manager.py` exposes `/manage_robot` (`autonomy_msgs/ManageRobot`). An operation
-  enum selects navigation, dig, dump, or full-auto. It selects the command source,
+  enum selects navigation, dig, dump, or a machine. It selects the command source,
   supervises cancellation, and forwards feedback and results.
 - `states/excavate.py`, `states/dump_material.py`, and `states/traverse.py` own their
   typed ROS action clients, goal validation, and goal construction. Both traversal
@@ -21,17 +21,19 @@ the next operation. Keep `source_transition_sec` at least as large as the longes
 normal `twist_mux` input timeout. Navigation selects the zero arm/drum input.
 Full-auto dispatches its current step through the same manager path.
 
-`full_auto.py` runs the existing `machine.py` transition graph internally, using
-state-completion futures rather than calling the public manager action again:
+`machine.py` executes a graph, and `machine_runner.py` advances it through
+state-completion futures. Each class under `machines/` defines its own states,
+explicit transitions, initial/end states, and successful ending outcomes:
 
-```text
-Client -> manage_robot -> navigation / dig / dump action
-                      -> full-auto states -> same internal dispatcher
-```
+- `FullAutoMachine` (`operation: 3`): RunStart → construction traversal → dump →
+  excavation traversal → excavate → back to construction, until the deadline.
+- `RunStartMachine` (`operation: 4`): RunStart → construction traversal → RunEnd.
+  It finishes successfully with `CONSTRUCTION_REACHED`; its deadline is a failure.
 
-The sequence remains RunStart, construction traversal, dump, excavation traversal,
-excavate, then back to construction. Operational states are still placeholders
-returning `NOT_IMPLEMENTED`; a full-auto goal currently aborts without motion.
+Both reuse the classes under `states/` and run in the robot's FULL_AUTO control
+mode. No extra node or action server is needed for a new machine. Operational
+states remain placeholders returning `NOT_IMPLEMENTED`, so both machines currently
+abort at the first traversal without motion.
 
 ## Ownership and stopping
 
@@ -44,7 +46,7 @@ E-stop publishes zero drive commands, selects the zero arm/drum input, and cance
 the child action. Parent goals remain reserved until the child reports a terminal result, including goals still
 awaiting acceptance. Completed operations restore TELEOP after the child is
 terminal; an explicitly activated E-stop stays latched. The full-auto deadline
-succeeds; standalone operation deadlines abort. Action cancellation
+succeeds; RunStart and standalone operation deadlines abort. Action cancellation
 returns CANCELED; E-stop and mode exit abort the parent.
 
 `twist_mux` input timeouts and the wheel controller's `cmd_vel_timeout` handle
@@ -65,8 +67,8 @@ child operations; map its result string to the state's outcome in a completion
 callback. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cleans
 up local work; the manager cancels and waits for the dispatched child.
 
-For a new state, export it from `states/__init__.py`, add it to `STATE_TYPES`, and
-add its success and failure entries to `TRANSITIONS`. A standalone operation state
+For a new state, export it from `states/__init__.py`, add it to the relevant
+machine's `state_types`, and write each entry in its `transitions` explicitly. A standalone operation state
 owns its `client`, `valid(request)`, and `send_goal(request, feedback)`, plus its
 `source` and `mode`. Register it in the manager's `operations` mapping and extend
 `ManageRobot.action` and mux source configuration as needed. Construct states with
@@ -74,9 +76,17 @@ a ROS node to create their clients. Their current full-auto `start()` methods
 remain placeholders; standalone operations use `send_goal()`. Tests cover the
 graph separately from ROS delegation, cancellation races, and command routing.
 
+For a new machine, subclass `Machine` under `machines/`, defining `state_types`,
+`initial_state`, `end_state`, `transitions`, and `success_outcomes`. Export the
+class and register it in the manager's `machines` mapping with a new
+`ManageRobot.action` operation constant. The shared runner stays unchanged.
+
 ## Run
 
 ```bash
 ros2 service call /robot_state/estop std_srvs/srv/SetBool '{data: false}'
+# Full excavation loop
 ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, time_limit_sec: 600.0}' --feedback
+# Short startup sequence instead
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 4, time_limit_sec: 30.0}' --feedback
 ```

@@ -314,7 +314,7 @@ def test_standalone_deadline_cancels_child_and_aborts(system):
     assert response.result.outcome == 'TIME_LIMIT_REACHED'
 
 
-def test_full_auto_placeholder_uses_internal_coordinator(system):
+def test_full_auto_placeholder_uses_machine_runner(system):
     s = system
     clear(s)
     goal = s.send(ManageRobot.Goal.FULL_AUTO)
@@ -374,15 +374,12 @@ def test_newer_estop_supersedes_pending_clear(system):
         assert s.manager.mode == RobotState.ESTOP
 
 
-def coordinator_factory(s, state):
-    from robot_super_intelligence.full_auto import FullAuto
-    from robot_super_intelligence.machine import Machine, STATE_TYPES
+def runner_factory(state):
+    from robot_super_intelligence.machine_runner import MachineRunner
     from robot_super_intelligence.states import TraverseToConstruction
-    def factory(node, limit, dispatch, feedback):
-        states = {cls: cls() for cls in STATE_TYPES}
-        states[TraverseToConstruction] = state
-        return FullAuto(node, limit, dispatch, feedback,
-                        machine_factory=lambda seconds: Machine(seconds, states))
+    def factory(node, machine, dispatch, feedback):
+        machine.states[TraverseToConstruction] = state
+        return MachineRunner(node, machine, dispatch, feedback)
     return factory
 
 
@@ -397,19 +394,24 @@ class WaitingState:
         self.cleaned = True
 
 
-def test_full_auto_deadline_finishes_waiting_state_without_polling(system):
+@pytest.mark.parametrize('operation, expected_status', [
+    (ManageRobot.Goal.FULL_AUTO, GoalStatus.STATUS_SUCCEEDED),
+    (ManageRobot.Goal.RUN_START, GoalStatus.STATUS_ABORTED),
+])
+def test_machine_deadline_finishes_waiting_state_without_polling(system, operation, expected_status):
     s = system
     clear(s)
     state = WaitingState()
-    with patch('robot_super_intelligence.manager.FullAuto', coordinator_factory(s, state)):
-        goal = s.send(ManageRobot.Goal.FULL_AUTO, limit=0.2)
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(state)):
+        goal = s.send(operation, limit=0.2)
         response = result(s, goal)
     assert state.cleaned
-    assert response.status == GoalStatus.STATUS_SUCCEEDED
+    assert response.status == expected_status
     assert response.result.outcome == 'TIME_LIMIT_REACHED'
 
 
-def test_full_auto_step_uses_the_internal_dispatcher_and_waits_for_cancel(system):
+@pytest.mark.parametrize('operation', [ManageRobot.Goal.FULL_AUTO, ManageRobot.Goal.RUN_START])
+def test_machine_step_uses_the_internal_dispatcher_and_waits_for_cancel(system, operation):
     s = system
     clear(s)
     class DigStep(WaitingState):
@@ -423,8 +425,8 @@ def test_full_auto_step_uses_the_internal_dispatcher_and_waits_for_cancel(system
     state = DigStep()
     routine = s.routines[ManageRobot.Goal.DIG]
     routine.acceptance = Future(executor=s.executor)
-    with patch('robot_super_intelligence.manager.FullAuto', coordinator_factory(s, state)):
-        goal = s.send(ManageRobot.Goal.FULL_AUTO)
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(state)):
+        goal = s.send(operation)
         s.until(lambda: routine.requested)
         assert s.manager.mode == RobotState.FULL_AUTO
         cancel = goal.cancel_goal_async()
@@ -499,3 +501,45 @@ def test_state_rejects_unsupported_routine_before_dispatch(system, operation):
     assert not s.send(operation, routine_index=99).accepted
     assert s.routines[operation].goal is None
     assert not s.manager.busy
+
+
+@pytest.mark.parametrize('operation, status, outcome', [
+    (ManageRobot.Goal.FULL_AUTO, GoalStatus.STATUS_ABORTED, 'NOT_IMPLEMENTED'),
+    (ManageRobot.Goal.RUN_START, GoalStatus.STATUS_SUCCEEDED, 'CONSTRUCTION_REACHED'),
+])
+def test_goal_selects_the_machine_graph(system, operation, status, outcome):
+    s = system
+    clear(s)
+    class ReachedConstruction(WaitingState):
+        def start(self, dispatch):
+            return completed(Outcome.CONSTRUCTION_REACHED)
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(ReachedConstruction())):
+        goal = s.send(operation)
+        assert goal.accepted
+        response = result(s, goal)
+    assert response.status == status
+    assert response.result.outcome == outcome
+    assert response.result.completed_cycles == 0
+    assert s.manager.mode == RobotState.TELEOP
+
+
+@pytest.mark.parametrize('operation', [ManageRobot.Goal.FULL_AUTO, ManageRobot.Goal.RUN_START])
+def test_estop_interrupts_either_machine(system, operation):
+    s = system
+    clear(s)
+    state = WaitingState()
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(state)):
+        goal = s.send(operation)
+        s.until(lambda: hasattr(state, 'future'))
+        assert s.call(s.estop, True).success
+        response = result(s, goal)
+    assert state.cleaned
+    assert response.status == GoalStatus.STATUS_ABORTED
+    assert response.result.outcome == 'ESTOP'
+    assert s.manager.mode == RobotState.ESTOP
+
+
+def test_unknown_operation_is_rejected(system):
+    clear(system)
+    assert not system.send(operation=99).accepted
+    assert not system.manager.busy

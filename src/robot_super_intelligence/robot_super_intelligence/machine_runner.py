@@ -2,14 +2,13 @@
 
 from rclpy.task import Future
 
-from .machine import Machine
 from .outcomes import Outcome
 
 
-class FullAuto:
-    def __init__(self, node, limit, dispatch, feedback, machine_factory=Machine):
+class MachineRunner:
+    def __init__(self, node, machine, dispatch, feedback):
         self.node = node
-        self.machine = machine_factory(limit)
+        self.machine = machine
         self.dispatch = dispatch
         self.feedback = feedback
         self.future = Future(executor=node.executor)

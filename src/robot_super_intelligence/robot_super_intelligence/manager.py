@@ -21,7 +21,8 @@ from std_msgs.msg import Bool, Float64MultiArray, UInt8
 from std_srvs.srv import SetBool
 
 from .states import DumpMaterial, Excavate, Traverse
-from .full_auto import FullAuto
+from .machine_runner import MachineRunner
+from .machines import FullAutoMachine, RunStartMachine
 from .outcomes import Outcome
 
 
@@ -33,7 +34,7 @@ class Run:
     child: object = None
     cancel_sent: bool = False
     dispatching: bool = False
-    coordinator: object = None
+    runner: object = None
     deadline: object = None
     steps: list = field(default_factory=list)
     state: str = ''
@@ -71,6 +72,10 @@ class StateManager(Node):
             ManageRobot.Goal.NAVIGATE: Traverse(self),
             ManageRobot.Goal.DIG: Excavate(self),
             ManageRobot.Goal.DUMP: DumpMaterial(self),
+        }
+        self.machines = {
+            ManageRobot.Goal.FULL_AUTO: FullAutoMachine,
+            ManageRobot.Goal.RUN_START: RunStartMachine,
         }
         self.action_server = ActionServer(
             self, ManageRobot, 'manage_robot', self.execute,
@@ -161,8 +166,8 @@ class StateManager(Node):
         if not run.reason or reason in (Outcome.ESTOP.value, Outcome.SHUTDOWN.value):
             run.reason = reason
         try:
-            if run.coordinator is not None:
-                run.coordinator.stop(Outcome(run.reason))
+            if run.runner is not None:
+                run.runner.stop(Outcome(run.reason))
         except Exception as error:
             self.get_logger().error(f'State cleanup failed: {error}')
         finally:
@@ -258,7 +263,7 @@ class StateManager(Node):
                 or not math.isfinite(request.time_limit_sec) or request.time_limit_sec <= 0):
             return GoalResponse.REJECT
         state = self.operations.get(request.operation)
-        if request.operation != ManageRobot.Goal.FULL_AUTO and (state is None or not state.valid(request)):
+        if request.operation not in self.machines and (state is None or not state.valid(request)):
             return GoalResponse.REJECT
         if not self.control.service_is_ready():
             return GoalResponse.REJECT
@@ -272,8 +277,8 @@ class StateManager(Node):
         return CancelResponse.ACCEPT
 
     def feedback(self, run):
-        if run.coordinator is not None:
-            machine = run.coordinator.machine
+        if run.runner is not None:
+            machine = run.runner.machine
             run.state = machine.current.__name__
             run.latest_outcome = machine.latest_outcome
             run.completed_cycles = machine.completed_cycles
@@ -353,15 +358,15 @@ class StateManager(Node):
                 run.reason = 'ESTOP'
             if goal.is_cancel_requested:
                 self.stop_run(Outcome.CANCELED.value)
-            if not run.reason and request.operation == ManageRobot.Goal.FULL_AUTO:
+            if not run.reason and request.operation in self.machines:
                 await self.select()
                 if not run.reason:
                     self.publish_mode(RobotState.FULL_AUTO)
-                    run.coordinator = FullAuto(
-                        self, request.time_limit_sec,
+                    run.runner = MachineRunner(
+                        self, self.machines[request.operation](request.time_limit_sec),
                         lambda step: self.dispatch_step(run, step),
                         lambda: self.feedback(run))
-                    outcome = (await run.coordinator.start()).value
+                    outcome = (await run.runner.start()).value
                     self.stop_run(outcome)
                     # Include goals still awaiting acceptance when a stop arrived.
                     for task in run.steps:
@@ -395,8 +400,8 @@ class StateManager(Node):
             outcome = run.reason or outcome
             result = ManageRobot.Result(
                 success=outcome == 'SUCCESS' or (
-                    request.operation == ManageRobot.Goal.FULL_AUTO
-                    and outcome == Outcome.TIME_LIMIT_REACHED.value),
+                    run.runner is not None
+                    and outcome in run.runner.machine.success_outcomes),
                 outcome=outcome, completed_cycles=run.completed_cycles)
             if goal.is_cancel_requested:
                 result.success = False
