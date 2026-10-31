@@ -1,16 +1,8 @@
-"""States complete through futures rather than periodic orchestration ticks."""
+"""States report completion through callbacks rather than polling."""
 
 from abc import ABC, abstractmethod
 
-from rclpy.task import Future
-
 from ..outcomes import Outcome
-
-
-def completed(outcome):
-    future = Future()
-    future.set_result(outcome)
-    return future
 
 
 class State(ABC):
@@ -20,13 +12,13 @@ class State(ABC):
         """Reset per-invocation data; state objects are reused across cycles."""
 
     @abstractmethod
-    def start(self, dispatch):
-        """Return a future resolving to a declared Outcome; never block."""
+    def start(self, dispatch, on_complete):
+        """Call on_complete with a declared Outcome when finished; never block."""
 
     def cancel(self):
         """Release local work; the manager cancels the dispatched child action."""
 
 
 class Placeholder(State):
-    def start(self, dispatch):
-        return completed(Outcome.NOT_IMPLEMENTED)
+    def start(self, dispatch, on_complete):
+        on_complete(Outcome.NOT_IMPLEMENTED)

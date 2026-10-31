@@ -26,7 +26,6 @@ from std_msgs.msg import Float64MultiArray
 from std_srvs.srv import SetBool
 
 from robot_super_intelligence.manager import StateManager
-from robot_super_intelligence.states.base import completed
 from robot_super_intelligence.outcomes import Outcome
 
 
@@ -162,7 +161,7 @@ def system(request):
 
     request.addfinalizer(cleanup)
     until(lambda: action.server_is_ready() and estop.service_is_ready()
-          and manager.control.service_is_ready()
+          and manager.control.mux.service_is_ready()
           and all(state.client.server_is_ready() for state in manager.operations.values())
           )
     yield SimpleNamespace(manager=manager, routines=routines, node=client_node,
@@ -173,8 +172,8 @@ def system(request):
 
 def clear(s):
     assert s.call(s.estop, False).success
-    assert s.manager.mode == RobotState.IDLE
-    assert s.manager.outputs_locked
+    assert s.manager.control.mode == RobotState.IDLE
+    assert s.manager.control.outputs_locked
 
 
 def result(s, goal):
@@ -187,13 +186,13 @@ def test_startup_stop_and_explicit_clear_does_not_enable_teleop(system):
     s = system
     assert not s.send().accepted
     clear(s)
-    assert s.manager.outputs_locked
+    assert s.manager.control.outputs_locked
     assert s.call(s.teleop, True).success
-    assert s.manager.mode == RobotState.TELEOP
-    assert not s.manager.outputs_locked
+    assert s.manager.control.mode == RobotState.TELEOP
+    assert not s.manager.control.outputs_locked
     assert s.call(s.estop, True).success
     assert s.call(s.estop, True).success
-    assert s.manager.mode == RobotState.ESTOP
+    assert s.manager.control.mode == RobotState.ESTOP
 
 
 @pytest.mark.parametrize('operation', [ManageRobot.Goal.DIG, ManageRobot.Goal.DUMP,
@@ -205,16 +204,16 @@ def test_typed_delegation_success_and_grant_release(system, operation):
     assert goal.accepted
     routine = s.routines[operation]
     s.until(lambda: routine.goal is not None)
-    assert s.manager.mode == s.manager.operations[operation].mode
+    assert s.manager.control.mode == s.manager.operations[operation].mode
     routine.finish()
     response = result(s, goal)
     assert response.status == GoalStatus.STATUS_SUCCEEDED
     assert response.result.success
     assert response.result.outcome == 'SUCCESS'
     assert not s.manager.busy
-    assert not s.manager.estopped
-    assert s.manager.mode == RobotState.TELEOP
-    assert not s.manager.outputs_locked
+    assert not s.manager.control.estopped
+    assert s.manager.control.mode == RobotState.TELEOP
+    assert not s.manager.control.outputs_locked
 
 
 @pytest.mark.parametrize('limit', [0, -1, float('nan'), float('inf')])
@@ -244,7 +243,7 @@ def test_cancel_keeps_parent_reserved_until_child_is_terminal(system):
     clear(s)
     goal = s.send()
     routine = s.routines[ManageRobot.Goal.DIG]
-    s.until(lambda: s.manager.run is not None and s.manager.run.child is not None)
+    s.until(lambda: s.manager.run is not None and s.manager.run.operation.goal is not None)
     cancel = goal.cancel_goal_async()
     s.until(cancel.done)
     s.until(lambda: routine.goal.is_cancel_requested)
@@ -278,7 +277,7 @@ def test_estop_blocks_commands_before_child_acknowledges_stop(system):
     clear(s)
     goal = s.send()
     routine = s.routines[ManageRobot.Goal.DIG]
-    s.until(lambda: s.manager.run is not None and s.manager.run.child is not None)
+    s.until(lambda: s.manager.run is not None and s.manager.run.operation.goal is not None)
     drive = s.node.create_publisher(Twist, 'cmd_vel/dig', 1)
     arm = s.node.create_publisher(Float64MultiArray, 'arm_drum_control/dig', 1)
     s.until(lambda: drive.get_subscription_count() > 0 and arm.get_subscription_count() > 0)
@@ -290,7 +289,7 @@ def test_estop_blocks_commands_before_child_acknowledges_stop(system):
             and s.arms and list(s.arms[-1].data) == [1.0]*4)
     s.node.destroy_timer(stream)
     assert s.call(s.estop, True).success
-    assert s.manager.outputs_locked
+    assert s.manager.control.outputs_locked
     s.until(lambda: s.velocities[-1].linear.x == 0.0 and not any(s.arms[-1].data))
     assert s.manager.busy
     s.until(lambda: routine.goal.is_cancel_requested)
@@ -298,8 +297,8 @@ def test_estop_blocks_commands_before_child_acknowledges_stop(system):
     response = result(s, goal)
     assert response.status == GoalStatus.STATUS_ABORTED
     assert response.result.outcome == 'ESTOP'
-    assert s.manager.estopped
-    assert s.manager.mode == RobotState.ESTOP
+    assert s.manager.control.estopped
+    assert s.manager.control.mode == RobotState.ESTOP
 
 
 def test_standalone_deadline_cancels_child_and_aborts(system):
@@ -333,7 +332,7 @@ def test_twist_mux_lock_timeout_blocks_drive_when_manager_disappears(system):
     stream = s.node.create_timer(0.02, lambda: drive.publish(Twist(linear=Vector3(x=0.2))))
     s.until(lambda: s.velocities and s.velocities[-1].linear.x == 0.2)
     s.node.destroy_timer(stream)
-    s.manager.heartbeat_timer.cancel()
+    s.manager.control.heartbeat_timer.cancel()
     expired = time.monotonic() + 0.6
     s.until(lambda: time.monotonic() >= expired)
     count = len(s.velocities)
@@ -349,7 +348,7 @@ def test_rejected_child_cancel_does_not_release_ownership_early(system):
     routine = s.routines[ManageRobot.Goal.DIG]
     routine.reject_cancel = True
     goal = s.send()
-    s.until(lambda: s.manager.run is not None and s.manager.run.child is not None)
+    s.until(lambda: s.manager.run is not None and s.manager.run.operation.goal is not None)
     cancel = goal.cancel_goal_async()
     s.until(cancel.done)
     assert s.manager.busy
@@ -360,18 +359,18 @@ def test_rejected_child_cancel_does_not_release_ownership_early(system):
 
 def test_newer_estop_supersedes_pending_clear(system):
     s = system
-    pending = Future(executor=s.executor)
-    async def delayed_select(*args, **kwargs):
-        return await pending
-    with patch.object(s.manager, 'select', delayed_select):
+    pending = []
+    def delayed_select(source, on_complete):
+        pending.append(on_complete)
+    with patch.object(s.manager.control, 'select', delayed_select):
         clearing = s.estop.call_async(SetBool.Request(data=False))
-        s.until(lambda: s.manager.changing_mode)
+        s.until(lambda: s.manager.control.changing_mode)
         assert s.call(s.estop, True).success
-        pending.set_result(None)
+        pending[0](None)
         s.until(clearing.done)
         assert not clearing.result().success
-        assert s.manager.estopped
-        assert s.manager.mode == RobotState.ESTOP
+        assert s.manager.control.estopped
+        assert s.manager.control.mode == RobotState.ESTOP
 
 
 def runner_factory(state):
@@ -387,9 +386,8 @@ class WaitingState:
     outcomes = frozenset({Outcome.CONSTRUCTION_REACHED, Outcome.FAILED})
     def enter(self):
         self.cleaned = False
-    def start(self, dispatch):
-        self.future = Future()
-        return self.future
+    def start(self, dispatch, on_complete):
+        self.on_complete = on_complete
     def cancel(self):
         self.cleaned = True
 
@@ -415,20 +413,17 @@ def test_machine_step_uses_the_internal_dispatcher_and_waits_for_cancel(system, 
     s = system
     clear(s)
     class DigStep(WaitingState):
-        def start(self, dispatch):
-            future = Future()
-            child = dispatch(ManageRobot.Goal(operation=ManageRobot.Goal.DIG,
-                                              time_limit_sec=10.0))
-            child.add_done_callback(lambda done: future.set_result(
-                Outcome.CONSTRUCTION_REACHED if done.result() == 'SUCCESS' else Outcome.FAILED))
-            return future
+        def start(self, dispatch, on_complete):
+            dispatch(ManageRobot.Goal(operation=ManageRobot.Goal.DIG, time_limit_sec=10.0),
+                     lambda outcome: on_complete(Outcome.CONSTRUCTION_REACHED
+                         if outcome == 'SUCCESS' else Outcome.FAILED))
     state = DigStep()
     routine = s.routines[ManageRobot.Goal.DIG]
     routine.acceptance = Future(executor=s.executor)
     with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(state)):
         goal = s.send(operation)
         s.until(lambda: routine.requested)
-        assert s.manager.mode == RobotState.FULL_AUTO
+        assert s.manager.control.mode == RobotState.FULL_AUTO
         cancel = goal.cancel_goal_async()
         s.until(cancel.done)
         assert s.manager.busy
@@ -441,30 +436,65 @@ def test_machine_step_uses_the_internal_dispatcher_and_waits_for_cancel(system, 
     assert response.status == GoalStatus.STATUS_CANCELED
 
 
+def test_machine_can_dispatch_successive_child_operations(system):
+    s = system
+    clear(s)
+
+    class DigThenDump(WaitingState):
+        def start(self, dispatch, on_complete):
+            def dug(outcome):
+                if outcome != 'SUCCESS':
+                    on_complete(Outcome.FAILED)
+                    return
+                dispatch(ManageRobot.Goal(operation=ManageRobot.Goal.DUMP),
+                         lambda outcome: on_complete(Outcome.CONSTRUCTION_REACHED
+                             if outcome == 'SUCCESS' else Outcome.FAILED))
+
+            dispatch(ManageRobot.Goal(operation=ManageRobot.Goal.DIG), dug)
+
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(DigThenDump())):
+        goal = s.send(ManageRobot.Goal.RUN_START)
+        dig = s.routines[ManageRobot.Goal.DIG]
+        dump = s.routines[ManageRobot.Goal.DUMP]
+        s.until(lambda: dig.goal is not None)
+        assert dump.goal is None
+        dig.finish()
+        s.until(lambda: dump.goal is not None)
+        assert s.manager.busy
+        dump.finish()
+        response = result(s, goal)
+
+    assert response.status == GoalStatus.STATUS_SUCCEEDED
+    assert response.result.outcome == 'CONSTRUCTION_REACHED'
+    assert s.manager.control.mode == RobotState.TELEOP
+    assert not s.manager.busy
+
+
 def test_estop_during_teleop_handoff_is_not_cleared(system):
     s = system
     clear(s)
     goal = s.send()
     routine = s.routines[ManageRobot.Goal.DIG]
-    s.until(lambda: s.manager.run is not None and s.manager.run.child is not None)
-    pending = Future(executor=s.executor)
-    original_select = s.manager.select
+    s.until(lambda: s.manager.run is not None and s.manager.run.operation.goal is not None)
+    pending = []
+    original_select = s.manager.control.select
     handing_off = []
-    async def delayed_select(source=''):
+    def delayed_select(source, on_complete):
         if source == 'teleop':
             handing_off.append(True)
-            await pending
-        return await original_select(source)
-    with patch.object(s.manager, 'select', delayed_select):
+            pending.append(on_complete)
+        else:
+            original_select(source, on_complete)
+    with patch.object(s.manager.control, 'select', delayed_select):
         routine.finish()
         s.until(lambda: bool(handing_off))
         assert s.call(s.estop, True).success
-        pending.set_result(None)
+        original_select('teleop', pending[0])
         response = result(s, goal)
-    assert s.manager.estopped
-    assert s.manager.mode == RobotState.ESTOP
+    assert s.manager.control.estopped
+    assert s.manager.control.mode == RobotState.ESTOP
     assert response.status == GoalStatus.STATUS_ABORTED
-    assert s.manager.outputs_locked
+    assert s.manager.control.outputs_locked
 
 
 def test_cancel_during_terminal_handoff_still_restores_teleop(system):
@@ -472,26 +502,27 @@ def test_cancel_during_terminal_handoff_still_restores_teleop(system):
     clear(s)
     goal = s.send()
     routine = s.routines[ManageRobot.Goal.DIG]
-    s.until(lambda: s.manager.run is not None and s.manager.run.child is not None)
-    pending = Future(executor=s.executor)
+    s.until(lambda: s.manager.run is not None and s.manager.run.operation.goal is not None)
+    pending = []
     handing_off = []
-    original_select = s.manager.select
-    async def delayed_select(source=''):
+    original_select = s.manager.control.select
+    def delayed_select(source, on_complete):
         if source == 'teleop':
             handing_off.append(True)
-            await pending
-        return await original_select(source)
-    with patch.object(s.manager, 'select', delayed_select):
+            pending.append(on_complete)
+        else:
+            original_select(source, on_complete)
+    with patch.object(s.manager.control, 'select', delayed_select):
         routine.finish()
         s.until(lambda: bool(handing_off))
         cancel = goal.cancel_goal_async()
         s.until(cancel.done)
-        pending.set_result(None)
+        original_select('teleop', pending[0])
         response = result(s, goal)
     assert response.status == GoalStatus.STATUS_CANCELED
-    assert s.manager.mode == RobotState.TELEOP
-    assert not s.manager.estopped
-    assert not s.manager.outputs_locked
+    assert s.manager.control.mode == RobotState.TELEOP
+    assert not s.manager.control.estopped
+    assert not s.manager.control.outputs_locked
 
 
 @pytest.mark.parametrize('operation', [ManageRobot.Goal.DIG, ManageRobot.Goal.DUMP])
@@ -511,8 +542,8 @@ def test_goal_selects_the_machine_graph(system, operation, status, outcome):
     s = system
     clear(s)
     class ReachedConstruction(WaitingState):
-        def start(self, dispatch):
-            return completed(Outcome.CONSTRUCTION_REACHED)
+        def start(self, dispatch, on_complete):
+            on_complete(Outcome.CONSTRUCTION_REACHED)
     with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(ReachedConstruction())):
         goal = s.send(operation)
         assert goal.accepted
@@ -520,7 +551,7 @@ def test_goal_selects_the_machine_graph(system, operation, status, outcome):
     assert response.status == status
     assert response.result.outcome == outcome
     assert response.result.completed_cycles == 0
-    assert s.manager.mode == RobotState.TELEOP
+    assert s.manager.control.mode == RobotState.TELEOP
 
 
 @pytest.mark.parametrize('operation', [ManageRobot.Goal.FULL_AUTO, ManageRobot.Goal.RUN_START])
@@ -530,13 +561,13 @@ def test_estop_interrupts_either_machine(system, operation):
     state = WaitingState()
     with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(state)):
         goal = s.send(operation)
-        s.until(lambda: hasattr(state, 'future'))
+        s.until(lambda: hasattr(state, 'on_complete'))
         assert s.call(s.estop, True).success
         response = result(s, goal)
     assert state.cleaned
     assert response.status == GoalStatus.STATUS_ABORTED
     assert response.result.outcome == 'ESTOP'
-    assert s.manager.mode == RobotState.ESTOP
+    assert s.manager.control.mode == RobotState.ESTOP
 
 
 def test_unknown_operation_is_rejected(system):

@@ -25,6 +25,7 @@ class Traverse(Placeholder):
         return (bool(pose.header.frame_id) and all(math.isfinite(v) for v in values)
                 and abs(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w - 1.0) < 1e-3)
 
-    def send_goal(self, request, feedback):
-        return self.client.send_goal_async(
+    def send_goal(self, request, feedback, on_response):
+        future = self.client.send_goal_async(
             NavigateToPose.Goal(pose=request.target_pose), feedback_callback=feedback)
+        future.add_done_callback(on_response)

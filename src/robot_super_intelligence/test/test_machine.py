@@ -21,8 +21,8 @@ class FakeState:
     def enter(self):
         self.entries += 1
 
-    def start(self, dispatch):
-        return self.outcome
+    def start(self, dispatch, on_complete):
+        on_complete(self.outcome)
 
     def cancel(self):
         self.canceled = True

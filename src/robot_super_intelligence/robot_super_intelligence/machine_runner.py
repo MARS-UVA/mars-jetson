@@ -1,6 +1,4 @@
-"""Future-driven state sequencing within the manager's existing run."""
-
-from rclpy.task import Future
+"""Callback-driven state sequencing within the manager's existing run."""
 
 from .outcomes import Outcome
 
@@ -11,50 +9,66 @@ class MachineRunner:
         self.machine = machine
         self.dispatch = dispatch
         self.feedback = feedback
-        self.future = Future(executor=node.executor)
+        self.on_complete = None
+        self.done = False
         self.generation = 0
 
-    def start(self):
+    def start(self, on_complete):
+        self.on_complete = on_complete
         self.schedule()
-        return self.future
 
     def schedule(self):
-        # Queue each transition; immediately completed states must not recurse.
+        # Queue transitions so immediately completed states cannot recurse.
         self.node.executor.create_task(self.enter)
 
     def enter(self):
-        if self.future.done():
+        if self.done:
             return
+        self.generation += 1
         token = self.generation
         try:
             self.feedback()
-            future = self.machine.state.start(self.dispatch)
-            future.add_done_callback(lambda done: self.completed(token, done))
+            self.machine.state.start(
+                self.dispatch, lambda outcome: self.state_completed(token, outcome))
         except Exception as error:
             self.node.get_logger().error(f'State failed: {error}')
             self.stop(Outcome.FAILED)
 
-    def completed(self, token, future):
-        if self.future.done() or token != self.generation:
+    def state_completed(self, token, outcome):
+        if not self.done and token == self.generation:
+            self.node.executor.create_task(self.completed, token, outcome)
+
+    def completed(self, token, outcome):
+        if self.done or token != self.generation:
             return
+        # Consume this state's completion once, even if it calls back twice.
+        self.generation += 1
         try:
-            self.machine.advance(future.result())
+            self.machine.advance(outcome)
             self.feedback()
             if self.machine.done:
-                self.future.set_result(self.machine.result)
+                self.finish(self.machine.result)
             else:
                 self.schedule()
         except Exception as error:
             self.node.get_logger().error(f'Transition failed: {error}')
             self.stop(Outcome.FAILED)
 
+    def finish(self, outcome):
+        if self.done:
+            return
+        self.done = True
+        self.on_complete(outcome)
+
     def stop(self, outcome):
-        if self.future.done():
+        if self.done:
             return
         self.generation += 1
         try:
             self.machine.end(outcome)
             self.machine.advance(Outcome.RUN_END)
-        finally:
             self.feedback()
-            self.future.set_result(outcome)
+        except Exception as error:
+            self.node.get_logger().error(f'State cleanup failed: {error}')
+        finally:
+            self.finish(outcome)

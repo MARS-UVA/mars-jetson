@@ -6,8 +6,12 @@ This package replaces `robot_state_controller` and owns robot modes, command
 routing, and action supervision. Startup uses the manager and standard muxes:
 
 - `manager.py` exposes `/manage_robot` (`autonomy_msgs/ManageRobot`). An operation
-  enum selects navigation, dig, dump, or a machine. It selects the command source,
-  supervises cancellation, and forwards feedback and results.
+  enum selects navigation, dig, dump, or a machine. It owns parent goals, machine
+  execution, deadlines, feedback, and results.
+- `child_operation.py` manages one child goal at a time: routing, acceptance,
+  cancellation, and terminal results. Ownership is retained through late acceptance.
+- `control_routing.py` owns mux selection, locks, stop heartbeat, mode publishing,
+  and E-stop/teleop services. All three classes share the existing manager node.
 - `states/excavate.py`, `states/dump_material.py`, and `states/traverse.py` own their
   typed ROS action clients, goal validation, and goal construction. Both traversal
   states inherit the Nav2 client from `Traverse`.
@@ -22,7 +26,7 @@ normal `twist_mux` input timeout. Navigation selects the zero arm/drum input.
 Full-auto dispatches its current step through the same manager path.
 
 `machine.py` executes a graph, and `machine_runner.py` advances it through
-state-completion futures. Each class under `machines/` defines its own states,
+state-completion callbacks. Each class under `machines/` defines its own states,
 explicit transitions, initial/end states, and successful ending outcomes:
 
 - `FullAutoMachine` (`operation: 3`): RunStart → construction traversal → dump →
@@ -61,20 +65,27 @@ is replaced by `/manage_robot` with `operation: 3`.
 ## Extending
 
 Each class in `states/` declares allowed `Outcome` values. `enter()` resets data
-for each visit; `start(dispatch)` returns a future resolving to an outcome. States
-are reused across cycles. Use the supplied `dispatch(ManageRobot.Goal(...))` for
-child operations; map its result string to the state's outcome in a completion
-callback. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cleans
+for each visit; `start(dispatch, on_complete)` calls `on_complete(outcome)` when
+finished and returns immediately. States are reused across cycles. Use
+`dispatch(ManageRobot.Goal(...), on_result)` for child operations and map the
+result string to the state's outcome in `on_result`. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cleans
 up local work; the manager cancels and waits for the dispatched child.
 
 For a new state, export it from `states/__init__.py`, add it to the relevant
 machine's `state_types`, and write each entry in its `transitions` explicitly. A standalone operation state
-owns its `client`, `valid(request)`, and `send_goal(request, feedback)`, plus its
+owns its `client`, `valid(request)`, and
+`send_goal(request, feedback, on_response)`, plus its
 `source` and `mode`. Register it in the manager's `operations` mapping and extend
 `ManageRobot.action` and mux source configuration as needed. Construct states with
 a ROS node to create their clients. Their current full-auto `start()` methods
 remain placeholders; standalone operations use `send_goal()`. Tests cover the
 graph separately from ROS delegation, cancellation races, and command routing.
+
+`MachineRunner.start(on_complete)` reports one final outcome. State transitions
+are queued through the executor; duplicate and late state callbacks are ignored.
+The manager completes action goals directly from callbacks. ROS request Futures
+are handled with `add_done_callback`; only the existing service-response boundary
+uses a small async adapter so acknowledgements retain their original meaning.
 
 For a new machine, subclass `Machine` under `machines/`, defining `state_types`,
 `initial_state`, `end_state`, `transitions`, and `success_outcomes`. Export the

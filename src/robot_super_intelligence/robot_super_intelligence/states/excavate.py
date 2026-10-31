@@ -19,6 +19,7 @@ class Excavate(Placeholder):
     def valid(self, request):
         return request.routine_index == Dig.Goal.BRUNO_INDEX
 
-    def send_goal(self, request, feedback):
-        return self.client.send_goal_async(
+    def send_goal(self, request, feedback, on_response):
+        future = self.client.send_goal_async(
             Dig.Goal(index=request.routine_index), feedback_callback=feedback)
+        future.add_done_callback(on_response)
