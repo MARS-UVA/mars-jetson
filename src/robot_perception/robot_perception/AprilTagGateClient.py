@@ -12,17 +12,13 @@ class AprilTagClient(Node):
         self.AprilTagClient = self.create_client(AprilTagGate, '/AprilTagGate')
         while not self.AprilTagClient.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
-        self.req = None
-
 
 
 def main():
     rclpy.init()
 
     AprilTagClientNode = AprilTagClient()
-    future = AprilTagClientNode.send_request()
-    rclpy.spin_until_future_complete(AprilTagClientNode, future)
-    response = future.result()
+    rclpy.spin(AprilTagClientNode)
 
     AprilTagClientNode.destroy_node()
     rclpy.shutdown()
