@@ -10,12 +10,6 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    front_cropbox_config = PathJoinSubstitution([
-        FindPackageShare('startup'), 'config', 'front_arm_cropbox_rgbd.yaml',
-    ])
-    rear_cropbox_config = PathJoinSubstitution([
-        FindPackageShare('startup'), 'config', 'rear_arm_cropbox_rgbd.yaml',
-    ])
 
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
@@ -36,48 +30,6 @@ def generate_launch_description():
             arguments=['-d', LaunchConfiguration('rviz_config')],
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
             condition=IfCondition(LaunchConfiguration('enable_rviz')),
-        ),
-        ComposableNodeContainer(
-            name='rgbd_front_cropbox_container',
-            namespace='',
-            package='rclcpp_components',
-            executable='component_container',
-            composable_node_descriptions=[
-                ComposableNode(
-                    package='pcl_ros',
-                    plugin='pcl_ros::CropBox',
-                    name='rgbd_front_crop_box_filter',
-                    remappings=[
-                        ('/input', '/rgbd_blue/points'),
-                        ('/output', '/rgbd_blue/points_filtered'),
-                    ],
-                    parameters=[
-                        front_cropbox_config,
-                        {'use_sim_time': LaunchConfiguration('use_sim_time')},
-                    ],
-                ),
-            ],
-        ),
-        ComposableNodeContainer(
-            name='rgbd_rear_cropbox_container',
-            namespace='',
-            package='rclcpp_components',
-            executable='component_container',
-            composable_node_descriptions=[
-                ComposableNode(
-                    package='pcl_ros',
-                    plugin='pcl_ros::CropBox',
-                    name='rgbd_rear_crop_box_filter',
-                    remappings=[
-                        ('/input', '/rgbd_orange/points'),
-                        ('/output', '/rgbd_orange/points_filtered'),
-                    ],
-                    parameters=[
-                        rear_cropbox_config,
-                        {'use_sim_time': LaunchConfiguration('use_sim_time')},
-                    ],
-                ),
-            ],
         ),
         Node(
             package='ros_gz_bridge',

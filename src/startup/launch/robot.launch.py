@@ -159,6 +159,42 @@ def generate_launch_description():
             )
         ]
     )
+    
+    front_rgbd_cropbox_config = os.path.join(
+        get_package_share_directory('startup'), 'config', 'front_arm_cropbox_rgbd.yaml',
+    )
+    rear_rgbd_cropbox_config = os.path.join(
+        get_package_share_directory('startup'), 'config', 'rear_arm_cropbox_rgbd.yaml',
+    )
+    
+    rgbd_cropbox = ComposableNodeContainer(
+        name='pcl_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container_mt',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_rear_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_orange/points'),
+                    ('/output', '/rgbd_orange/points_filtered'),
+                ],
+                parameters=[rear_rgbd_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_front_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_blue/points'),
+                    ('/output', '/rgbd_blue/points_filtered'),
+                ],
+                parameters=[front_rgbd_cropbox_config]
+            ),
+        ]
+    )
 
     controllers = [
         Node(
@@ -210,6 +246,7 @@ def generate_launch_description():
         twist_stamper,
         front_arm_cropbox,
         rear_arm_cropbox,
+        rgbd_cropbox,
         *controllers
     ])
 
