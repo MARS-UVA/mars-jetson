@@ -107,6 +107,7 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
 @pytest.mark.parametrize('controller,plugin', [
     (None, 'nav2_mppi_controller::MPPIController'),
     ('mppi', 'nav2_mppi_controller::MPPIController'),
+    ('rpp', 'nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController'),
 ])
 def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller, plugin):
     settings = {} if controller is None else {'controller': controller}
@@ -118,6 +119,12 @@ def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller, 
     assert server['goal_checker']['xy_goal_tolerance'] == 0.20
     assert server['progress_checker']['movement_time_allowance'] == 20.0
     assert server['use_sim_time'] is True
+    local = parameters(nodes['controller_server'])['local_costmap']['local_costmap']
+    if controller == 'rpp':
+        # RPP reads obstacle distance back out of the inflation curve.
+        assert (server['FollowPath']['inflation_cost_scaling_factor']
+                == local['ros__parameters']['inflation_layer']['cost_scaling_factor'])
+        assert server['FollowPath']['allow_reversing'] is False
 
 
 def test_unknown_controller_is_rejected():

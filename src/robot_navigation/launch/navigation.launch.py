@@ -14,6 +14,7 @@ from nav2_common.launch import RewrittenYaml
 # controller.yaml, so every controller shares the server and checker settings.
 CONTROLLER_CONFIGS = {
     'mppi': 'controller_mppi.yaml',
+    'rpp': 'controller_rpp.yaml',
 }
 
 
