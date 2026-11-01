@@ -27,19 +27,23 @@ class AprilTagGateNode(Node):
 
     def AprilTag_callback(self, msg):
         self.detectionData = msg
+        self.timeLast = self.timeIndex
+        self.TotalDetection += 1
         
         
     
     def AprilTagService_callback(self,request,responce):
-        if self.TotalDetection < 1 and (self.timeIndex - self.timeLast > 0.1):
-            self.timeLast = self.timeIndex
-            self.detectionPub.publish(self.detectionData)
-            dataResponce = String()
-            dataResponce.data = str(self.detectionData.detections[self.TotalDetection].family)
-            responce.data = dataResponce.data + " at " + self.timeIndex + " seconds since startup"  #Figure out what data is supposed to be
-            responce.success = True
-            self.detectionData = AprilTagDetectionArray()
-            self.TotalDetection += 1
+        if (self.timeIndex - self.timeLast > 0.1) and (self.timeIndex - self.timeLast <= 0.5):
+            if self.totalDetection == 0:
+                responce.success = False
+                responce.data = "No detections"
+            else:
+                self.detectionPub.publish(self.detectionData)
+                dataResponce = String()
+                dataResponce.data = str(self.detectionData.detections[self.TotalDetection].family)
+                responce.data = dataResponce.data + " at " + str(self.timeIndex) + " seconds since startup"  #Figure out what data is supposed to be
+                responce.success = True
+                self.detectionData = AprilTagDetectionArray()
         else:
             responce.success = False
         
