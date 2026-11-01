@@ -1,0 +1,6 @@
+# PyTorch and SMP do not have rosdep keys for this ROS distribution.
+# Must use --break-system-packages on install
+numpy<2
+torch==2.6.0
+torchvision==0.21.0
+segmentation-models-pytorch

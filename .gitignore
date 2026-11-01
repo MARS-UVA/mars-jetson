@@ -32,3 +32,7 @@ assets/**/*.ply
 !assets/ply_samples/*.ply
 
 MUJOCO_LOG.TXT
+
+# ignore stinky models, training data, and model data (build it yourself coward)
+src/obstacle_detection/model_training/SynMars
+src/obstacle_detection/model_training/*.pth

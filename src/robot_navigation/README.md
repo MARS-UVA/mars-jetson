@@ -37,11 +37,20 @@ the standalone navigation launch starts no GUI.
 | `config/planner.yaml` | Smac Hybrid-A* global path planner |
 | `config/controller.yaml` | MPPI controller, progress checker, goal checker |
 | `config/global_costmap.yaml` | RTAB-Map static layer and global inflation |
-| `config/local_costmap.yaml` | Local voxel/inflation layers and simulation LiDAR filter |
+| `config/local_costmap.yaml` | Local voxel, semantic segmentation, inflation layers, and simulation LiDAR filter |
 | `config/bt_navigator.yaml` | NavigateToPose and NavigateThroughPoses navigators |
 | `config/behaviors.yaml` | Spin, backup, drive-on-heading, and wait |
 | `config/smoothers.yaml` | Path smoother server and velocity smoother |
 | `rviz/navigation.rviz` | Navigation view used by the simulation integration |
+
+The local costmap also loads `semantic_segmentation_layer` for rock detections.
+The obstacle node segments the blue and orange RGB-D camera images and publishes
+camera-specific class masks and confidence images on `/obstacles/blue/*` and
+`/obstacles/orange/*`. Both sources use the latched class map
+`/obstacles/label_info`. The layer pairs each camera's images with its organized
+point cloud. It assigns rocks cost 254 and expires observations after 2 seconds.
+The layer consumes the projected point clouds; it does not subscribe to depth or
+camera-info topics directly.
 
 The planner receives its server parameters and the global costmap file. The
 controller receives its server parameters and the local costmap file. Keep the

@@ -16,6 +16,7 @@
   <exec_depend>nav2_planner</exec_depend>
   <exec_depend>nav2_smac_planner</exec_depend>
   <exec_depend>nav2_costmap_2d</exec_depend>
+  <exec_depend>semantic_segmentation_layer</exec_depend>
   <exec_depend>nav2_smoother</exec_depend>
   <exec_depend>nav2_behaviors</exec_depend>
   <exec_depend>nav2_bt_navigator</exec_depend>
