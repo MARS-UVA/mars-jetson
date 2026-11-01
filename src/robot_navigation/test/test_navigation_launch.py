@@ -35,11 +35,18 @@ def expanded_nodes(**settings):
     return {node.node_name.lstrip('/'): node for node in nodes}
 
 
+def merge(base, overlay):
+    # ROS applies parameter files in order, one leaf parameter at a time.
+    for key, value in overlay.items():
+        base[key] = merge(base.get(key, {}), value) if isinstance(value, dict) else value
+    return base
+
+
 def parameters(node):
     result = {}
     for filename, _ in node._Node__expanded_parameter_arguments:
         # launch_ros serializes normalized string arrays as YAML tuples.
-        result.update(yaml.full_load(Path(filename).read_text()))
+        merge(result, yaml.full_load(Path(filename).read_text()))
     return result
 
 
@@ -97,6 +104,27 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
     assert set(manager['node_names']) == SERVERS
 
 
+@pytest.mark.parametrize('controller,plugin', [
+    (None, 'nav2_mppi_controller::MPPIController'),
+    ('mppi', 'nav2_mppi_controller::MPPIController'),
+])
+def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller, plugin):
+    settings = {} if controller is None else {'controller': controller}
+    nodes = expanded_nodes(use_sim_time='true', **settings)
+    server = parameters(nodes['controller_server'])['controller_server']['ros__parameters']
+    # The behavior tree calls FollowPath by name, so the name must not change.
+    assert server['controller_plugins'] == ['FollowPath']
+    assert server['FollowPath']['plugin'] == plugin
+    assert server['goal_checker']['xy_goal_tolerance'] == 0.20
+    assert server['progress_checker']['movement_time_allowance'] == 20.0
+    assert server['use_sim_time'] is True
+
+
+def test_unknown_controller_is_rejected():
+    with pytest.raises(RuntimeError, match='controller must be one of'):
+        expanded_nodes(controller='dwb')
+
+
 def test_launch_defaults_resolve_installed_configuration():
     context = LaunchContext()
     for action in LAUNCH['generate_launch_description']().entities:
@@ -109,6 +137,7 @@ def test_launch_defaults_resolve_installed_configuration():
     assert context.launch_configurations['enable_local_lidar'] == 'false'
     assert context.launch_configurations['autostart'] == 'true'
     assert context.launch_configurations['odom_topic'] == '/rtabmap/icp_odom'
+    assert context.launch_configurations['controller'] == 'mppi'
     nodes = expanded_nodes(config_dir=str(config))
     assert set(nodes) == SERVERS | {'lifecycle_manager_navigation'}
 

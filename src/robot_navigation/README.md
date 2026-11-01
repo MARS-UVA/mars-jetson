@@ -35,7 +35,8 @@ the standalone navigation launch starts no GUI.
 | File | Parameters |
 | --- | --- |
 | `config/planner.yaml` | Smac Hybrid-A* global path planner |
-| `config/controller.yaml` | MPPI controller, progress checker, goal checker |
+| `config/controller.yaml` | Controller server, progress checker, goal checker |
+| `config/controller_mppi.yaml` | MPPI `FollowPath` plugin (`controller:=mppi`, default) |
 | `config/global_costmap.yaml` | RTAB-Map static layer and global inflation |
 | `config/local_costmap.yaml` | Local voxel/inflation layers and simulation LiDAR filter |
 | `config/bt_navigator.yaml` | NavigateToPose and NavigateThroughPoses navigators |
@@ -49,8 +50,12 @@ costmaps' nested ROS node namespaces when editing these files.
 
 Launch arguments:
 
-- `config_dir`: directory containing all seven YAML files; defaults to this
+- `config_dir`: directory containing the YAML files; defaults to this
   package's installed `config` directory.
+- `controller`: `mppi` (default). Loads `controller_<name>.yaml` on top
+  of `controller.yaml`. The plugin is always named `FollowPath`, so the behavior
+  trees are unchanged. The startup launch forwards the same argument, for
+  example `./deploy.sh ... enable_nav2:=true controller:=rpp`.
 - `use_sim_time`: defaults to `false`; rewritten across all loaded configurations.
 - `odom_topic`: defaults to `/rtabmap/icp_odom`; replaces the `/odom` placeholders.
 - `autostart`: defaults to `true` for the six managed Nav2 servers.
