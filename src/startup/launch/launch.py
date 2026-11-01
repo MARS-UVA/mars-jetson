@@ -93,7 +93,7 @@ def generate_launch_description():
         'obstacle_model_path',
         default_value=(
             '/home/ws/src/obstacle_detection/model_training/'
-            'train-YOLOv11m-seg-1/test_unet_256s_5e_clean.pth'
+            'train-SynMars/unetplusplus_synmars_best_50epoch.pth'
         ),
         description='Path to the obstacle segmentation model checkpoint',
     ), DeclareLaunchArgument(

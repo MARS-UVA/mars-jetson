@@ -1,0 +1,4 @@
+data/
+predictions/
+*.pth
+mask_comparison.png

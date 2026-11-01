@@ -2,7 +2,7 @@
 
 Expected layout (images may also be directly inside each split folder)::
 
-    YOLOv11m-seg-1/
+    data/
       train/images/  train/masks/
       valid/images/  valid/masks/
       test/images/   test/masks/
@@ -192,7 +192,7 @@ def run_epoch(model, loader, device, optimizer=None, description=""):
 
 
 def main():
-    default_data_dir = Path(__file__).parent.parent / "YOLOv11m-seg-1"
+    default_data_dir = Path(__file__).parent / "data"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=default_data_dir)
     parser.add_argument("--epochs", type=int, default=50)

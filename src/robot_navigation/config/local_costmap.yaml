@@ -114,8 +114,8 @@ local_costmap:
           pointcloud_topic: /rgbd_blue/points
           observation_persistence: 0.0
           expected_update_rate: 0.5
-          max_obstacle_distance: 2.5
-          min_obstacle_distance: 0.3
+          max_obstacle_distance: 5.0
+          min_obstacle_distance: 0.5
           tile_map_decay_time: 2.0
           use_cost_selection: false
           class_types: [traversable, obstacle]
@@ -141,8 +141,8 @@ local_costmap:
           pointcloud_topic: /rgbd_orange/points
           observation_persistence: 0.0
           expected_update_rate: 0.5
-          max_obstacle_distance: 2.5
-          min_obstacle_distance: 0.3
+          max_obstacle_distance: 5.0
+          min_obstacle_distance: 0.5
           tile_map_decay_time: 2.0
           use_cost_selection: false
           class_types: [traversable, obstacle]

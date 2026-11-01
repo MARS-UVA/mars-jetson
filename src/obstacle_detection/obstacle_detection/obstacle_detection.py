@@ -20,8 +20,8 @@ from vision_msgs.msg import LabelInfo, VisionClass
 
 
 DEFAULT_MODEL = (
-    "/home/ws/src/obstacle_detection/model_training/train-YOLOv11m-seg-1/"
-    "test_unet_256s_5e_clean.pth"
+    "/home/ws/src/obstacle_detection/model_training/train-SynMars/"
+    "unetplusplus_synmars_best_50epoch.pth"
 )
 
 

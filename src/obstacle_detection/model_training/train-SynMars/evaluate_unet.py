@@ -13,17 +13,16 @@ from train_unet import TraversabilityDataset
 
 def main():
     script_dir = Path(__file__).parent
-    repo_dir = script_dir.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--checkpoint",
         type=Path,
-        default=script_dir / "unetplusplus_best.pth",
+        default=script_dir / "unetplusplus_synmars_best.pth",
     )
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=repo_dir / "YOLOv11m-seg-1-cleaned",
+        default=script_dir / "data",
     )
     parser.add_argument("--split", choices=("train", "valid", "test"), default="test")
     parser.add_argument("--batch-size", type=int, default=4)
