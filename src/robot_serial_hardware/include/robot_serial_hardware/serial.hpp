@@ -19,7 +19,7 @@ public:
     bool open(const std::string & port, int baudrate);
     void close();
     bool write(Command & cmd);
-    void get_feedback(Feedback & feedback);
+    void get_feedback(Feedback & current_bus_voltage_feedback, Feedback & temperature_feedback, Feedback & position_feedback);
 
 private:
 
@@ -28,9 +28,12 @@ private:
     boost::asio::io_context io_;
     boost::asio::serial_port serial_{io_};
     std::mutex read_mutex_;
-    Feedback feedback_;
+    std::mutex write_mutex_;
+    Feedback current_bus_voltage_feedback_;
+    Feedback temperature_feedback_;
+    Feedback position_feedback_;
     void read_loop();
-    void handle_read(uint8_t* read_buffer);
+    void handle_read(const uint8_t* read_buffer);
 };
 
 }

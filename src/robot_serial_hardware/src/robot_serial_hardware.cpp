@@ -75,8 +75,14 @@ hardware_interface::CallbackReturn RobotSerialHardware::on_deactivate(const rclc
 
     Command stop;
 
-    stop.left = 0;
-    stop.right = 0;
+    stop.front_left = 0;
+    stop.front_right = 0;
+    stop.rear_left = 0;
+    stop.rear_right = 0;
+    stop.front_drum = 0;
+    stop.front_arm = 0;
+    stop.rear_drum = 0;
+    stop.rear_arm = 0;
 
     serial_.write(stop);
 
@@ -88,11 +94,14 @@ hardware_interface::CallbackReturn RobotSerialHardware::on_deactivate(const rclc
 hardware_interface::return_type RobotSerialHardware::write(const rclcpp::Time &, const rclcpp::Duration &)
 {
     Command cmd;
-    cmd.left = (get_command("front_left_wheel_joint/velocity")
-    + get_command("rear_left_wheel_joint/velocity")) / 2.0;
-    
-    cmd.right = (get_command("front_right_wheel_joint/velocity")
-    + get_command("rear_right_wheel_joint/velocity")) / 2.0;
+    cmd.front_left = get_command("front_left_wheel_joint/velocity");
+    cmd.front_right = get_command("front_right_wheel_joint/velocity");
+    cmd.rear_left = get_command("rear_left_wheel_joint/velocity");
+    cmd.rear_right = get_command("rear_right_wheel_joint/velocity");
+    cmd.front_drum = get_command("front_drum_joint/velocity");
+    cmd.front_arm = get_command("front_arm_joint/velocity");
+    cmd.rear_drum = get_command("rear_drum_joint/velocity");
+    cmd.rear_arm = get_command("rear_arm_joint/velocity");
 
     serial_.write(cmd);
 
@@ -102,34 +111,35 @@ hardware_interface::return_type RobotSerialHardware::write(const rclcpp::Time &,
 hardware_interface::return_type RobotSerialHardware::read(const rclcpp::Time &, const rclcpp::Duration &)
 {
 
-    Feedback feedback;
+    Feedback current_bus_voltage_feedback;
+    Feedback temperature_feedback;
+    Feedback position_feedback;
 
-    serial_.get_feedback(feedback);
+    serial_.get_feedback(current_bus_voltage_feedback, temperature_feedback, position_feedback);
 
     serial_msgs::msg::CurrentBusVoltage current_bus_msg;
-    current_bus_msg.front_left_wheel_current = feedback.current_bus_voltage.front_left_wheel_current;
-    current_bus_msg.front_right_wheel_current = feedback.current_bus_voltage.front_right_wheel_current;
-    current_bus_msg.back_left_wheel_current = feedback.current_bus_voltage.back_left_wheel_current;
-    current_bus_msg.back_right_wheel_current = feedback.current_bus_voltage.back_right_wheel_current;
-    current_bus_msg.front_drum_current = feedback.current_bus_voltage.front_drum_current;
-    current_bus_msg.back_drum_current = feedback.current_bus_voltage.back_drum_current;
-    current_bus_msg.front_actuator_current = feedback.current_bus_voltage.front_actuator_current;
-    current_bus_msg.back_actuator_current = feedback.current_bus_voltage.back_actuator_current;
-    current_bus_msg.main_battery_voltage = feedback.current_bus_voltage.main_battery_voltage;
-    current_bus_msg.aux_battery_voltage = feedback.current_bus_voltage.aux_battery_voltage;
+    current_bus_msg.front_left_wheel_current = current_bus_voltage_feedback.current_bus_voltage.front_left_wheel_current;
+    current_bus_msg.front_right_wheel_current = current_bus_voltage_feedback.current_bus_voltage.front_right_wheel_current;
+    current_bus_msg.back_left_wheel_current = current_bus_voltage_feedback.current_bus_voltage.rear_left_wheel_current;
+    current_bus_msg.back_right_wheel_current = current_bus_voltage_feedback.current_bus_voltage.rear_right_wheel_current;
+    current_bus_msg.front_drum_current = current_bus_voltage_feedback.current_bus_voltage.front_drum_current;
+    current_bus_msg.back_drum_current = current_bus_voltage_feedback.current_bus_voltage.rear_drum_current;
+    current_bus_msg.front_actuator_current = current_bus_voltage_feedback.current_bus_voltage.front_actuator_current;
+    current_bus_msg.back_actuator_current = current_bus_voltage_feedback.current_bus_voltage.rear_actuator_current;
+    current_bus_msg.main_battery_voltage = current_bus_voltage_feedback.current_bus_voltage.main_battery_voltage;
+    current_bus_msg.aux_battery_voltage = current_bus_voltage_feedback.current_bus_voltage.aux_battery_voltage;
+    current_bus_pub_->publish(current_bus_msg);
 
     serial_msgs::msg::Temperature temperature_msg;
-    temperature_msg.front_left_wheel_temperature = feedback.temperature.front_left_wheel_temperature;
-    temperature_msg.front_right_wheel_temperature = feedback.temperature.front_right_wheel_temperature;
-    temperature_msg.back_left_wheel_temperature = feedback.temperature.back_left_wheel_temperature;
-    temperature_msg.back_right_wheel_temperature = feedback.temperature.back_right_wheel_temperature;
+    temperature_msg.front_left_wheel_temperature = temperature_feedback.temperature.front_left_wheel_temperature;
+    temperature_msg.front_right_wheel_temperature = temperature_feedback.temperature.front_right_wheel_temperature;
+    temperature_msg.back_left_wheel_temperature = temperature_feedback.temperature.rear_left_wheel_temperature;
+    temperature_msg.back_right_wheel_temperature = temperature_feedback.temperature.rear_right_wheel_temperature;
+    temperature_pub_->publish(temperature_msg);
 
     serial_msgs::msg::Position position_msg;
-    position_msg.front_actuator_position = feedback.position.front_actuator_position;
-    position_msg.back_actuator_position = feedback.position.back_actuator_position;
-
-    current_bus_pub_->publish(current_bus_msg);
-    temperature_pub_->publish(temperature_msg);
+    position_msg.front_actuator_position = position_feedback.position.front_actuator_position;
+    position_msg.back_actuator_position = position_feedback.position.rear_actuator_position;
     position_pub_->publish(position_msg);
 
     return hardware_interface::return_type::OK;

@@ -55,19 +55,48 @@ void Serial::close()
 
 }
 
+double clamp(double value, double min, double max)
+{
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+uint8_t to_byte(double value)
+{
+    return static_cast<uint8_t>((value + 1.0) * 127);
+}
+
 bool Serial::write(Command & cmd)
 {
-    if (cmd.left < -1.0) cmd.left = -1.0;
-    if (cmd.left > 1.0) cmd.left = 1.0;
-    if (cmd.right < -1.0) cmd.right = -1.0;
-    if (cmd.right > 1.0) cmd.right = 1.0;
+    cmd.front_left = clamp(cmd.front_left, -1.0, 1.0);
+    cmd.front_right = clamp(cmd.front_right, -1.0, 1.0);
+    cmd.rear_left = clamp(cmd.rear_left, -1.0, 1.0);
+    cmd.rear_right = clamp(cmd.rear_right, -1.0, 1.0);
+    cmd.front_drum = clamp(cmd.front_drum, -1.0, 1.0);
+    cmd.front_arm = clamp(cmd.front_arm, -1.0, 1.0);
+    cmd.rear_drum = clamp(cmd.rear_drum, -1.0, 1.0);
+    cmd.rear_arm = clamp(cmd.rear_arm, -1.0, 1.0);
 
-    uint8_t left = static_cast<uint8_t>((cmd.left + 1.0) * 127);
-    uint8_t right = static_cast<uint8_t>((cmd.right + 1.0) * 127);
+    uint8_t front_left = to_byte(cmd.front_left);
+    uint8_t front_right = to_byte(cmd.front_right);
+    uint8_t rear_left = to_byte(cmd.rear_left);
+    uint8_t rear_right = to_byte(cmd.rear_right);
+    uint8_t front_drum = to_byte(cmd.front_drum);
+    uint8_t front_arm = to_byte(cmd.front_arm);
+    uint8_t rear_drum = to_byte(cmd.rear_drum);
+    uint8_t rear_arm = to_byte(cmd.rear_arm);
 
-    uint8_t data[3] = {0xFF, left, right};
+    // Start byte (0xFF), followed by header (0x00), followed by the command data
+    uint8_t data[10] = {0xFF, 0x00, front_left, rear_left, front_right, rear_right, front_drum, front_arm, rear_drum, rear_arm};
+    RCLCPP_INFO(
+        rclcpp::get_logger("Serial"),
+        "Writing to serial port: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]
+    );
 
     try {
+        std::lock_guard<std::mutex> lock(write_mutex_);
         boost::asio::write(serial_, boost::asio::buffer(data, sizeof(data)));
     } catch (const boost::system::system_error &e) {
         if (!running_)
@@ -84,119 +113,123 @@ bool Serial::write(Command & cmd)
     return true;
 }
 
-void Serial::get_feedback(Feedback & feedback)
+void Serial::get_feedback(Feedback & current_bus_voltage_feedback, Feedback & temperature_feedback, Feedback & position_feedback)
 {
     std::lock_guard<std::mutex> lock(read_mutex_);
-    feedback = feedback_;
+    current_bus_voltage_feedback = current_bus_voltage_feedback_;
+    temperature_feedback = temperature_feedback_;
+    position_feedback = position_feedback_;
 }
 
 void Serial::read_loop()
 {
-    uint8_t read_buffer[(size_t) (2 + fmax(fmax(sizeof(CurrentBusVoltageFeedback), sizeof(TemperatureFeedback)), sizeof(PositionFeedback)))];
+    std::vector<uint8_t> buffer;
+    buffer.reserve(256);
+    uint8_t temp_buf[64];
+
     while (running_)
     {
         boost::system::error_code error;
+        // Read available bytes
+        size_t bytes_transferred = serial_.read_some(boost::asio::buffer(temp_buf), error);
         
-        size_t bytes_read = boost::asio::read(serial_, boost::asio::buffer(&read_buffer[0], 1), error);
         if (error)
         {
-            RCLCPP_ERROR(
-                rclcpp::get_logger("Serial"),
-                "Error reading from serial port: %s",
-                error.message().c_str()
-            );
-            return;
+            if (running_) {
+                RCLCPP_ERROR(rclcpp::get_logger("Serial"), "Serial read error: %s", error.message().c_str());
+            }
+            break;
         }
 
-        if (bytes_read != 1 || read_buffer[0] != 0xFF)
-        {
-            RCLCPP_ERROR(
-                rclcpp::get_logger("Serial"),
-                "Invalid start byte read from serial port: %02X",
-                read_buffer[0]
-            );
-            continue;
-        }
+        buffer.insert(buffer.end(), temp_buf, temp_buf + bytes_transferred);
 
-        size_t bytes_read_header = boost::asio::read(serial_, boost::asio::buffer(&read_buffer[1], 1), error);
-        if (error)
+        // Slide window until we find valid header [0xFF, header, 0x00, 0x00]
+        while (buffer.size() >= 4)
         {
-            RCLCPP_ERROR(
-                rclcpp::get_logger("Serial"),
-                "Error reading from serial port: %s",
-                error.message().c_str()
-            );
-            return;
-        }
-
-        if (bytes_read_header != 1)
-        {
-            RCLCPP_ERROR(
-                rclcpp::get_logger("Serial"),
-                "Failed to read feedback header from serial port"
-            );
-            continue;
-        }
-
-        // Read the rest of the feedback data, depending on the header type
-        size_t feedback_size = 0;
-        switch (read_buffer[1])
-        {
-            case CURRENT_FEEDBACK_HEADER:
-                feedback_size = sizeof(CurrentBusVoltageFeedback);
-                break;
-            case TEMPERATURE_FEEDBACK_HEADER:
-                feedback_size = sizeof(TemperatureFeedback);
-                break;
-            case POSITION_FEEDBACK_HEADER:
-                feedback_size = sizeof(PositionFeedback);
-                break;
-            default:
-                RCLCPP_ERROR(
-                    rclcpp::get_logger("Serial"),
-                    "Unknown feedback header: %d",
-                    read_buffer[1]
-                );
+            if (buffer[0] != 0xFF || buffer[2] != 0x00 || buffer[3] != 0x00)
+            {
+                buffer.erase(buffer.begin()); // Resync by dropping one byte
                 continue;
-        }
+            }
 
-        size_t bytes_read_data = boost::asio::read(serial_, boost::asio::buffer(&read_buffer[2], feedback_size), error);
-        
-        handle_read(read_buffer);
+            uint8_t header = buffer[1];
+            size_t payload_size = 0;
+
+            switch (header)
+            {
+                case CURRENT_FEEDBACK_HEADER:
+                    payload_size = sizeof(CurrentBusVoltageFeedback);
+                    break;
+                case TEMPERATURE_FEEDBACK_HEADER:
+                    payload_size = sizeof(TemperatureFeedback);
+                    break;
+                case POSITION_FEEDBACK_HEADER:
+                    payload_size = sizeof(PositionFeedback);
+                    break;
+                default:
+                    // Invalid header, discard start byte and resync
+                    buffer.erase(buffer.begin());
+                    continue;
+            }
+
+            size_t total_frame_size = 4 + payload_size;
+            if (buffer.size() < total_frame_size)
+            {
+                // Wait for the full packet to arrive
+                break;
+            }
+
+            // Extract and parse
+            handle_read(buffer.data());
+
+            // Consume packet from buffer
+            buffer.erase(buffer.begin(), buffer.begin() + total_frame_size);
+        }
     }
 }
 
-void Serial::handle_read(uint8_t* read_buffer)
+void Serial::handle_read(const uint8_t* read_buffer)
 {
-    Feedback feedback;
-    feedback.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
-    feedback.header = read_buffer[1];
+    std::lock_guard<std::mutex> lock(read_mutex_);
 
-    switch (feedback.header)
+    Feedback *feedback_ = nullptr;
+
+    switch (read_buffer[1])
     {
         case CURRENT_FEEDBACK_HEADER:
-            std::memcpy(&feedback.current_bus_voltage, &read_buffer[2], sizeof(CurrentBusVoltageFeedback));
+            feedback_ = &current_bus_voltage_feedback_;
             break;
         case TEMPERATURE_FEEDBACK_HEADER:
-            std::memcpy(&feedback.temperature, &read_buffer[2], sizeof(TemperatureFeedback));
+            feedback_ = &temperature_feedback_;
             break;
         case POSITION_FEEDBACK_HEADER:
-            std::memcpy(&feedback.position, &read_buffer[2], sizeof(PositionFeedback));
+            feedback_ = &position_feedback_;
             break;
         default:
-            RCLCPP_ERROR(
+            RCLCPP_WARN(
                 rclcpp::get_logger("Serial"),
-                "Unknown feedback header: %d",
-                feedback.header
+                "Received unknown header: %02X",
+                read_buffer[1]
             );
             return;
     }
 
+    feedback_->timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    feedback_->header = read_buffer[1];
+
+    switch (feedback_->header)
     {
-        std::lock_guard<std::mutex> lock(read_mutex_);
-        feedback_ = feedback;
+        case CURRENT_FEEDBACK_HEADER:
+            std::memcpy(&feedback_->current_bus_voltage, &read_buffer[4], sizeof(CurrentBusVoltageFeedback));
+            break;
+        case TEMPERATURE_FEEDBACK_HEADER:
+            std::memcpy(&feedback_->temperature, &read_buffer[4], sizeof(TemperatureFeedback));
+            break;
+        case POSITION_FEEDBACK_HEADER:
+            std::memcpy(&feedback_->position, &read_buffer[4], sizeof(PositionFeedback));
+            break;
     }
 }
 

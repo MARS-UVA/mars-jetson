@@ -11,40 +11,46 @@ constexpr uint8_t POSITION_FEEDBACK_HEADER = 0x03;
 
 typedef struct Command
 {
-    double left;
-    double right;
+    double front_left;
+    double front_right;
+    double rear_left;
+    double rear_right;
+    double front_drum;
+    double front_arm;
+    double rear_drum;
+    double rear_arm;
 } Command;
 
 #pragma pack(push, 1)
 
 typedef struct CurrentBusVoltageFeedback
 {
-    double front_left_wheel_current;
-    double back_left_wheel_current;
-    double front_right_wheel_current;
-    double back_right_wheel_current;
-    double front_drum_current;
-    double back_drum_current;
-    double front_actuator_current;
-    double back_actuator_current;
-    double main_battery_voltage;
-    double aux_battery_voltage;
+    float front_left_wheel_current;
+    float rear_left_wheel_current;
+    float front_right_wheel_current;
+    float rear_right_wheel_current;
+    float front_drum_current;
+    float rear_drum_current;
+    float front_actuator_current;
+    float rear_actuator_current;
+    float main_battery_voltage;
+    float aux_battery_voltage;
 } CurrentBusVoltageFeedback;
 
 typedef struct TemperatureFeedback
 {
-    double front_left_wheel_temperature;
-    double back_left_wheel_temperature;
-    double front_right_wheel_temperature;
-    double back_right_wheel_temperature;
-    double front_drum_temperature;
-    double back_drum_temperature;
+    float front_left_wheel_temperature;
+    float rear_left_wheel_temperature;
+    float front_right_wheel_temperature;
+    float rear_right_wheel_temperature;
+    float front_drum_temperature;
+    float rear_drum_temperature;
 } TemperatureFeedback;
 
 typedef struct PositionFeedback
 {
-    double front_actuator_position;
-    double back_actuator_position;
+    float front_actuator_position;
+    float rear_actuator_position;
 } PositionFeedback;
 
 #pragma pack(pop)
