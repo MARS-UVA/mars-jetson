@@ -89,7 +89,7 @@ bool Serial::write(Command & cmd)
 
     // Start byte (0xFF), followed by header (0x00), followed by the command data
     uint8_t data[10] = {0xFF, 0x00, front_left, rear_left, front_right, rear_right, front_drum, front_arm, rear_drum, rear_arm};
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
         rclcpp::get_logger("Serial"),
         "Writing to serial port: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
         data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]

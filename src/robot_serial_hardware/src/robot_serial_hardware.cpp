@@ -135,6 +135,8 @@ hardware_interface::return_type RobotSerialHardware::read(const rclcpp::Time &, 
     temperature_msg.front_right_wheel_temperature = temperature_feedback.temperature.front_right_wheel_temperature;
     temperature_msg.back_left_wheel_temperature = temperature_feedback.temperature.rear_left_wheel_temperature;
     temperature_msg.back_right_wheel_temperature = temperature_feedback.temperature.rear_right_wheel_temperature;
+    temperature_msg.front_drum_temperature = temperature_feedback.temperature.front_drum_temperature;
+    temperature_msg.back_drum_temperature = temperature_feedback.temperature.rear_drum_temperature;
     temperature_pub_->publish(temperature_msg);
 
     serial_msgs::msg::Position position_msg;
