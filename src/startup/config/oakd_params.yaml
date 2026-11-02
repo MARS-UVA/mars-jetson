@@ -1,0 +1,35 @@
+/**:
+  ros__parameters:
+    driver:
+      i_device_id: "1944301001BBF81700"
+      i_usb_speed: "HIGH"
+      i_pipeline_auto_calibration_mode: "OFF"
+      i_publish_tf_from_calibration: false
+      i_tf_parent_frame: "front_camera_color_optical_frame"
+      i_tf_cam_pos_x: "0.0"
+      i_tf_cam_pos_y: "0.0"
+      i_tf_cam_pos_z: "0.0"
+      i_tf_cam_roll: "0.0"
+      i_tf_cam_pitch: "0.0"
+      i_tf_cam_yaw: "0.0"
+
+    pipeline_gen:
+      i_pipeline_type: "RGBD"
+      i_nn_type: "none"
+      i_enable_imu: false
+      i_enable_rgbd: true
+
+    rgb:
+      i_publish_topic: true
+      i_fps: 15.0
+      i_resolution: "1080P"
+      i_board_socket_id: 0
+
+    stereo:
+      i_align_depth: true
+      i_board_socket_id: 0
+      i_left_socket_id: 1
+      i_right_socket_id: 2
+      i_subpixel: false
+      i_output_disparity: false
+      i_publish_topic: true

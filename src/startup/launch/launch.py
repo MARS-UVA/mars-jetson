@@ -79,7 +79,7 @@ def generate_launch_description():
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
         'enable_rgbd', default_value=enable_rtabmap,
-        description='Add blue and orange RGB-D cameras when using the Gazebo backend',
+        description='Add blue and orange RGB-D cameras',
     ), DeclareLaunchArgument(
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
@@ -209,9 +209,32 @@ def generate_launch_description():
     nodes.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'lidar.launch.py'])),
         condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'"])
+            PythonExpression(["'", backend, "' == 'serial'", " and '", enable_lidar, "' == 'true'"])
         )
     ))
+
+    nodes.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'oakd.startup.py'])),
+        condition=IfCondition(
+            PythonExpression(["'", backend, "' == 'serial'", " and '", enable_rgbd, "' == 'true'"])
+        )
+    ))
+
+    # enable rviz on serial backend
+    nodes.append(
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', PathJoinSubstitution([
+                startup_pkg, 'config', 'RGBDRViz.rviz'
+            ])],
+            condition=IfCondition(
+                PythonExpression(["'", backend, "' == 'serial'", " and '", enable_rgbd, "' == 'true'"])
+            )
+        )
+    )
 
     return LaunchDescription([
         *args,

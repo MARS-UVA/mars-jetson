@@ -36,6 +36,9 @@
   <exec_depend>point_lio</exec_depend>
   <exec_depend>unitree_lidar_ros2</exec_depend>
 
+  <!-- OAK-D Pro support. -->
+  <exec_depend>depthai_ros_driver_v3</exec_depend>
+
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_image</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
