@@ -22,7 +22,7 @@
 navigation_cloud_filter:
   ros__parameters:
     use_sim_time: false
-    input_topic: /unilidar/cloud
+    input_topic: /unilidar/cloud_filtered
     output_topic: /unilidar/navigation_points
     base_frame: base_link
     # Simulation/flat-floor defaults; calibrate these for hardware.
@@ -76,7 +76,7 @@ local_costmap:
           observation_persistence: 0.0
           expected_update_rate: 0.5
         rgbd_blue:
-          topic: /rgbd_blue/points
+          topic: /rgbd_blue/points_filtered
           data_type: PointCloud2
           marking: true
           clearing: true
@@ -89,7 +89,7 @@ local_costmap:
           observation_persistence: 0.0
           expected_update_rate: 0.5 # Maximum tolerated interval, in seconds.
         rgbd_orange:
-          topic: /rgbd_orange/points
+          topic: /rgbd_orange/points_filtered
           data_type: PointCloud2
           marking: true
           clearing: true

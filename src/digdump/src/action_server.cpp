@@ -84,7 +84,8 @@ void DigDumpActionServer::publish_command(const TwistArmDrumControl & command) {
 }
 
 void DigDumpActionServer::arm_control_mode_callback(const robot_control_msgs::msg::ArmControlMode::SharedPtr msg) {
-  back_arm_control_mode = msg->back_arm_control == 1; // Assuming back_arm_control is either 0 or 1
+  // Use orange only when selected alone; both arms selected defaults to blue.
+  back_arm_control_mode = msg->back_arm_control == 1 && msg->front_arm_control != 1;
 }
 
 void DigDumpActionServer::actuator_position_callback(const serial_msgs::msg::Position::SharedPtr msg) {
