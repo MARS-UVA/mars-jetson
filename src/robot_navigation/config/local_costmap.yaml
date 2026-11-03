@@ -1,0 +1,114 @@
+# Initial navigation-only configuration for ROS 2 Jazzy.
+# RTAB-Map owns map -> odom, odom -> base_link, and /rtabmap/map.
+# No AMCL or map_server: confirm /rtabmap/map is nav_msgs/OccupancyGrid.
+# /odom is the intended estimator-independent input. navigation.launch.py rewrites
+# odom_topic to the selected estimator topic (currently /rtabmap/icp_odom).
+# Odometry must contain measured base-frame velocities before navigation tests.
+# use_sim_time defaults to false and is rewritten by the optional launch.
+#
+# Footprint from transformed collision vertices: full wheel/drum rotation and
+# arm travel sampled from -1.2..0.2 rad give blue-forward bounds about
+# x +/-0.808, y +/-0.356 m. Rounded outward to +/-0.83, +/-0.37 m,
+# plus 0.03 m padding. Padded rectangle is 1.72 x 0.80 m.
+# Confirm the envelope against the physical robot before hardware use.
+#
+# Height limits are in the costmap fixed frame, not the camera optical frame.
+# Initial flat-ground assumption: ground ~-0.13 m in odom (initial base origin).
+# Reject returns below -0.08 m (~5 cm above that ground). Verify this against
+# actual TF/clouds; a height cut alone does not segment ground on slopes.
+# Local obstacles use the front/rear RGB-D cameras. LiDAR is used for
+# ICP odometry and RTAB-Map mapping, not as a required local observation source.
+
+navigation_cloud_filter:
+  ros__parameters:
+    use_sim_time: false
+    input_topic: /unilidar/cloud
+    output_topic: /unilidar/navigation_points
+    base_frame: base_link
+    # Simulation/flat-floor defaults; calibrate these for hardware.
+    body_half_length: 0.90
+    body_half_width: 0.38
+    body_max_height: 0.50
+    min_height_in_base: -0.08
+    max_height_in_base: 1.45
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: odom
+      robot_base_frame: base_link
+      transform_tolerance: 0.2
+      rolling_window: true
+      width: 6
+      height: 6
+      resolution: 0.05
+      update_frequency: 10.0
+      publish_frequency: 2.0
+      footprint: "[[0.83, 0.37], [-0.83, 0.37], [-0.83, -0.37], [0.83, -0.37]]"
+      footprint_padding: 0.03
+      plugins: [voxel_layer, inflation_layer]
+      voxel_layer:
+        plugin: nav2_costmap_2d::VoxelLayer
+        enabled: true
+        footprint_clearing_enabled: true
+        publish_voxel_map: false
+        origin_z: -0.10
+        z_resolution: 0.10
+        z_voxels: 16 # Grid top: 1.50 m; source heights stay inside this grid.
+        min_obstacle_height: -0.08
+        max_obstacle_height: 1.45
+        mark_threshold: 0
+        observation_sources: rgbd_blue rgbd_orange
+        # Included only with enable_local_lidar:=true. Clouds retain the raw
+        # sensor frame and timestamp; Nav2 queues them until odom TF is ready.
+        lidar:
+          topic: /unilidar/navigation_points
+          data_type: PointCloud2
+          marking: true
+          clearing: true
+          min_obstacle_height: -0.08
+          max_obstacle_height: 1.45
+          obstacle_min_range: 0.10
+          obstacle_max_range: 2.5
+          raytrace_min_range: 0.10
+          raytrace_max_range: 3.0
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+        rgbd_blue:
+          topic: /rgbd_blue/points
+          data_type: PointCloud2
+          marking: true
+          clearing: true
+          min_obstacle_height: -0.08
+          max_obstacle_height: 1.45
+          obstacle_min_range: 0.10
+          obstacle_max_range: 2.5
+          raytrace_min_range: 0.10
+          raytrace_max_range: 3.0
+          observation_persistence: 0.0
+          expected_update_rate: 0.5 # Maximum tolerated interval, in seconds.
+        rgbd_orange:
+          topic: /rgbd_orange/points
+          data_type: PointCloud2
+          marking: true
+          clearing: true
+          min_obstacle_height: -0.08
+          max_obstacle_height: 1.45
+          obstacle_min_range: 0.10
+          obstacle_max_range: 2.5
+          raytrace_min_range: 0.10
+          raytrace_max_range: 3.0
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        # Cover the padded rectangle's circumscribed radius (~0.949 m)
+        # so MPPI can use inflation costs to accelerate footprint checks.
+        inflation_radius: 1.0
+        # Keep nonzero cost at the ~0.949 m circumscribed radius so MPPI
+        # can skip full footprint checks when sufficiently far from obstacles.
+        # At ~0.95 m from a wall the soft cost is only 1/254. Keep that
+        # nonzero threshold for MPPI's optimized footprint collision checks.
+        cost_scaling_factor: 9.5
+      always_send_full_costmap: true

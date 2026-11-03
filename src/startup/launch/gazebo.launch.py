@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, GroupAction
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
+from launch.substitutions import (
+    Command, EnvironmentVariable, FindExecutable, IfElseSubstitution,
+    LaunchConfiguration, NotSubstitution, PathJoinSubstitution,
+)
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetRemap
@@ -125,7 +128,7 @@ def launch_rtabmap(context):
             'camera_info_topic': '/rgbd_blue/camera_info',
             'approx_sync': 'true',
             'qos': '2',
-            'rtabmap_viz': 'true',
+            'rtabmap_viz': NotSubstitution(LaunchConfiguration('no_gui', default='false')),
             'rviz': 'false',
         }.items(),
     )
@@ -144,6 +147,7 @@ def generate_launch_description():
     # Launch Arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
+    os.environ['GAZEBO_MODEL_PATH'] = f"$GAZEBO_MODEL_PATH:{get_package_share_directory('startup')}/models"
     # Nodes important for running the simulation and controlling the robot
     # Center the robot in the assumed 2 x 2 m starting zone.
     gz_spawn_entity = Node(
@@ -188,7 +192,24 @@ def generate_launch_description():
         package='ros_gz_image',
         executable='image_bridge',
         arguments=['/front_camera/image_raw', '/rear_camera/image_raw'],
-        parameters=[{'qos': 'sensor_data', 'use_sim_time': use_sim_time}],
+        parameters=[{
+            'qos': 'sensor_data', 'use_sim_time': use_sim_time,
+            # H.264 for the dashboard, same settings as cameras.launch.py. The
+            # bridge publishes absolute topics, so the parameter prefix is the
+            # full topic path. Check with ros2 node list, then
+            # ros2 param list /<bridge node> | grep ffmpeg
+            **{
+                f'{cam}.image_raw.ffmpeg.{key}': value
+                for cam in ('front_camera', 'rear_camera')
+                for key, value in {
+                    'encoder': 'libx264',
+                    'encoder_av_options': 'preset:superfast,tune:zerolatency,profile:baseline',
+                    'gop_size': 30,
+                    'bit_rate': 300000,
+                    'qmax': 40,
+                }.items()
+            },
+        }],
         output='screen',
     )
 
@@ -209,10 +230,19 @@ def generate_launch_description():
         arguments=['-d', PathJoinSubstitution([FindPackageShare('startup'), 'config', 'robot.rviz'])],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
+        condition=UnlessCondition(LaunchConfiguration('no_gui')),
     )
 
     ld = LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument(
+            'no_gui', default_value='false',
+            description='Run simulation without Gazebo, RViz, or RTAB-Map windows',
+        ),
+        DeclareLaunchArgument(
+            'enable_rviz', default_value=NotSubstitution(LaunchConfiguration('no_gui')),
+            description='Show the RGB-D or navigation RViz view',
+        ),
         DeclareLaunchArgument(
             'rviz_config', default_value=PathJoinSubstitution([
                 FindPackageShare('startup'), 'config', 'RGBDRViz.rviz',
@@ -239,6 +269,10 @@ def generate_launch_description():
             'rtabmap_sync', default_value='false',
             description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
         ),
+        DeclareLaunchArgument(
+            'choose_map', default_value='arena_nasa.world',
+            description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
+        ),
         OpaqueFunction(function=launch_rgbd_sync),
         OpaqueFunction(function=launch_rtabmap),
         IncludeLaunchDescription(
@@ -248,6 +282,7 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': use_sim_time,
                 'rviz_config': LaunchConfiguration('rviz_config'),
+                'enable_rviz': LaunchConfiguration('enable_rviz'),
             }.items(),
             condition=IfCondition(LaunchConfiguration('enable_rgbd')),
         ),
@@ -265,11 +300,16 @@ def generate_launch_description():
                 [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
                                        'launch',
                                        'gz_sim.launch.py'])]),
-            launch_arguments=[('gz_args', [f' -r -v 1 ', 
+            launch_arguments=[('gz_args', [
+                    IfElseSubstitution(
+                        LaunchConfiguration('no_gui'),
+                        if_value=' -s --headless-rendering -r -v 1 ',
+                        else_value=' -r -v 1 ',
+                    ),
                     PathJoinSubstitution([
                         FindPackageShare('startup'),
                         'world',
-                        'arena_nasa.world'
+                        LaunchConfiguration('choose_map'),
                     ])
             ])]
         ),
