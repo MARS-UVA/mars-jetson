@@ -36,7 +36,8 @@
     },
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-        "source=/dev,target=/dev,type=bind"
+        "source=/dev,target=/dev,type=bind",
+        "source=/var/run/dbus/system_bus_socket,target=/var/run/dbus/system_bus_socket,type=bind"
     ],
     "postCreateCommand": "git submodule update --init --recursive && sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y -r && bash .devcontainer/build-workspace.sh",
     "runArgs": [
@@ -46,6 +47,9 @@
         "7447:7447/tcp",
         "-p",
         "8080:8080/udp",
+        "-v",
+        "/run/udev:/run/udev:ro",
+        "--device-cgroup-rule=c 189:* rmw",
         "--privileged",
         "--device=/dev/dri"
     ]

@@ -20,6 +20,16 @@ RUN apt-get install -y python3-pip
 ENV SHELL /bin/bash
 ENV RMW_IMPLEMENTATION="rmw_zenoh_cpp"
 
+# Rebuild libusb with --disable-udev to avoid udev dependency (which is not available in the container)
+RUN apt-get install -y wget && \
+    wget -q https://github.com/libusb/libusb/releases/download/v1.0.28/libusb-1.0.28.tar.bz2 -O /tmp/l.tar.bz2 && \
+    tar -xjf /tmp/l.tar.bz2 -C /tmp && cd /tmp/libusb-1.0.28 && \
+    ./configure --prefix=/opt/libusb-noudev --disable-static --disable-udev && \
+    make -j"$(nproc)" && make install
+
+# Add the new libusb to LD_PRELOAD
+ENV LD_PRELOAD=/opt/libusb-noudev/lib/libusb-1.0.so
+
 RUN apt-get update && apt-get install -y ros-jazzy-rmw-zenoh-cpp
 
 # H.264 camera encoding for the dashboard (also listed in src/startup/package.xml)

@@ -77,24 +77,31 @@
         <ray>
           <scan>
             <horizontal>
-              <samples>360</samples>
+              <!-- 720 samples @ 10Hz gives 0.5° angular resolution -->
+              <samples>720</samples>
               <resolution>1</resolution>
-              <min_angle>-3.14159</min_angle>
-              <max_angle>3.14159</max_angle>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
             </horizontal>
             <vertical>
-              <samples>32</samples> <!-- Unitree L2 features a dense vertical profile -->
+              <!-- L2 ultra-wide asymmetric vertical FOV (-72° to +18° = 90° span) -->
+              <samples>64</samples>
               <resolution>1</resolution>
-              <min_angle>-0.261799</min_angle> <!-- -15 deg -->
-              <max_angle>0.261799</max_angle>  <!-- +15 deg -->
+              <min_angle>-1.25664</min_angle> <!-- -72 deg -->
+              <max_angle>0.314159</max_angle>  <!-- +18 deg -->
             </vertical>
           </scan>
           <range>
-            <!-- Ignore close chassis returns; RGB-D covers nearby obstacles. -->
-            <min>0.5</min>
-            <max>30.0</max>
-            <resolution>0.01</resolution>
+            <!-- Hardware deadzone is 0.05m; max range is 18m -->
+            <min>0.05</min>
+            <max>18.0</max>
+            <resolution>0.005</resolution>
           </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev> <!-- ~1 cm standard deviation -->
+          </noise>
         </ray>
         <always_on>true</always_on>
         <visualize>false</visualize>

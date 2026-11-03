@@ -32,15 +32,26 @@
         <gz_frame_id>${name}_optical_frame</gz_frame_id>
         <camera>
           <!-- Shared RGB/depth geometry; these are simulation defaults. -->
-          <horizontal_fov>${87 * pi / 180}</horizontal_fov>
+          <horizontal_fov>${82 * pi / 180}</horizontal_fov>
           <image>
-            <width>640</width>
-            <height>480</height>
+            <width>1280</width>
+            <height>720</height>
             <format>R8G8B8</format>
           </image>
-          <clip><near>0.1</near><far>10.0</far></clip>
+          <clip>
+            <near>0.2</near>
+            <far>12.0</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.005</stddev>
+          </noise>
           <depth_camera>
-            <clip><near>0.1</near><far>10.0</far></clip>
+            <clip>
+              <near>0.2</near>
+              <far>12.0</far>
+            </clip>
           </depth_camera>
           <camera_info_topic>/${name}/camera_info</camera_info_topic>
         </camera>

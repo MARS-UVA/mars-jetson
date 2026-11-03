@@ -449,7 +449,7 @@
     </collision>
   </link>
   <joint name="unilidar_joint" type="fixed">
-    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    <origin xyz="0 0 0.5" rpy="0 0 0"/>
     <parent link="frame_assembly"/>
     <child link="unilidar_link"/>
   </joint>
