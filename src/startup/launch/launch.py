@@ -40,6 +40,7 @@ def generate_launch_description():
     enable_lidar = LaunchConfiguration("enable_lidar")
     color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
+    serial_port = LaunchConfiguration("serial_port")
     choose_map = LaunchConfiguration("choose_map")
 
     backend_arg = DeclareLaunchArgument(
@@ -84,13 +85,16 @@ def generate_launch_description():
         'enable_lidar', default_value=enable_rtabmap,
         description='Enable the simulated LiDAR when using the Gazebo backend',
     ), DeclareLaunchArgument(
+        'serial_port', default_value='/dev/ttyUSB0',
+        description='Serial port for the robot hardware interface when using the serial backend',
+    ), DeclareLaunchArgument(
         'color_cameras', default_value='false',
         description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     ), DeclareLaunchArgument(
         'choose_map', default_value='arena_nasa.world',
         description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
-    )
-    ] 
+    )]
+
     startup_pkg = FindPackageShare("startup")
 
     nodes = []
@@ -127,6 +131,7 @@ def generate_launch_description():
         " camera_update_rate:=30",
         " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
+        " serial_port:=", serial_port,
         " color_cameras:=", color_cameras,
     ])
 
@@ -148,31 +153,6 @@ def generate_launch_description():
             'robot_backend': backend,
             'legacy_webrtc': LaunchConfiguration('legacy_webrtc'),
         }.items()
-    ))
-
-    # Real cameras (v4l2_camera, H.264 via ffmpeg_image_transport). Hardware only:
-    # Gazebo publishes the same topics from its image_bridge.
-    nodes.append(IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'cameras.launch.py'])),
-        launch_arguments={'color_cameras': color_cameras}.items(),
-        condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'"])
-        )
-    ))
-
-    nodes.append(Node(
-        package='serial_node',
-        executable='op_reader',
-        name='serial_node',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN'],
-        parameters=[
-            {'mock_serial': EnvironmentVariable('MOCK_SERIAL', default_value='0')}
-        ],
-        respawn=True,
-        condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'"])
-        )
     ))
 
     nodes.append(IncludeLaunchDescription(
@@ -207,7 +187,11 @@ def generate_launch_description():
     ))
 
     nodes.append(IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'lidar.launch.py'])),
+        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'physical.launch.py'])),
+        launch_arguments={
+            'robot_description': robot_description,
+            'color_cameras': color_cameras,
+        }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'serial'", " and '", enable_lidar, "' == 'true'"])
         )
