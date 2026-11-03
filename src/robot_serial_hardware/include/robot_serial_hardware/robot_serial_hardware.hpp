@@ -28,22 +28,6 @@ class RobotSerialHardware : public hardware_interface::SystemInterface
         rclcpp::Publisher<serial_msgs::msg::Temperature>::SharedPtr temperature_pub_;
         rclcpp::Publisher<serial_msgs::msg::Position>::SharedPtr position_pub_;
     private:
-
-        double fl_command_;
-        double fr_command_;
-        double rl_command_;
-        double rr_command_;
-
-        double fl_position_;
-        double fr_position_;
-        double rl_position_;
-        double rr_position_;
-
-        double fl_velocity_;
-        double fr_velocity_;
-        double rl_velocity_;
-        double rr_velocity_;
-
         Serial serial_;
 
 };

@@ -61,6 +61,12 @@ hardware_interface::CallbackReturn RobotSerialHardware::on_activate(const rclcpp
     {
         set_command(name, 0.0);
     }
+
+    for (const auto & [name, descr] : joint_state_interfaces_)
+    {
+        set_state(name, 0.0);
+    }
+
     return hardware_interface::CallbackReturn::SUCCESS;
 }
 
@@ -116,6 +122,39 @@ hardware_interface::return_type RobotSerialHardware::read(const rclcpp::Time &, 
     Feedback position_feedback;
 
     serial_.get_feedback(current_bus_voltage_feedback, temperature_feedback, position_feedback);
+
+    // Guard against potential NaNs from serial parsing
+    auto sanitize = [](double val) {
+        return (std::isnan(val) || std::isinf(val)) ? 0.0 : val;
+    };
+
+    // 1. Reset all state interfaces to default safe values first
+    for (const auto & [name, descr] : joint_state_interfaces_)
+    {
+        // Don't overwrite arm positions if we are about to set them below
+        if (name != "front_arm_joint/position" && name != "rear_arm_joint/position")
+        {
+            // If it's a velocity interface, mirror command or set 0.0
+            if (name.find("/velocity") != std::string::npos) {
+                std::string cmd_name = name; // matches joint_name/velocity
+                try {
+                    double cmd = get_command(cmd_name);
+                    set_state(name, sanitize(cmd));
+                } catch (...) {
+                    set_state(name, 0.0);
+                }
+            } else {
+                set_state(name, 0.0);
+            }
+        }
+    }
+
+    // 2. Sanitize actuator feedback before passing to ros2_control
+    double front_arm_pos = sanitize(position_feedback.position.front_actuator_position);
+    double rear_arm_pos  = sanitize(position_feedback.position.rear_actuator_position);
+
+    set_state("front_arm_joint/position", front_arm_pos);
+    set_state("rear_arm_joint/position", rear_arm_pos);
 
     serial_msgs::msg::CurrentBusVoltage current_bus_msg;
     current_bus_msg.front_left_wheel_current = current_bus_voltage_feedback.current_bus_voltage.front_left_wheel_current;
