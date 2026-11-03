@@ -12,6 +12,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     # Load the robot description as a parameter, passed in from the parent launch file.
     robot_description = LaunchConfiguration('robot_description')
+    color_cameras = LaunchConfiguration('color_cameras')
 
     controller_config = ParameterFile(
         PathJoinSubstitution([
@@ -32,12 +33,23 @@ def generate_launch_description():
         output="screen",
     )
 
+    # Real cameras (v4l2_camera, H.264 via ffmpeg_image_transport). Hardware only:
+    # Gazebo publishes the same topics from its image_bridge.
+    cameras = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([FindPackageShare('startup'), 'launch', 'cameras.launch.py'])),
+        launch_arguments={
+            'robot_description': robot_description,
+            'color_cameras': color_cameras,
+        }.items()
+    )
+
     lidar = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([FindPackageShare('startup'), 'launch', 'lidar.launch.py']))
     )
 
     ld = LaunchDescription([
         controller_manager,
+        cameras,
         lidar,
     ])
     return ld
