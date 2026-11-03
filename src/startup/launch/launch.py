@@ -191,16 +191,11 @@ def generate_launch_description():
         launch_arguments={
             'robot_description': robot_description,
             'color_cameras': color_cameras,
+            'enable_rgbd': enable_rgbd,
+            'enable_lidar': enable_lidar,
         }.items(),
         condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'", " and '", enable_lidar, "' == 'true'"])
-        )
-    ))
-
-    nodes.append(IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'oakd.startup.py'])),
-        condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'", " and '", enable_rgbd, "' == 'true'"])
+            PythonExpression(["'", backend, "' == 'serial'"])
         )
     ))
 
@@ -212,10 +207,10 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             arguments=['-d', PathJoinSubstitution([
-                startup_pkg, 'config', 'RGBDRViz.rviz'
+                startup_pkg, 'config', 'robot.rviz'
             ])],
             condition=IfCondition(
-                PythonExpression(["'", backend, "' == 'serial'", " and '", enable_rgbd, "' == 'true'"])
+                PythonExpression(["'", backend, "' == 'serial'"])
             )
         )
     )
