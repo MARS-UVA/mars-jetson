@@ -22,14 +22,23 @@ controller_server:
       # (local_costmap.yaml). RPP inverts the inflation curve with it to
       # recover obstacle distance for cost-regulated scaling.
       inflation_cost_scaling_factor: 9.5
+      # TODO(global planner): revisit these two when the piecewise-linear
+      # global planner replaces Smac Hybrid-A*. If its paths have no reverse
+      # segments, restore the defaults (allow_reversing false,
+      # use_rotate_to_heading true) so RPP turns in place at corners and
+      # aligns to the goal heading.
+      #
+      # Default false. Smac Hybrid-A* (planner.yaml) plans REEDS_SHEPP paths
+      # with reverse segments; RPP drives them backward only with this on.
+      # It also backs up whenever the carrot falls behind the robot.
+      allow_reversing: true
+      # Default true. RPP cannot combine rotate-to-heading with reversing
+      # (1.3.13 rejects enabling both through a parameter update). With it
+      # off, RPP never turns in place, neither at corners nor to the final
+      # goal heading; see "Known limitations" in the README.
+      use_rotate_to_heading: false
       # The values below equal the Jazzy defaults. They are written out
       # because the comparison depends on them.
-      # Stop and turn in place when the carrot is more than 45 degrees off
-      # the heading, and rotate to the final heading at the goal. This is the
-      # behavior a point-and-turn plugin would build on.
-      use_rotate_to_heading: true
-      # 1.8 rad/s, under the 2.4 rad/s cap.
-      rotate_to_heading_angular_vel: 1.8
       # Abort with NO_VALID_CONTROL instead of driving the footprint into
       # lethal cells along the projected arc.
       use_collision_detection: true
@@ -37,7 +46,3 @@ controller_server:
       # obstacles (within 0.6 m).
       use_regulated_linear_velocity_scaling: true
       use_cost_regulated_linear_velocity_scaling: true
-      # Forward only. RPP treats this as incompatible with use_rotate_to_heading
-      # and rejects enabling both at runtime. With it on, RPP would also back
-      # up whenever the carrot fell behind the robot.
-      allow_reversing: false

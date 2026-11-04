@@ -102,3 +102,21 @@ The startup launch forwards `arena_name` to navigation. Omitting it disables
 markers; supplying it without `enable_nav2:=true` does not start the node.
 Both RViz configurations include an Arena regions display. Navigation RViz uses
 fixed frame `map`; the regular view keeps its existing fixed frame.
+
+## Known limitations
+
+- **RPP does not turn in place** (`controller:=rpp`). Smac Hybrid-A* plans
+  REEDS_SHEPP paths with reverse segments, so `controller_rpp.yaml` sets
+  `allow_reversing: true`. RPP cannot combine that with
+  `use_rotate_to_heading`, which is therefore off. As a result:
+  - At sharp corners RPP curves through the turn, slowed by its curvature
+    regulation, instead of stopping and rotating.
+  - At the goal it does not rotate to the final heading. It reaches the
+    shared 0.20 rad yaw tolerance only if it arrives already facing that
+    way, which is likely on a path that ends along its last segment but not
+    with an arbitrary goal orientation.
+  - It also backs up whenever the lookahead point falls behind the robot.
+
+  Revisit when the piecewise-linear global planner replaces Smac Hybrid-A*
+  (see the TODO in `controller_rpp.yaml`). If that planner emits no reverse
+  segments, restore the defaults: rotate-to-heading on, reversing off.

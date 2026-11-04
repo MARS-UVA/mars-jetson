@@ -124,7 +124,9 @@ def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller, 
         # RPP reads obstacle distance back out of the inflation curve.
         assert (server['FollowPath']['inflation_cost_scaling_factor']
                 == local['ros__parameters']['inflation_layer']['cost_scaling_factor'])
-        assert server['FollowPath']['allow_reversing'] is False
+        # Follows the planner's reverse segments, so it cannot rotate to heading.
+        assert server['FollowPath']['allow_reversing'] is True
+        assert server['FollowPath']['use_rotate_to_heading'] is False
 
 
 def test_unknown_controller_is_rejected():
