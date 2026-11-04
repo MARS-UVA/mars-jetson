@@ -3,6 +3,7 @@ from rclpy.node import Node
 
 from std_msgs.msg import String
 from apriltag_msgs.msg import AprilTagDetectionArray
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from robot_perception_interfaces.srv import AprilTagGate
 
 
@@ -17,35 +18,39 @@ class AprilTagGateNode(Node):
         self.detectionData = AprilTagDetectionArray()
         self.TotalDetection = 0
         self.get_logger().info("April Tag Service Initialized")
-        self.timeIndex = 0
-        self.timeLast = 0
-        self.timer = self.create_timer(0.1, self.timerCallback)
-        
-    def timerCallback(self):
-        self.timeIndex += 0.1
+        self.timeIndex = 0.0
+        self.timeLast = 0.0
+        self.size = 0
         
 
     def AprilTag_callback(self, msg):
         self.detectionData = msg
-        self.timeLast = self.timeIndex
-        self.TotalDetection += 1
+        self.timeIndex = msg.header.stamp.sec + (msg.header.stamp.nanosec / 1e9)
+        if (len(msg.detections) > 0) and (len(msg.detections) > self.size):
+            self.TotalDetection += 1
+            self.size = len(msg.detections)
+        if self.TotalDetection > 1:
+             self.timeLast = msg.header.stamp.sec + (msg.header.stamp.nanosec / 1e9)
+        
         
         
     
     def AprilTagService_callback(self,request,responce):
-        if (self.timeIndex - self.timeLast > 0.1) and (self.timeIndex - self.timeLast <= 0.5):
-            if self.totalDetection == 0:
-                responce.success = False
-                responce.data = "No detections"
-            else:
+        if (self.timeIndex - self.timeLast > 0.1) and (self.timeIndex - self.timeLast <= 0.5) and (self.TotalDetection > 1):
                 self.detectionPub.publish(self.detectionData)
-                dataResponce = String()
-                dataResponce.data = str(self.detectionData.detections[self.TotalDetection].family)
-                responce.data = dataResponce.data + " at " + str(self.timeIndex) + " seconds since startup"  #Figure out what data is supposed to be
+                family = self.detectionData.detections[self.TotalDetection -1].family
+                id = self.detectionData.detections[self.TotalDetection -1].id
+                pose = self.detectionData.detections[self.TotalDetection -1].pose
+                position = "x: " + str(pose.pose.position.x) + "y: " + str(pose.pose.position.y) + "z: " + str(pose.pose.position.z)
+                orientation = "x: " + str(pose.pose.orientation.x) + "y: " + str(pose.pose.orientation.y) + "z: " + str(pose.pose.orientation.z) + "w: " + str(pose.pose.orientation.w)
+                responce.data = "Family: " + str(family) + "ID: " + id + " at " + str(self.timeIndex) + " seconds since startup | position: " + position + "| Orientation: " +  orientation
                 responce.success = True
                 self.detectionData = AprilTagDetectionArray()
         else:
             responce.success = False
+            responce.data = "No Detections"
+        
+        return responce
         
         
         
