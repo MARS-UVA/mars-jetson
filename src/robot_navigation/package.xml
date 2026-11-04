@@ -14,7 +14,7 @@
   <exec_depend>nav2_controller</exec_depend>
   <exec_depend>nav2_mppi_controller</exec_depend>
   <exec_depend>nav2_planner</exec_depend>
-  <exec_depend>nav2_smac_planner</exec_depend>
+  <exec_depend>nav2_lazy_theta_star_planner</exec_depend>
   <exec_depend>nav2_costmap_2d</exec_depend>
   <exec_depend>nav2_smoother</exec_depend>
   <exec_depend>nav2_behaviors</exec_depend>

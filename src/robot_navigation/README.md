@@ -8,7 +8,7 @@ server or localization system.
 Build and launch in a sourced ROS 2 Jazzy workspace:
 
 ```bash
-colcon build --symlink-install --packages-select robot_navigation
+colcon build --symlink-install --packages-up-to robot_navigation
 source install/setup.bash
 ros2 launch robot_navigation navigation.launch.py use_sim_time:=true
 ```
@@ -34,7 +34,7 @@ the standalone navigation launch starts no GUI.
 
 | File | Parameters |
 | --- | --- |
-| `config/planner.yaml` | Smac Hybrid-A* global path planner |
+| `config/planner.yaml` | Lazy Theta* global path planner and smoothing settings |
 | `config/controller.yaml` | MPPI controller, progress checker, goal checker |
 | `config/global_costmap.yaml` | RTAB-Map static layer and global inflation |
 | `config/local_costmap.yaml` | Local voxel/inflation layers and simulation LiDAR filter |

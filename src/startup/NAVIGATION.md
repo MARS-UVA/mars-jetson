@@ -120,23 +120,26 @@ planning, controller, costmaps, behaviors, and both smoothers. See the
 [package guide](../robot_navigation/README.md) for the file layout and launch arguments.
 [navigation.rviz](../robot_navigation/rviz/navigation.rviz) defines the navigation view.
 
-- **Planner:** Smac Hybrid-A* checks the rectangular footprint at each heading,
-  with forward/reverse Reeds-Shepp paths and built-in smoothing. The initial
-  curved-path turning radius is 0.40 m; this planner does not search in-place
-  rotations, even though the differential drive can execute them. Planning through
-  unknown space is allowed. The separate smoother server is configured, but the default
-  navigation behavior tree does not call it; using it requires a `SmoothPath` step.
+- **Planner:** Lazy Theta* searches the 2D costmap with Bresenham line-of-sight
+  checks, a 0.6 m/rad turn penalty, and unknown space allowed. The path is sampled
+  at 0.05 m intervals and corners receive collision-checked circular fillets up to
+  0.6 m radius. Fillets shrink near obstacles or short segments. This geometric
+  planner does not model an orientation-dependent footprint or reverse motion;
+  costmap inflation must provide the robot's clearance. Path headings follow the
+  smoothed route, with the requested goal orientation retained. The separate
+  smoother server is configured, but the default behavior tree does not call it;
+  using it requires a `SmoothPath` step.
 - **Motion:** MPPI uses `DiffDrive`, a 2.8-second prediction horizon, and 1,000
   sampled trajectories. Limits start at 0.60 m/s forward, 0.40 m/s reverse, and
   1.20 rad/s turning, below the drive controller's 0.80 m/s and 1.60 rad/s limits.
   The velocity smoother uses matching speed and acceleration limits and open-loop
   feedback. Linear acceleration is 0.60 m/s² and angular acceleration is 1.20 rad/s².
   MPPI samples with linear/angular standard deviations of 0.20/0.40. The path
-  horizon is 2.0 m, covering 0.60 m/s times 2.8 seconds. MPPI follows Hybrid-A*
-  headings (`PathAngleCritic.mode=2`, `PathAlignCritic.use_path_orientations=true`)
-  and direction-change points (`enforce_path_inversion=true`); no forward-only
-  critic competes with reverse segments. Profile
-  controller performance on the Jetson before increasing the sample count.
+  horizon is 2.0 m, covering 0.60 m/s times 2.8 seconds. MPPI follows the
+  planner's path headings (`PathAngleCritic.mode=2`,
+  `PathAlignCritic.use_path_orientations=true`). This planner creates no reverse
+  direction-change points. Profile controller performance on the Jetson before
+  increasing the sample count.
 - **Turning priority:** A rotation shim wraps MPPI. On each updated path, heading
   error above 30 degrees starts a zero-translation alignment phase, handing back
   to MPPI within 10 degrees. It uses the planned orientation 0.5 m along the path
@@ -233,8 +236,7 @@ another mode is selected and that arms/drums remain stopped in navigation. Test
 stopping and re-entry explicitly; cancellation and retained-command handling are
 not automatically managed by mode transitions in this version.
 
-Reference: [Nav2 Jazzy Smac planner](https://api.nav2.org/nav2-jazzy/html/md_nav2_smac_planner_README.html)
-and [adding a separate smoother](https://docs.nav2.org/jazzy/tutorials/general_tutorials/adding_smoother/adding_smoother/).
+Reference: [adding a separate Nav2 smoother](https://docs.nav2.org/jazzy/tutorials/general_tutorials/adding_smoother/adding_smoother/).
 
 ## Front convention
 

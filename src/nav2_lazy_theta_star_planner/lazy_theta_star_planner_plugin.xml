@@ -1,0 +1,7 @@
+<library path="nav2_lazy_theta_star_planner">
+  <class
+    type="nav2_lazy_theta_star_planner::LazyThetaStarPlanner"
+    base_class_type="nav2_core::GlobalPlanner">
+    <description>Lazy Theta* planner with turn penalties and smooth path output</description>
+  </class>
+</library>

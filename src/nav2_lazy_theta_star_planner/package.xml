@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>nav2_lazy_theta_star_planner</name>
+  <version>0.1.0</version>
+  <description>Lazy Theta* global planner with turn penalties and collision-checked fillet smoothing.</description>
+  <maintainer email="surya.selvam03@gmail.com">Surya Selvam</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>nav2_util</depend>
+  <depend>nav_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>tf2_ros</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

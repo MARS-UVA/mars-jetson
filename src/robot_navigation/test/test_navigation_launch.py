@@ -66,6 +66,14 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
 
     controller = parameters(nodes['controller_server'])
     planner = parameters(nodes['planner_server'])
+    planner_params = planner['planner_server']['ros__parameters']
+    assert planner_params['planner_plugins'] == ['LazyThetaStar']
+    lazy_theta_star = planner_params['LazyThetaStar']
+    assert lazy_theta_star['plugin'] == (
+        'nav2_lazy_theta_star_planner::LazyThetaStarPlanner')
+    assert lazy_theta_star['interpolation_step'] == 0.05
+    assert lazy_theta_star['smoothing_radius'] > 0.0
+    assert lazy_theta_star['turn_penalty_weight'] >= 0.0
     local = controller['local_costmap']['local_costmap']['ros__parameters']
     global_map = planner['global_costmap']['global_costmap']['ros__parameters']
     assert local['use_sim_time'] is (sim_time == 'true')
@@ -117,8 +125,8 @@ def test_custom_configuration_directory(tmp_path):
     shutil.copytree(ROOT / 'config', config)
     planner_file = config / 'planner.yaml'
     custom = yaml.safe_load(planner_file.read_text())
-    custom['planner_server']['ros__parameters']['GridBased']['tolerance'] = 0.35
+    custom['planner_server']['ros__parameters']['LazyThetaStar']['smoothing_radius'] = 0.35
     planner_file.write_text(yaml.safe_dump(custom))
     nodes = expanded_nodes(config_dir=str(config))
     planner = parameters(nodes['planner_server'])['planner_server']['ros__parameters']
-    assert planner['GridBased']['tolerance'] == 0.35
+    assert planner['LazyThetaStar']['smoothing_radius'] == 0.35
