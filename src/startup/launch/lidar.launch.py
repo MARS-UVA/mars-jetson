@@ -15,7 +15,7 @@ def generate_launch_description():
         name='unitree_lidar_ros2_node',
         output='screen',
         parameters= [
-                {'publish_tf': False},
+                {'publish_tf': True},
                 {'initialize_type': 2},
                 {'work_mode': 0},
                 {'use_system_timestamp': True},
@@ -41,35 +41,27 @@ def generate_launch_description():
     static_transform_publisher = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        name='lidar_to_base_tf',
+        name='base_to_lidar_tf',
         arguments=[
-            '--x',
-            '0.0',
-            '--y',
-            '0.0',
-            '--z',
-            '0.5',  # base_link is 0.5m below the lidar optical center
-            '--roll',
-            '3.14159', # base_link is upside down relative to the lidar optical center
-            '--pitch',
-            '0.0',
-            '--yaw',
-            '1.048',  # base_link is rotated 60 degrees relative to the lidar optical center
-            '--frame-id',
-            'unilidar_lidar',
-            '--child-frame-id',
-            'base_link',
+            '--x', '0.0',
+            '--y', '0.0',
+            '--z', '0.0',
+            '--roll', '0.0',
+            '--pitch', '0.0',
+            '--yaw', '0.0',
+            '--frame-id', 'unilidar_link',
+            '--child-frame-id', 'unilidar_imu_initial',
         ],
     )
 
     return LaunchDescription([
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(PathJoinSubstitution([point_lio, 'launch', 'mapping_unilidar_l2.launch.py'])),
-            launch_arguments={
-                'rviz': 'false',
-                'use_sim_time': 'false',
-            }.items()
-        ),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource(PathJoinSubstitution([point_lio, 'launch', 'mapping_unilidar_l2.launch.py'])),
+        #     launch_arguments={
+        #         'rviz': 'false',
+        #         'use_sim_time': 'false',
+        #     }.items()
+        # ),
         unitree_lidar,
         static_transform_publisher
     ])
