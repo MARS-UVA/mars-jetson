@@ -18,11 +18,27 @@ def generate_launch_description():
             parameters=[config_file],
             remappings=[('/rgbd_blue/rgbd/points', '/rgbd_blue/points')]
         ),
-        # add a static transform publisher
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             name='rgbd_blue_static_tf',
-            arguments=['0', '0', '0', '0', '0', '0', 'front_camera_color_optical_frame', 'rgbd_blue_rgb_camera_optical_frame'],
+            arguments=[
+                '--x',
+                '0.0',
+                '--y',
+                '-0.125',
+                '--z',
+                '0.0',
+                '--roll',
+                '-0.261799',
+                '--pitch',
+                '0.0',
+                '--yaw',
+                '0.0',
+                '--frame-id',
+                'front_camera_color_optical_frame',
+                '--child-frame-id',
+                'rgbd_blue_rgb_camera_optical_frame',
+            ],
         ),
     ])

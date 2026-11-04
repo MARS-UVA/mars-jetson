@@ -2,9 +2,9 @@
   ros__parameters:
     driver:
       i_device_id: "1944301001BBF81700"
-      i_usb_speed: "HIGH"
-      i_pipeline_auto_calibration_mode: "OFF"
+      i_usb_speed: "SUPER"
       i_publish_tf_from_calibration: false
+      i_pipeline_auto_calibration_mode: ON_START
       i_tf_parent_frame: "front_camera_color_optical_frame"
       i_tf_cam_pos_x: "0.0"
       i_tf_cam_pos_y: "0.0"
@@ -12,6 +12,7 @@
       i_tf_cam_roll: "0.0"
       i_tf_cam_pitch: "0.0"
       i_tf_cam_yaw: "0.0"
+      i_enable_ir: true
 
     pipeline_gen:
       i_pipeline_type: "RGBD"
@@ -26,10 +27,13 @@
       i_board_socket_id: 0
 
     stereo:
-      i_align_depth: true
-      i_board_socket_id: 0
-      i_left_socket_id: 1
-      i_right_socket_id: 2
-      i_subpixel: false
-      i_output_disparity: false
-      i_publish_topic: true
+      i_depth_preset: "ROBOTICS"   # Optimized for dense coverage on flat surfaces
+      i_extended_disp: true            # Resolves objects down to ~0.35m
+      i_subpixel: false                # Prevents Myriad X disparity buffer overflow with extended_disp
+      i_lr_check: true
+      i_lrc_threshold: 10
+      
+      i_enable_spatial_filter: true
+      i_spatial_filter_radius: 3
+      i_spatial_filter_hole_filling_radius: 8   # Expand radius to span the glare gap
+      i_spatial_filter_num_iterations: 2
