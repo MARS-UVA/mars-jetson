@@ -1,0 +1,28 @@
+# Arducam B0332 / OV9281: nominal manufacturer-specification parameters.
+# NOT a measured calibration of this individual camera or capture mode.
+# Datasheet: https://uctronics.com/download/Amazon/B0332_OV9281_Global_Shutter_UVC_Camera_Datasheet.pdf
+width: 1200
+height: 800
+# Native sensor 1280x800. Assume 40 columns cropped from each side, no scaling.
+# f_pixels = EFL 2.8 mm / pixel pitch 0.003 mm = 933.3333 px.
+fx: 933.3333333333334
+fy: 933.3333333333334
+# Native centered principal point (639.5,399.5), minus horizontal crop of 40 px.
+cx: 599.5
+cy: 399.5
+# <1% distortion is a bound, not calibration coefficients. Zero is an assumption.
+distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+already_rectified: false
+rotation_degrees: 180
+metadata:
+  model: Arducam B0332 OV9281
+  calibration_basis: manufacturer_specification_estimate
+  native_resolution: [1280, 800]
+  pixel_pitch_um: 3.0
+  lens_efl_mm: 2.8
+  advertised_horizontal_fov_deg: 70.0
+  advertised_distortion: '<1%'
+  capture_assumption: centered 1200x800 crop of 1280x800; no rescaling
+  principal_point_assumption: centered optical axis
+  distortion_assumption: zero coefficients; not measured
+  source: https://uctronics.com/download/Amazon/B0332_OV9281_Global_Shutter_UVC_Camera_Datasheet.pdf

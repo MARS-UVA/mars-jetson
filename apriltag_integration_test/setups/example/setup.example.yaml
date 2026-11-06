@@ -1,0 +1,42 @@
+# Copy this directory for each stationary video. Replace ALL example measurements.
+video: video.mp4
+camera:
+  width: 1280
+  height: 720
+  fx: 900.0
+  fy: 900.0
+  cx: 640.0
+  cy: 360.0
+  # OpenCV plumb_bob coefficients: k1, k2, p1, p2, k3.
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+  already_rectified: false
+detector:
+  family: 36h11
+  max_hamming: 0
+  decimate: 1.0
+tags:
+  - id: 1
+    size_m: 0.205
+    ground_truth:
+      # Tag center in CAMERA OPTICAL axes: x right, y down, z forward.
+      # distance_m means forward depth, not slant range.
+      offset_x_m: 0.0
+      # Level camera: 0.02 - (0.025 + 0.205/2); optical +Y points down.
+      offset_y_m: -0.1075
+      distance_m: 1.5
+      # Rotation of the tag about camera optical +Y (right hand rule).
+      # 0 = native upright tag facing camera: x right, y up, z toward camera.
+      angle_deg: 0.0
+      # For arbitrary poses replace the four fields above with:
+      # translation_m: [0.0, 0.0, 1.5]
+      # rpy_deg: [180.0, 0.0, 0.0]  # Rz(yaw) Ry(pitch) Rx(roll)
+sampling:
+  start_frame: 0
+  stride: 1
+  max_frames: 300
+  timeout_s: 5.0
+thresholds:
+  min_detection_rate: 0.90
+  # Optional application-specific limits:
+  # max_position_p95_m: 0.05
+  # max_rotation_p95_deg: 3.0

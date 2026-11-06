@@ -1,0 +1,25 @@
+video: ../../1.0m.mov
+analysis_mode: localization
+detector:
+  family: 36h11
+  max_hamming: 0
+  decimate: 1.0
+tags:
+- id: 1
+  size_m: 0.205
+  ground_truth:
+    offset_x_m: 0.0
+    offset_y_m: -0.1075
+    distance_m: 1.0
+    angle_deg: 0.0
+sampling:
+  max_frames: 447
+  required_frames: 447
+  stride: 1
+  timeout_s: 5.0
+thresholds:
+  min_detection_rate: 0.9
+annotation:
+  enabled: true
+input_sha256: 9a8c64ab1485b0c889baa66dff751534ec601dca139759eee888cff2cfc64498
+camera_file: ../../camera_b0332.yaml
