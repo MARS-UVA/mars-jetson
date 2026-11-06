@@ -29,6 +29,7 @@ def launch_nav2(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
             'odom_topic': '/rtabmap/icp_odom',
+            'arena_name': LaunchConfiguration('arena_name', default=''),
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
         }.items(),
     )]
@@ -67,6 +68,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
+    ), DeclareLaunchArgument(
+        'arena_name', default_value='',
+        description='Arena markers configuration; empty disables markers, requires enable_nav2',
     ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',

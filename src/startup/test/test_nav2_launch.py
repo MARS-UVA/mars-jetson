@@ -107,3 +107,43 @@ def test_rviz_selection_only_resolves_navigation_package_when_enabled(enabled, m
         expected = Path(FindPackageShare('startup').perform(ctx)) / 'config/RGBDRViz.rviz'
     assert Path(rviz) == expected
     assert expected.is_file()
+
+
+@pytest.mark.parametrize('arena_name', ['', 'ARENA_NASA'])
+def test_arena_selection_is_forwarded_only_with_navigation(arena_name):
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    ctx = context(enable_nav2='false', arena_name=arena_name)
+    assert launch['launch_nav2'](ctx) == []
+    ctx.launch_configurations.update(
+        enable_nav2='true', robot_backend='gazebo', enable_rtabmap='true',
+        enable_rgbd='true', enable_lidar='true')
+    actions = launch['launch_nav2'](ctx)
+    assert len(actions) == 1
+    arguments = dict(actions[0].launch_arguments)
+    assert perform_substitutions(ctx, [arguments['arena_name']]) == arena_name
+
+
+def test_arena_argument_defaults_to_empty():
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    argument = next(action for action in launch['generate_launch_description']().entities
+                    if isinstance(action, DeclareLaunchArgument)
+                    and action.name == 'arena_name')
+    ctx = context()
+    argument.execute(ctx)
+    assert ctx.launch_configurations['arena_name'] == ''
+
+
+@pytest.mark.parametrize('relative_path', [
+    'startup/config/RGBDRViz.rviz', 'robot_navigation/rviz/navigation.rviz',
+])
+def test_arena_rviz_display(relative_path):
+    import yaml
+
+    config = yaml.safe_load((ROOT.parent / relative_path).read_text())
+    displays = config['Visualization Manager']['Displays']
+    arena = next(display for display in displays if display['Name'] == 'Arena regions')
+    assert arena['Class'] == 'rviz_default_plugins/MarkerArray'
+    assert arena['Enabled'] is True
+    assert arena['Topic']['Value'] == '/arena/markers'
+    assert arena['Topic']['Durability Policy'] == 'Volatile'
+    assert arena['Topic']['Reliability Policy'] == 'Reliable'
