@@ -47,7 +47,14 @@ def launch_navigation(context):
         ('nav2_bt_navigator', 'bt_navigator', ['bt_navigator.yaml']),
         ('nav2_velocity_smoother', 'velocity_smoother', ['smoothers.yaml']),
     ]
-    nodes = []
+    nodes = [Node(
+        package='robot_navigation', executable='arena_markers_node',
+        name='arena_markers_node', output='screen',
+        parameters=[{
+            'arena_name': LaunchConfiguration('arena_name', default='ARENA_NASA'),
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+        }],
+    )]
     if local_lidar:
         nodes.append(Node(
             package='robot_navigation', executable='navigation_cloud_filter',
@@ -84,9 +91,10 @@ def launch_navigation(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('arena_name', default_value='ARENA_NASA'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
-        DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
+        DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),s
         DeclareLaunchArgument(
             'config_dir', default_value=PathJoinSubstitution([
                 FindPackageShare('robot_navigation'), 'config',

@@ -68,3 +68,18 @@ planner/controller tuning.
 Mission sequencing (for example, navigate, dig, navigate, dump) can call the Nav2
 navigation actions from a separate autonomy package. Replacing the geometric
 path planner later can be configured independently in `planner.yaml`.
+
+## Arena markers
+
+Navigation also publishes four fixed region outlines and labels on `/arena/markers`.
+In RViz, set the fixed frame to `map` and add a MarkerArray display for that topic.
+Select an arena with `arena_name:=ARENA_NAME_HERE` on the navigation launch, or run
+only the visualization node:
+
+```bash
+ros2 run robot_navigation arena_markers_node --ros-args -p arena_name:=ARENA_NAME_HERE
+```
+
+Add arena entries in `scripts/arena_configs.py` using zone vertices in meters,
+plus the berm center and dimensions. The initial berm placement is approximate
+and centered within the construction zone. Arena selection is read at startup.
