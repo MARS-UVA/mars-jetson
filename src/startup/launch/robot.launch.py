@@ -145,6 +145,9 @@ def generate_launch_description():
         package='robot_perception',
         executable="AprilTagGate",
         name="apriltag_service_node",
+        parameters=[{
+            "send_detections" : 100,
+        }],
         output="screen",
     )
     

@@ -6,6 +6,7 @@ from rclpy.node import Node
 
 
 class AprilTagClient(Node):
+    #Delete Node when different package creates client to call service
 
     def __init__(self):
         super().__init__('AprilTagClient')
