@@ -336,7 +336,7 @@ def generate_launch_description():
             description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
         ),
         DeclareLaunchArgument(
-            'choose_map', default_value='arena_nasa.world',
+            'choose_sim_map', default_value='arena_nasa.world',
             description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
         ),
         OpaqueFunction(function=launch_rgbd_sync),
@@ -375,7 +375,7 @@ def generate_launch_description():
                     PathJoinSubstitution([
                         FindPackageShare('startup'),
                         'world',
-                        LaunchConfiguration('choose_map'),
+                        LaunchConfiguration('choose_sim_map'),
                     ])
             ])]
         ),

@@ -42,7 +42,7 @@ def generate_launch_description():
     color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
     serial_port = LaunchConfiguration("serial_port")
-    choose_map = LaunchConfiguration("choose_map")
+    choose_sim_map = LaunchConfiguration("choose_sim_map")
 
     backend_arg = DeclareLaunchArgument(
         "robot_backend",
@@ -99,7 +99,7 @@ def generate_launch_description():
         'color_cameras', default_value='false',
         description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     ), DeclareLaunchArgument(
-        'choose_map', default_value='arena_nasa.world',
+        'choose_sim_map', default_value='arena_nasa.world',
         description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
     )]
 
@@ -189,7 +189,7 @@ def generate_launch_description():
                     startup_pkg, 'config', 'RGBDRViz.rviz',
                 ]),
             ),
-            'choose_map': choose_map,
+            'choose_sim_map': choose_sim_map,
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])
