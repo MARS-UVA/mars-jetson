@@ -71,13 +71,15 @@ path planner later can be configured independently in `planner.yaml`.
 
 ## Arena markers
 
-Navigation also publishes four fixed region outlines and labels on `/arena/markers`.
+Arena markers are disabled by default so navigation can run outside the arena.
+Providing a nonempty `arena_name` enables four fixed region outlines and labels
+on `/arena/markers`.
 In RViz, set the fixed frame to `map` and add a MarkerArray display for that topic.
-Select an arena with `arena_name:=ARENA_NAME_HERE` on the navigation launch, or run
-only the visualization node:
+Enable an arena on the navigation launch, or run only the visualization node:
 
 ```bash
-ros2 run robot_navigation arena_markers_node --ros-args -p arena_name:=ARENA_NAME_HERE
+ros2 launch robot_navigation navigation.launch.py arena_name:=ARENA_NASA
+ros2 run robot_navigation arena_markers_node --ros-args -p arena_name:=ARENA_NASA
 ```
 
 Add arena entries in `scripts/arena_configs.py` using zone vertices in meters,
