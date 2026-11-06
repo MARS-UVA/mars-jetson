@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="arena_terrain">
+    <static>true</static>
+    <!-- Centred rectangular mesh; the world places its centre at x=3.44.
+         Use identical geometry for rendering and physics to keep craters aligned. -->
+    <link name="terrain">
+      <collision name="terrain_collision">
+        <geometry>
+          <mesh>
+            <uri>model://arena_terrain/meshes/terrain.obj</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction><ode><mu>100</mu><mu2>50</mu2></ode></friction>
+        </surface>
+      </collision>
+      <visual name="terrain_visual">
+        <geometry>
+          <mesh>
+            <uri>model://arena_terrain/meshes/terrain.obj</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.55 0.55 0.55 1</ambient>
+          <diffuse>0.65 0.65 0.65 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
