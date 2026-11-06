@@ -14,6 +14,7 @@ def linear_detrend(times, errors):
     if rank < 2:
         raise ValueError('Need at least two distinct observation times')
     fitted = design @ coefficients
-    return {'time_origin_s': origin, 'slope_deg_per_s': float(coefficients[0]),
+    return {'time_origin_s': origin, 'slope_per_s': float(coefficients[0]),
+            'intercept': float(coefficients[1]), 'slope_deg_per_s': float(coefficients[0]),
             'intercept_deg': float(coefficients[1]), 'fitted': fitted,
             'demeaned': errors-errors.mean(), 'residuals': errors-fitted}

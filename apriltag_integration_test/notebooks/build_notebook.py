@@ -532,6 +532,111 @@ parts.append('<text x="85" y="1040" font-size="12" fill="#475569">Average offset
 render_svg(''.join(parts),'absolute_relative_angle_error.svg')
 ''')
 
+markdown('''## 10. Distance offset relative to its best-fit line
+
+Apply the same diagnostic to **camera-optical depth offset**, in centimeters:
+
+`relative distance error(t) = depth offset(t) − its recording's best-fit line(t)`
+
+The first chart retains the original measurements and shows their fitted baselines.
+The second treats those baselines as **0 cm**. The third takes the **absolute value**
+of those residuals, and labels each distance with its mean absolute residual.
+This is depth repeatability after removing a fitted offset and linear drift—not
+absolute distance accuracy or full 3D localization error. Original measurements
+and earlier statistics remain unchanged.''')
+
+code('''distance_fit_records = []
+distance_fit_summary = []
+by_clip = {}
+for row in rows:
+    if row['status']=='ok':
+        by_clip.setdefault((row['case'],row['tag_id']),[]).append(row)
+for (case,tag_id), samples in sorted(by_clip.items()):
+    samples = sorted(samples,key=lambda r:r['frame'])
+    times = np.array([r['video_time_s'] for r in samples])
+    error_cm = np.array([r['depth_error_m']*100 for r in samples])
+    fit = linear_detrend(times,error_cm)
+    residual = fit['residuals']
+    distance_fit_summary.append({'case':case,'tag_id':int(tag_id),
+        'distance_m':samples[0]['distance_m'],'samples':len(samples),
+        'mean_depth_offset_cm':float(error_cm.mean()),'raw_sd_cm':sd(error_cm),
+        'drift_cm_per_s':fit['slope_per_s'],'fit_intercept_cm':fit['intercept'],
+        'fit_time_origin_s':fit['time_origin_s'],'detrended_sd_cm':sd(residual),
+        'mean_absolute_residual_cm':float(np.abs(residual).mean()),
+        'p95_absolute_residual_cm':float(np.percentile(np.abs(residual),95))})
+    for row,raw,fitted,residual in zip(samples,error_cm,fit['fitted'],fit['residuals']):
+        distance_fit_records.append({'case':case,'tag_id':int(tag_id),
+            'distance_m':row['distance_m'],'frame':int(row['frame']),
+            'video_time_s':row['video_time_s'],'raw_depth_offset_cm':float(raw),
+            'fitted_baseline_cm':float(fitted),'relative_error_cm':float(residual),
+            'absolute_relative_error_cm':abs(float(residual))})
+
+raw = np.array([r['raw_depth_offset_cm'] for r in distance_fit_records])
+residual = np.array([r['relative_error_cm'] for r in distance_fit_records])
+distance_fit_summary.append({'case':'Total (separate fits per recording)','tag_id':'',
+    'distance_m':'Total','samples':len(raw),'mean_depth_offset_cm':float(raw.mean()),
+    'raw_sd_cm':sd(raw),'drift_cm_per_s':'','fit_intercept_cm':'','fit_time_origin_s':'',
+    'detrended_sd_cm':sd(residual),'mean_absolute_residual_cm':float(np.abs(residual).mean()),
+    'p95_absolute_residual_cm':float(np.percentile(np.abs(residual),95))})
+for filename,records in [('distance_detrending_summary.csv',distance_fit_summary),
+                         ('distance_detrending_frames.csv',distance_fit_records)]:
+    with (RUN_DIRECTORY / filename).open('w',newline='') as stream:
+        writer = csv.DictWriter(stream,fieldnames=list(records[0]))
+        writer.writeheader()
+        writer.writerows(records)
+
+by_clip = {}
+for row in distance_fit_records:
+    by_clip.setdefault((row['case'],row['tag_id']),[]).append(row)
+for mode in ['raw','relative','absolute']:
+    key = {'raw':'raw_depth_offset_cm','relative':'relative_error_cm',
+           'absolute':'absolute_relative_error_cm'}[mode]
+    data = [r[key] for r in distance_fit_records]
+    low,high = min(0.,min(data)),max(0.,max(data))
+    padding = max((high-low)*.15,.005)
+    lower = 0 if mode=='absolute' else low-padding
+    title = {'raw':'Distance offset with best-fit lines',
+             'relative':'Relative distance error: best-fit baseline = 0 cm',
+             'absolute':'Absolute relative distance error'}[mode]
+    subtitle = {'raw':'Solid lines: recorded depth offsets. Dashed lines: separate linear fits for each recording.',
+                'relative':'Recorded depth offset minus its fitted baseline; labels show residual standard deviation.',
+                'absolute':'Absolute deviation from the fitted line; labels show mean absolute residual.'}[mode]
+    ylabel = {'raw':'Signed depth offset (cm)','relative':'Deviation from fitted line (cm)',
+              'absolute':'Absolute deviation from fitted line (cm)'}[mode]
+    parts = base_svg(title,subtitle)
+    xmax = max(r['video_time_s'] for r in distance_fit_records)
+    xp,yp = axes(parts,lower,high+padding,ylabel,0,xmax,'Time in recording (seconds)')
+    if mode!='raw':
+        parts.append(f'<path d="M85 {yp(0)} H955" stroke="#0f172a" stroke-width="2"/>')
+    for i,((case,tag_id),samples) in enumerate(sorted(by_clip.items())):
+        samples = sorted(samples,key=lambda r:r['frame'])
+        color = COLORS[i%len(COLORS)]
+        distance = samples[0]['distance_m']
+        error = np.array([r['relative_error_cm'] for r in samples])
+        label = (f'average offset {np.abs(error).mean():.3f} cm' if mode=='absolute' else
+                 f'residual SD {sd(error):.3f} cm' if mode=='relative' else
+                 f'mean offset {np.mean([r["raw_depth_offset_cm"] for r in samples]):.3f} cm')
+        parts.append(f'<text x="{100+i*275}" y="78" font-size="13" fill="{color}">{distance:g} m: {label}</text>')
+        points = ' '.join(f'{xp(r["video_time_s"]):.2f},{yp(r[key]):.2f}' for r in samples)
+        parts.append(f'<polyline points="{points}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linejoin="round"/>')
+        if mode=='raw':
+            first,last = samples[0],samples[-1]
+            parts.append(f'<path d="M{xp(first["video_time_s"]):.2f} {yp(first["fitted_baseline_cm"]):.2f} L{xp(last["video_time_s"]):.2f} {yp(last["fitted_baseline_cm"]):.2f}" fill="none" stroke="{color}" stroke-width="3" stroke-dasharray="8 5"/>')
+    parts.append('</g></svg>')
+    filename = {'raw':'distance_offset_best_fit.svg','relative':'relative_distance_error_zero_baseline.svg',
+                'absolute':'absolute_relative_distance_error.svg'}[mode]
+    render_svg(''.join(parts),filename)
+
+render_table(['Distance (m)','Samples','Raw mean depth offset (cm)','Raw SD (cm)',
+              'Drift (cm/s)','Residual SD (cm)','Mean absolute residual (cm)',
+              'P95 absolute residual (cm)'],
+    [[r['distance_m'],r['samples'],f'{r["mean_depth_offset_cm"]:.4f}',f'{r["raw_sd_cm"]:.4f}',
+      f'{r["drift_cm_per_s"]:.5f}' if r['drift_cm_per_s']!='' else 'Separate fits',
+      f'{r["detrended_sd_cm"]:.4f}',f'{r["mean_absolute_residual_cm"]:.4f}',
+      f'{r["p95_absolute_residual_cm"]:.4f}'] for r in distance_fit_summary])
+print('Diagnostic exports: distance_detrending_summary.csv and distance_detrending_frames.csv')
+''')
+
 markdown('''## Reading the results responsibly
 
 Compare mean bias, SD, P95 and detection success together. The supplied positive
