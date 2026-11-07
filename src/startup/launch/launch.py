@@ -11,28 +11,6 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
 
-
-def launch_nav2(context):
-    if not IfCondition(LaunchConfiguration('enable_nav2')).evaluate(context):
-        return []
-    if LaunchConfiguration('robot_backend').perform(context) != 'gazebo':
-        raise RuntimeError('enable_nav2 currently requires robot_backend:=gazebo')
-    for argument in ('enable_rtabmap', 'enable_rgbd', 'enable_lidar'):
-        if not IfCondition(LaunchConfiguration(argument)).evaluate(context):
-            raise RuntimeError(f'enable_nav2 requires {argument}:=true')
-    # Resolve Nav2 packages only inside the enabled navigation launch.
-    return [IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([
-            FindPackageShare('robot_navigation'), 'launch', 'navigation.launch.py',
-        ])),
-        launch_arguments={
-            'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
-            'odom_topic': '/rtabmap/icp_odom',
-            'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
-        }.items(),
-    )]
-
-
 def generate_launch_description():
     backend = LaunchConfiguration("robot_backend")
     enable_rtabmap = LaunchConfiguration("enable_rtabmap")
@@ -151,6 +129,9 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(PathJoinSubstitution([startup_pkg, 'launch', 'robot.launch.py'])),
         launch_arguments={
             'robot_backend': backend,
+            'enable_rtabmap': enable_rtabmap,
+            'use_sim_time': PythonExpression(["'", backend, "' == 'gazebo'"]),
+            'rtabmap_sync': LaunchConfiguration('rtabmap_sync'),
             'legacy_webrtc': LaunchConfiguration('legacy_webrtc'),
         }.items()
     ))
@@ -168,6 +149,7 @@ def generate_launch_description():
             'enable_rgbd': enable_rgbd,
             'enable_lidar': enable_lidar,
             'enable_rtabmap': enable_rtabmap,
+            'enable_nav2': LaunchConfiguration('enable_nav2'),
             'rtabmap_sync': LaunchConfiguration('rtabmap_sync'),
             'rtabmap_database_path': LaunchConfiguration('rtabmap_database_path'),
             'rviz_config': IfElseSubstitution(
@@ -193,6 +175,9 @@ def generate_launch_description():
             'color_cameras': color_cameras,
             'enable_rgbd': enable_rgbd,
             'enable_lidar': enable_lidar,
+            'enable_rtabmap': enable_rtabmap,
+            'enable_nav2': LaunchConfiguration('enable_nav2'),
+            'rtabmap_sync': LaunchConfiguration('rtabmap_sync'),
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'serial'"])
@@ -221,6 +206,5 @@ def generate_launch_description():
             name="CONTROL_STATION_IP",
             value=control_station_ip,
         ),
-        *nodes,
-        OpaqueFunction(function=launch_nav2),
+        *nodes
     ])

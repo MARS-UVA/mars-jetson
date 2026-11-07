@@ -22,7 +22,7 @@ def launch_navigation(context):
         if filename == 'local_costmap.yaml':
             rewrites[
                 'local_costmap.local_costmap.ros__parameters.voxel_layer.observation_sources'
-            ] = 'rgbd_blue rgbd_orange lidar' if local_lidar else 'rgbd_blue rgbd_orange'
+            ] = 'rgbd_blue rgbd_orange lidar' if local_lidar else 'rgbd_blue'
         return ParameterFile(RewrittenYaml(
             source_file=PathJoinSubstitution([
                 LaunchConfiguration('config_dir'), filename,

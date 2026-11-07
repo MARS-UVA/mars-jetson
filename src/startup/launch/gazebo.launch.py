@@ -143,6 +143,25 @@ def launch_rtabmap(context):
     return [rtabmap]
 
 
+def launch_nav2(context):
+    if not IfCondition(LaunchConfiguration('enable_nav2')).evaluate(context):
+        return []
+    for argument in ('enable_rtabmap', 'enable_rgbd', 'enable_lidar'):
+        if not IfCondition(LaunchConfiguration(argument)).evaluate(context):
+            raise RuntimeError(f'enable_nav2 requires {argument}:=true')
+    # Resolve Nav2 packages only inside the enabled navigation launch.
+    return [IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('robot_navigation'), 'launch', 'navigation.launch.py',
+        ])),
+        launch_arguments={
+            'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
+            'odom_topic': '/rtabmap/icp_odom',
+            'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
+        }.items(),
+    )]
+
+
 def generate_launch_description():
     # Launch Arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
@@ -275,6 +294,7 @@ def generate_launch_description():
         ),
         OpaqueFunction(function=launch_rgbd_sync),
         OpaqueFunction(function=launch_rtabmap),
+        OpaqueFunction(function=launch_nav2),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
                 FindPackageShare('startup'), 'launch', 'rgbd_sim.launch.py',

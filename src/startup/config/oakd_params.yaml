@@ -17,7 +17,6 @@
     pipeline_gen:
       i_pipeline_type: "RGBD"
       i_nn_type: "none"
-      i_enable_imu: false
       i_enable_rgbd: true
 
     rgb:
@@ -26,6 +25,8 @@
       i_resolution: "1080P"
       i_board_socket_id: 0
 
+      i_synced: true
+    
     stereo:
       i_depth_preset: "ROBOTICS"   # Optimized for dense coverage on flat surfaces
       i_extended_disp: true            # Resolves objects down to ~0.35m
@@ -37,3 +38,10 @@
       i_spatial_filter_radius: 3
       i_spatial_filter_hole_filling_radius: 8   # Expand radius to span the glare gap
       i_spatial_filter_num_iterations: 2
+
+      i_synced: true
+
+    imu:
+      i_batch_report_threshold: 1
+      i_max_batch_reports: 10
+      i_enable_rotation: false
