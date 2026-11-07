@@ -36,8 +36,8 @@ the standalone navigation launch starts no GUI.
 | --- | --- |
 | `config/planner.yaml` | Smac Hybrid-A* global path planner |
 | `config/controller.yaml` | Controller server, progress checker, goal checker |
-| `config/controller_mppi.yaml` | MPPI `FollowPath` plugin (`controller:=mppi`, default) |
-| `config/controller_rpp.yaml` | Regulated Pure Pursuit `FollowPath` plugin (`controller:=rpp`) |
+| `config/controller_mppi.yaml` | MPPI `FollowPath` plugin only (`controller:=mppi`) |
+| `config/controller_rpp.yaml` | Regulated Pure Pursuit `FollowPath` plugin only (`controller:=rpp`, default) |
 | `config/global_costmap.yaml` | RTAB-Map static layer and global inflation |
 | `config/local_costmap.yaml` | Local voxel/inflation layers and simulation LiDAR filter |
 | `config/bt_navigator.yaml` | NavigateToPose and NavigateThroughPoses navigators |
@@ -46,17 +46,24 @@ the standalone navigation launch starts no GUI.
 | `rviz/navigation.rviz` | Navigation view used by the simulation integration |
 
 The planner receives its server parameters and the global costmap file. The
-controller receives its server parameters and the local costmap file. Keep the
+controller server loads `controller.yaml`, then the selected
+`controller_<name>.yaml`, then `local_costmap.yaml`. The checkers live in
+`controller.yaml`, so every controller is held to the same goal and progress
+tolerances. Keep the
 costmaps' nested ROS node namespaces when editing these files.
 
 Launch arguments:
 
-- `config_dir`: directory containing the YAML files; defaults to this
-  package's installed `config` directory.
-- `controller`: `mppi` (default) or `rpp`. Loads `controller_<name>.yaml` on top
-  of `controller.yaml`. The plugin is always named `FollowPath`, so the behavior
-  trees are unchanged. The startup launch forwards the same argument, for
-  example `./deploy.sh ... enable_nav2:=true controller:=rpp`.
+- `config_dir`: directory holding the YAML files in the table above; defaults
+  to this package's installed `config` directory. Of the
+  `controller_<name>.yaml` files, only the selected one has to exist.
+- `controller`: `rpp` (default) or `mppi`. Loads `controller_<name>.yaml` on top
+  of `controller.yaml`; any other value is rejected. The plugin is always named
+  `FollowPath`, so the behavior trees are unchanged. The startup launch
+  declares the same default and forwards the argument, for example
+  `./deploy.sh ... enable_nav2:=true controller:=mppi`. See
+  [Known limitations](#known-limitations) for how RPP behaves with the current
+  planner.
 - `use_sim_time`: defaults to `false`; rewritten across all loaded configurations.
 - `odom_topic`: defaults to `/rtabmap/icp_odom`; replaces the `/odom` placeholders.
 - `autostart`: defaults to `true` for the six managed Nav2 servers.
@@ -105,9 +112,9 @@ fixed frame `map`; the regular view keeps its existing fixed frame.
 
 ## Known limitations
 
-- **RPP does not turn in place** (`controller:=rpp`). Smac Hybrid-A* plans
-  REEDS_SHEPP paths with reverse segments, so `controller_rpp.yaml` sets
-  `allow_reversing: true`. RPP cannot combine that with
+- **RPP does not turn in place** (`controller:=rpp`, the default). Smac
+  Hybrid-A* plans REEDS_SHEPP paths with reverse segments, so
+  `controller_rpp.yaml` sets `allow_reversing: true`. RPP cannot combine that with
   `use_rotate_to_heading`, which is therefore off. As a result:
   - At sharp corners RPP curves through the turn, slowed by its curvature
     regulation, instead of stopping and rotating.

@@ -16,12 +16,14 @@ CONTROLLER_CONFIGS = {
     'mppi': 'controller_mppi.yaml',
     'rpp': 'controller_rpp.yaml',
 }
+# startup/launch/launch.py declares the same default; a startup test checks it.
+DEFAULT_CONTROLLER = 'rpp'
 
 
 def launch_navigation(context):
     local_lidar = IfCondition(
         LaunchConfiguration('enable_local_lidar', default='false')).evaluate(context)
-    controller = LaunchConfiguration('controller', default='mppi').perform(context)
+    controller = LaunchConfiguration('controller', default=DEFAULT_CONTROLLER).perform(context)
     if controller not in CONTROLLER_CONFIGS:
         raise RuntimeError(
             f'controller must be one of {sorted(CONTROLLER_CONFIGS)}, got {controller!r}')
@@ -113,7 +115,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
         DeclareLaunchArgument(
-            'controller', default_value='mppi', choices=list(CONTROLLER_CONFIGS),
+            'controller', default_value=DEFAULT_CONTROLLER, choices=list(CONTROLLER_CONFIGS),
             description='FollowPath controller plugin configuration to load',
         ),
         DeclareLaunchArgument(

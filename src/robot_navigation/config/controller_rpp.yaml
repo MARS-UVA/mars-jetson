@@ -1,6 +1,7 @@
 # Regulated Pure Pursuit plugin parameters, loaded after controller.yaml when
-# controller:=rpp. Names and defaults checked against the installed
-# nav2_regulated_pure_pursuit_controller 1.3.13 (src/parameter_handler.cpp).
+# controller:=rpp (the default). Names and defaults checked against the
+# installed nav2_regulated_pure_pursuit_controller 1.3.13
+# (src/parameter_handler.cpp).
 # Parameters not listed keep those defaults; lookahead (0.3-0.9 m) is the
 # first thing to tune once the benchmark shows how RPP tracks.
 #

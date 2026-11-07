@@ -30,7 +30,7 @@ def launch_nav2(context):
             'odom_topic': '/rtabmap/icp_odom',
             'arena_name': LaunchConfiguration('arena_name', default=''),
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
-            'controller': LaunchConfiguration('controller', default='mppi'),
+            'controller': LaunchConfiguration('controller', default='rpp'),
         }.items(),
     )]
 
@@ -73,7 +73,7 @@ def generate_launch_description():
         description='Arena markers configuration; empty disables markers, requires enable_nav2',
     ), DeclareLaunchArgument(
         # robot_navigation validates the name, so the list lives in one place.
-        'controller', default_value='mppi',
+        'controller', default_value='rpp',
         description='Nav2 FollowPath controller when enable_nav2:=true (mppi or rpp)',
     ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
