@@ -3,4 +3,7 @@ segmentation-models-pytorch
 Pillow
 numpy
 tqdm
-opencv-python-headless
+opencv-python
+onnx
+blobconverter
+depthai>=2.24,<3
