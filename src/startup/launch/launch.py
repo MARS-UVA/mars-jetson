@@ -10,7 +10,6 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
-from startup.marker_priors import NASA_ARENA_APRILTAG_PRIORS
 
 
 def launch_nav2(context):
@@ -85,8 +84,8 @@ def generate_launch_description():
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
         'rtabmap_marker_priors',
-        default_value=NASA_ARENA_APRILTAG_PRIORS,
-        description='Surveyed AprilTag poses: id x y z roll pitch yaw, separated by |',
+        default_value='auto',
+        description='AprilTag poses: auto for bundled world, empty to disable, or id x y z roll pitch yaw separated by |',
     ), DeclareLaunchArgument(
         'rtabmap_optimizer_strategy', default_value='1',
         description='RTAB-Map graph optimizer: 1=g2o, 2=GTSAM (required for marker priors)',

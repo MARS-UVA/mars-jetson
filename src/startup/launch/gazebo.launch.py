@@ -20,15 +20,16 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     Command, EnvironmentVariable, FindExecutable, IfElseSubstitution,
-    LaunchConfiguration, NotSubstitution, PathJoinSubstitution,
+    LaunchConfiguration, NotSubstitution, PathJoinSubstitution, PythonExpression,
 )
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
-from startup.marker_priors import NASA_ARENA_APRILTAG_PRIORS
+from startup.marker_priors import ARENA_APRILTAG_PRIORS
 import os
+from pathlib import Path
 import math
 import tempfile
 
@@ -94,6 +95,11 @@ def launch_rtabmap(context):
         raise RuntimeError('rtabmap_sync requires enable_rgbd:=true')
 
     marker_priors = LaunchConfiguration('rtabmap_marker_priors').perform(context).strip()
+    if marker_priors == 'auto':
+        world_name = Path(LaunchConfiguration('choose_sim_map').perform(context)).name
+        if world_name not in ARENA_APRILTAG_PRIORS:
+            raise RuntimeError('Set rtabmap_marker_priors explicitly for a custom world')
+        marker_priors = ARENA_APRILTAG_PRIORS[world_name]
     marker_optimizer = LaunchConfiguration('rtabmap_optimizer_strategy').perform(context)
     marker_config_path = ''
     if marker_priors:
@@ -212,8 +218,12 @@ def generate_launch_description():
         output='screen',
         arguments=['-topic', 'robot_description', '-name',
                    'Bruno', '-allow_renaming', 'true',
-                    '-x', '1.00',
-                    '-y', '-1.50',
+                    '-x', PythonExpression([
+                        "'0.95' if '", LaunchConfiguration('choose_sim_map'),
+                        "' == 'arena_ucf.world' else '1.0'"]),
+                    '-y', PythonExpression([
+                        "'0.735' if '", LaunchConfiguration('choose_sim_map'),
+                        "' == 'arena_ucf.world' else '1.0'"]),
                     '-z', '0.16',
                     '-Y', str(CAD_SPAWN_YAW - CAD_YAW_IN_BASE),],
     )
@@ -316,8 +326,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'rtabmap_marker_priors',
-            default_value=NASA_ARENA_APRILTAG_PRIORS,
-            description='Surveyed AprilTag poses: id x y z roll pitch yaw, separated by |',
+            default_value='auto',
+            description='AprilTag poses: auto for bundled world, empty to disable, or id x y z roll pitch yaw separated by |',
         ),
         DeclareLaunchArgument(
             'rtabmap_optimizer_strategy', default_value='1',

@@ -124,30 +124,23 @@ display to view the accumulated map. Odometry is published on
 
 ### Anchor a fresh RTAB-Map map with surveyed AprilTags
 
-For the bundled NASA arena, `rtabmap_marker_priors` defaults to the four tag
-poses computed from the board placement in `world/arena_nasa.world` and
-`models/apriltag_board/model.sdf`; the constants live in
-`startup/marker_priors.py`. Values are tag centers in meters and roll, pitch,
-yaw in radians:
+`rtabmap_marker_priors:=auto` selects tag 1's surveyed pose for the selected
+bundled world. Each world's lower-X/lower-Y interior corner is `(0, 0)`.
+The NASA worlds span `x=0..6.88`, `y=0..5`; the UCF clear interior spans
+`x=0..9.04`, `y=0..4.47` (excluding wall thickness).
 
-```bash
-1 0 0 0.25 1.570796 0 -1.570796
-2 0 0 0.43 1.570796 0 -1.570796
-3 0 0.18 0.43 1.570796 0 -1.570796
-4 0 0.18 0.25 1.570796 0 -1.570796
-```
+`startup/marker_priors.py` uses the detector's PnP frame: X image-right,
+Y image-up, Z out of the printed face. This differs from the native AprilTag
+library's pose convention. The main NASA board origin is `(0, 1.09, 0.25)`,
+centering the full board at Y=1 on the 2 x 2 m starting-zone wall.
+Its tag-1 prior is approximately `(0.005, 1.09, 0.25)` with RPY
+`(pi/2, 0, pi/2)`. The 5 mm X offset accounts for the textured box face.
+Other worlds retain their own board placements and use corresponding priors.
+Only tag 1 is surveyed; the other board tags are not assigned fixed priors.
 
-With the board rotation in `arena_nasa.world`, its local X and Y tag offsets
-become vertical and horizontal offsets respectively. Both center-to-center
-spacings are 0.18 m. The RTAB-Map map Y direction is opposite the board's
-Gazebo world Y direction, so IDs 3 and 4 use map Y = 0.18 m. The launch writes
-linear and angular prior variances of 0.000001 to the RTAB-Map INI.
-
-The board SDF gives tag centers but does not declare separate tag-frame or
-texture-UV rotations. These orientations assume the tag images are upright on
-the board's inward-facing (+X) face, using AprilTag axes x-right, y-down, z-into
-the tag. Confirm the orientation against a detected tag transform in simulation;
-adjust all four RPY values together if the rendered texture is rotated.
+Override with `rtabmap_marker_priors:="id x y z roll pitch yaw"` for a custom
+layout, or an empty value to disable priors. Positions are meters and angles
+radians. Keep the default `pose_estimation_method:=pnp` in `apriltag_ros`.
 
 The launch enables RTAB-Map prior optimization and uses its g2o optimizer.
 AprilTag observations still have finite uncertainty. The map is anchored when
@@ -214,7 +207,9 @@ The starting and construction zones stay flat, and the central column remains.
 Random rock populations have been removed from this world.
 
 Centers are estimated from the illustration. The arena interior remains
-x=0..6.88 m, y=-2.5..2.5 m; subtract 2.5 m from diagram Y coordinates. Edit
+x=0..6.88 m, y=0..5 m. The terrain mesh remains centered locally and is
+placed at `(3.44, 2.5)` in the world. The generator uses local Y coordinates
+centered on zero. Edit
 `models/arena_terrain/generate_heightmap.py` to change positions or dimensions,
 then run it to regenerate the PNG and visual/collision mesh. The mesh uses
 fine cells around craters and coarse triangles over flat ground. Its maximum

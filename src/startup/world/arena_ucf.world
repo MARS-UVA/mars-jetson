@@ -15,16 +15,17 @@
     <!-- apriltag localization board -->
     <include>
       <uri>model://apriltag_board</uri>
-      <pose>0.05 -1.8 0.34 0 1.57 0</pose>
+      <pose>0.00 0.435 0.34 0 1.57 0</pose>
     </include>
 
     <!-- arena frame boundary 
-    Boundary: 6.88 m by 5 m (Kennedy Space Center Arena)
+    Wall center spacing: 9.14 m by 4.57 m; clear interior: 9.04 m by 4.47 m.
+    Interior corner is (0, 0); wall thickness lies outside.
     (See model.sdf in arena_frame folder)
     -->
     <include>
       <uri>model://arena_frame_ucf</uri>
-      <pose frame=''>0 0 0 0 -0 0</pose>
+      <pose frame=''>-0.05 2.235 0 0 -0 0</pose>
     </include>
 
 <!-- This defines the generated rock field.  -->
@@ -35,7 +36,7 @@
           <uri>model://obstacle</uri>
         </include>
       </model>
-      <pose>3.27 1.1425 0 0 0 0</pose> <!-- Upper portion of field -->
+      <pose>3.22 3.3775 0 0 0 0</pose> <!-- Upper portion of field -->
       <box>
         <size>6.34 2.37 0.1</size> <!-- Size of obstacle zone minus a small bit -->
       </box>
@@ -52,7 +53,7 @@
           <uri>model://obstacle</uri>
         </include>
       </model>
-      <pose>5.57 -1.1425 0 0 0 0</pose> <!-- Lower portion of field -->
+      <pose>5.52 1.0925 0 0 0 0</pose> <!-- Lower portion of field -->
       <box>
         <size>6.34 2.37 0.1</size> <!-- Size of obstacle zone - a small bit -->
       </box>

@@ -2,7 +2,7 @@
 <sdf version="1.7">
   <model name="arena_terrain">
     <static>true</static>
-    <!-- Centred rectangular mesh; the world places its centre at x=3.44.
+    <!-- Centred rectangular mesh; the world places its centre at (3.44, 2.5).
          Use identical geometry for rendering and physics to keep craters aligned. -->
     <link name="terrain">
       <collision name="terrain_collision">
