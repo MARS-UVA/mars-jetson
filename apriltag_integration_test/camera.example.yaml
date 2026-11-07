@@ -1,0 +1,14 @@
+# Copy as camera.yaml. Use calibration from the actual camera/recording mode.
+# Source dimensions are read from decoded video; explicit numbers also work.
+width: auto
+height: auto
+output_width: 640
+output_height: 480
+# Optional resizing above must preserve source aspect ratio; omit for original size.
+# REQUIRED: measured intrinsics in pixels at the source resolution.
+fx: null
+fy: null
+cx: null
+cy: null
+distortion: [0.0, 0.0, 0.0, 0.0, 0.0] # replace with measured distortion
+already_rectified: false

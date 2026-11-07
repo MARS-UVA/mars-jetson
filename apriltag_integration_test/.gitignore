@@ -1,0 +1,5 @@
+results/
+__pycache__/
+setups/**/*.mp4
+setups/**/*.avi
+setups/**/*.mov

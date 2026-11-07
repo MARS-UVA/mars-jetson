@@ -1,0 +1,24 @@
+# Copy as dorm.yaml; all paths are relative to this file.
+output_directory: setups/dorm
+camera_file: camera.yaml
+families: [36h11, 41h12, 25h9]
+angles_deg: [-45, 0, 45]
+nominal_distances_m: [0.5, 1, 2, 3]
+# Change these to the physical distances you will actually measure.
+measured_distances_m: [0.5, 1, 2, 3]
+tag_ids: {'36h11': 1, '41h12': 1, '25h9': 1}
+# Detection-corner edge length, NOT necessarily full printed pattern width (41h12).
+tag_size_m: 0.205
+mount:
+  camera_height_m: 0.02       # optical center above floor; camera held level
+  tag_bottom_height_m: 0.025  # bottom edge of the tag above floor
+  tag_height_m: 0.205        # physical height used to locate its center
+# Optional per-family overrides if measured detection-corner widths differ:
+# tag_sizes_m: {'36h11': 0.205, '41h12': 0.205, '25h9': 0.205}
+fps: 60
+duration_s: 5
+thresholds:
+  min_detection_rate: 0.90
+  # Set shared accuracy requirements before comparing families:
+  # max_position_p95_m: 0.05
+  # max_rotation_p95_deg: 3.0
