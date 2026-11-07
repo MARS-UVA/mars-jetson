@@ -68,3 +68,31 @@ planner/controller tuning.
 Mission sequencing (for example, navigate, dig, navigate, dump) can call the Nav2
 navigation actions from a separate autonomy package. Replacing the geometric
 path planner later can be configured independently in `planner.yaml`.
+
+## Arena markers
+
+Arena markers are disabled by default so navigation can run outside the arena.
+Providing a nonempty `arena_name` enables four fixed region outlines and labels
+on `/arena/markers`.
+In RViz, set the fixed frame to `map` and add a MarkerArray display for that topic.
+Enable an arena on the navigation launch, or run only the visualization node:
+
+```bash
+ros2 launch robot_navigation navigation.launch.py arena_name:=ARENA_NASA
+ros2 run robot_navigation arena_markers_node --ros-args -p arena_name:=ARENA_NASA
+```
+
+Add arena entries in `scripts/arena_configs.py` using zone vertices in meters,
+plus the berm center and dimensions. The initial berm placement is approximate
+and centered within the construction zone. Arena selection is read at startup.
+
+To enable markers through the regular startup launch:
+
+```bash
+ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true enable_nav2:=true arena_name:=ARENA_NASA
+```
+
+The startup launch forwards `arena_name` to navigation. Omitting it disables
+markers; supplying it without `enable_nav2:=true` does not start the node.
+Both RViz configurations include an Arena regions display. Navigation RViz uses
+fixed frame `map`; the regular view keeps its existing fixed frame.

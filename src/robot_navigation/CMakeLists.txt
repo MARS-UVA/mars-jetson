@@ -11,6 +11,12 @@ install(PROGRAMS scripts/navigation_cloud_filter.py
   RENAME navigation_cloud_filter
 )
 
+install(PROGRAMS scripts/arena_markers_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME arena_markers_node
+)
+install(FILES scripts/arena_configs.py DESTINATION lib/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   ament_add_pytest_test(test_navigation_launch test/test_navigation_launch.py)

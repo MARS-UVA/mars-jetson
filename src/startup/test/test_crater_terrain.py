@@ -50,7 +50,7 @@ def test_world_uses_only_fixed_terrain_and_matching_geometry():
     assert not any(i.findtext('uri') == 'model://obstacle' for i in world.findall('.//include'))
     terrain = next(i for i in world.findall('.//include')
                    if i.findtext('uri') == 'model://arena_terrain')
-    assert list(map(float, terrain.findtext('pose').split())) == [3.44, 0, 0, 0, 0, 0]
+    assert list(map(float, terrain.findtext('pose').split())) == [3.44, 2.5, 0, 0, 0, 0]
     model = ET.parse(TERRAIN / 'model.sdf')
     assert model.findtext('.//collision/geometry/mesh/uri') == model.findtext('.//visual/geometry/mesh/uri')
 

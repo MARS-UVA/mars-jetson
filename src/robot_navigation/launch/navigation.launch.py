@@ -48,6 +48,16 @@ def launch_navigation(context):
         ('nav2_velocity_smoother', 'velocity_smoother', ['smoothers.yaml']),
     ]
     nodes = []
+    arena_name = LaunchConfiguration('arena_name', default='').perform(context)
+    if arena_name:
+        nodes.append(Node(
+            package='robot_navigation', executable='arena_markers_node',
+            name='arena_markers_node', output='screen',
+            parameters=[{
+                'arena_name': arena_name,
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+        ))
     if local_lidar:
         nodes.append(Node(
             package='robot_navigation', executable='navigation_cloud_filter',
@@ -84,6 +94,7 @@ def launch_navigation(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('arena_name', default_value=''),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),

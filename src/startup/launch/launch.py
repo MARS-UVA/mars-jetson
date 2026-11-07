@@ -10,7 +10,6 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
-from startup.marker_priors import NASA_ARENA_APRILTAG_PRIORS
 
 
 def launch_nav2(context):
@@ -29,6 +28,7 @@ def launch_nav2(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
             'odom_topic': '/rtabmap/icp_odom',
+            'arena_name': LaunchConfiguration('arena_name', default=''),
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
         }.items(),
     )]
@@ -42,7 +42,7 @@ def generate_launch_description():
     color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
     serial_port = LaunchConfiguration("serial_port")
-    choose_map = LaunchConfiguration("choose_map")
+    choose_sim_map = LaunchConfiguration("choose_sim_map")
 
     backend_arg = DeclareLaunchArgument(
         "robot_backend",
@@ -68,6 +68,9 @@ def generate_launch_description():
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
     ), DeclareLaunchArgument(
+        'arena_name', default_value='',
+        description='Arena markers configuration; empty disables markers, requires enable_nav2',
+    ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',
     ), DeclareLaunchArgument(
@@ -81,8 +84,8 @@ def generate_launch_description():
         description='RTAB-Map database to save or resume',
     ), DeclareLaunchArgument(
         'rtabmap_marker_priors',
-        default_value=NASA_ARENA_APRILTAG_PRIORS,
-        description='Surveyed AprilTag poses: id x y z roll pitch yaw, separated by |',
+        default_value='auto',
+        description='AprilTag poses: auto for bundled world, empty to disable, or id x y z roll pitch yaw separated by |',
     ), DeclareLaunchArgument(
         'rtabmap_optimizer_strategy', default_value='1',
         description='RTAB-Map graph optimizer: 1=g2o, 2=GTSAM (required for marker priors)',
@@ -99,7 +102,7 @@ def generate_launch_description():
         'color_cameras', default_value='false',
         description='Stream the front/rear cameras in color instead of grayscale (Gazebo and real cameras)',
     ), DeclareLaunchArgument(
-        'choose_map', default_value='arena_nasa.world',
+        'choose_sim_map', default_value='arena_nasa.world',
         description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
     )]
 
@@ -189,7 +192,7 @@ def generate_launch_description():
                     startup_pkg, 'config', 'RGBDRViz.rviz',
                 ]),
             ),
-            'choose_map': choose_map,
+            'choose_sim_map': choose_sim_map,
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", backend, "' == 'gazebo'"])

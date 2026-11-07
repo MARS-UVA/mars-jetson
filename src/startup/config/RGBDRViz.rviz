@@ -32,6 +32,16 @@ Panels:
 Visualization Manager:
   Class: ""
   Displays:
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Arena regions
+      Enabled: true
+      Value: true
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /arena/markers
     - Alpha: 0.5
       Cell Size: 1
       Class: rviz_default_plugins/Grid

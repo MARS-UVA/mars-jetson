@@ -104,6 +104,7 @@ def test_launch_defaults_resolve_installed_configuration():
             action.execute(context)
     config = Path(context.launch_configurations['config_dir'])
     assert config.is_dir()
+    assert context.launch_configurations['arena_name'] == ''
     assert context.launch_configurations['use_sim_time'] == 'false'
     assert context.launch_configurations['enable_local_lidar'] == 'false'
     assert context.launch_configurations['autostart'] == 'true'
@@ -122,3 +123,16 @@ def test_custom_configuration_directory(tmp_path):
     nodes = expanded_nodes(config_dir=str(config))
     planner = parameters(nodes['planner_server'])['planner_server']['ros__parameters']
     assert planner['GridBased']['tolerance'] == 0.35
+
+
+@pytest.mark.parametrize('sim_time', ['false', 'true'])
+def test_arena_override(sim_time):
+    nodes = expanded_nodes(arena_name='another_arena', use_sim_time=sim_time)
+    arena = parameters(nodes['arena_markers_node'])['arena_markers_node']['ros__parameters']
+    assert arena['arena_name'] == 'another_arena'
+    assert arena['use_sim_time'] is (sim_time == 'true')
+    assert set(nodes) == SERVERS | {'lifecycle_manager_navigation', 'arena_markers_node'}
+
+
+def test_empty_arena_omits_markers():
+    assert 'arena_markers_node' not in expanded_nodes(arena_name='')
