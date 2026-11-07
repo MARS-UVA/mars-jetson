@@ -121,6 +121,23 @@ def generate_launch_description():
         'config',
         'rear_arm_cropbox.yaml'
     )
+
+    front_arm_link_cropbox_config = os.path.join(
+        get_package_share_directory('startup'),
+        'config',
+        'front_arm_link_cropbox.yaml'
+    )
+    rear_arm_link_cropbox_config = os.path.join(
+        get_package_share_directory('startup'),
+        'config',
+        'rear_arm_link_cropbox.yaml'
+    )
+
+    main_body_cropbox_config = os.path.join(
+        get_package_share_directory('startup'),
+        'config',
+        'main_body_cropbox.yaml'
+    )
     
     lidar_cropbox = ComposableNodeContainer(
         name='pcl_container',
@@ -133,10 +150,40 @@ def generate_launch_description():
                 plugin='pcl_ros::CropBox',
                 name='crop_box_filter',
                 remappings=[
-                    ('/input', '/unilidar/cloud_no_front_arm'),
-                    ('/output', '/unilidar/cloud_filtered')
+                    ('/input', '/unilidar/cloud_no_front_arm_link'),
+                    ('/output', '/unilidar/cloud_no_rear_arm')
                 ],
                 parameters=[rear_arm_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='body_crop_box_filter',
+                remappings=[
+                    ('/input', '/unilidar/cloud_no_rear_arm_link'),
+                    ('/output', '/unilidar/cloud_filtered')
+                ],
+                parameters=[main_body_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='front_arm_link_crop_box_filter',
+                remappings=[
+                    ('/input', '/unilidar/cloud_no_front_arm'),
+                    ('/output', '/unilidar/cloud_no_front_arm_link')
+                ],
+                parameters=[front_arm_link_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rear_arm_link_crop_box_filter',
+                remappings=[
+                    ('/input', '/unilidar/cloud_no_rear_arm'),
+                    ('/output', '/unilidar/cloud_no_rear_arm_link')
+                ],
+                parameters=[rear_arm_link_cropbox_config]
             ),
             ComposableNode(
                 package='pcl_ros',
@@ -170,9 +217,29 @@ def generate_launch_description():
                 name='rgbd_rear_crop_box_filter',
                 remappings=[
                     ('/input', '/rgbd_orange/points'),
-                    ('/output', '/rgbd_orange/points_filtered'),
+                    ('/output', '/rgbd_orange/points_no_arm_drum'),
                 ],
                 parameters=[rear_rgbd_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_rear_arm_link_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_orange/points_no_arm_drum'),
+                    ('/output', '/rgbd_orange/points_no_rear_arm'),
+                ],
+                parameters=[rear_arm_link_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_rear_body_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_orange/points_no_rear_arm'),
+                    ('/output', '/rgbd_orange/points_filtered'),
+                ],
+                parameters=[main_body_cropbox_config]
             ),
             ComposableNode(
                 package='pcl_ros',
@@ -180,9 +247,29 @@ def generate_launch_description():
                 name='rgbd_front_crop_box_filter',
                 remappings=[
                     ('/input', '/rgbd_blue/points'),
-                    ('/output', '/rgbd_blue/points_filtered'),
+                    ('/output', '/rgbd_blue/points_no_arm_drum'),
                 ],
                 parameters=[front_rgbd_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_front_arm_link_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_blue/points_no_arm_drum'),
+                    ('/output', '/rgbd_blue/points_no_front_arm'),
+                ],
+                parameters=[front_arm_link_cropbox_config]
+            ),
+            ComposableNode(
+                package='pcl_ros',
+                plugin='pcl_ros::CropBox',
+                name='rgbd_front_body_crop_box_filter',
+                remappings=[
+                    ('/input', '/rgbd_blue/points_no_front_arm'),
+                    ('/output', '/rgbd_blue/points_filtered'),
+                ],
+                parameters=[main_body_cropbox_config]
             ),
         ]
     )
@@ -239,4 +326,3 @@ def generate_launch_description():
         rgbd_cropbox,
         *controllers
     ])
-
