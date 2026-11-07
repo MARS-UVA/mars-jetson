@@ -114,12 +114,54 @@ The existing controller configuration disables wheel odometry TF publication
 disabled; restore it to true if returning to wheel odometry, and do not run
 RTAB-Map odometry TF alongside it.
 
-The database defaults to `/tmp/rgbd_visual_test.db` and is resumed on subsequent
-runs. Pass `rtabmap_database_path:=/tmp/another_test.db` for a separate map;
-use a fresh database when switching sensor configurations.
+The database defaults to `/tmp/rgbd_visual_test.db`. With LiDAR enabled, the
+launch starts a fresh map on each run; the AprilTag-prior configuration also
+starts fresh when running RGB-D alone. Pass `rtabmap_database_path:=/tmp/another_test.db`
+to choose a different database path.
 In RViz, select fixed frame `map` and add `/rtabmap/cloud_map` as a PointCloud2
 display to view the accumulated map. Odometry is published on
 `/rtabmap/icp_odom` when LiDAR is enabled, otherwise `/rtabmap/visual_odom`.
+
+### Anchor a fresh RTAB-Map map with surveyed AprilTags
+
+For the bundled NASA arena, `rtabmap_marker_priors` defaults to the four tag
+poses computed from the board placement in `world/arena_nasa.world` and
+`models/apriltag_board/model.sdf`; the constants live in
+`startup/marker_priors.py`. Values are tag centers in meters and roll, pitch,
+yaw in radians:
+
+```bash
+1 0 0 0.25 1.570796 0 -1.570796
+2 0 0 0.43 1.570796 0 -1.570796
+3 0 0.18 0.43 1.570796 0 -1.570796
+4 0 0.18 0.25 1.570796 0 -1.570796
+```
+
+With the board rotation in `arena_nasa.world`, its local X and Y tag offsets
+become vertical and horizontal offsets respectively. Both center-to-center
+spacings are 0.18 m. The RTAB-Map map Y direction is opposite the board's
+Gazebo world Y direction, so IDs 3 and 4 use map Y = 0.18 m. The launch writes
+linear and angular prior variances of 0.000001 to the RTAB-Map INI.
+
+The board SDF gives tag centers but does not declare separate tag-frame or
+texture-UV rotations. These orientations assume the tag images are upright on
+the board's inward-facing (+X) face, using AprilTag axes x-right, y-down, z-into
+the tag. Confirm the orientation against a detected tag transform in simulation;
+adjust all four RPY values together if the rendered texture is rotated.
+
+The launch enables RTAB-Map prior optimization and uses its g2o optimizer.
+AprilTag observations still have finite uncertainty. The map is anchored when
+RTAB-Map processes a detection of one of these tags; ICP or visual odometry then
+tracks relative motion as usual. Keep a board tag in view during startup so the
+initial graph can acquire its global anchor. These
+defaults apply to the bundled NASA world; change `rtabmap_marker_priors` when
+using tags at different positions.
+
+The default optimizer setting requires an RTAB-Map build with g2o support. For
+a build with GTSAM instead, pass `rtabmap_optimizer_strategy:=2`. The launch
+rejects malformed priors; it requires unique positive tag IDs and six finite
+pose values per ID. The AprilTag node follows the selected backend clock so its
+detection timestamps can be transformed against TF.
 
 Teleoperation uses `turn_speed_scale: 2.0` to double commanded turning speed.
 The controller angular velocity limits are ±1.6 rad/s (previously ±0.8 rad/s).
