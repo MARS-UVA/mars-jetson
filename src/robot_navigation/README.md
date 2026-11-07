@@ -73,7 +73,8 @@ path planner later can be configured independently in `planner.yaml`.
 
 Arena markers are disabled by default so navigation can run outside the arena.
 Providing a nonempty `arena_name` enables four fixed region outlines and labels
-on `/arena/markers`.
+on `/arena/markers`. Each region uses its name as the marker namespace.
+The state manager reads the `Construction zone` LINE_STRIP polygon from this topic.
 In RViz, set the fixed frame to `map` and add a MarkerArray display for that topic.
 Enable an arena on the navigation launch, or run only the visualization node:
 

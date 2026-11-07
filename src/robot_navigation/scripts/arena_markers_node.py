@@ -34,7 +34,7 @@ class ArenaMarkersNode(Node):
             for offset, kind in enumerate((Marker.LINE_STRIP, Marker.TEXT_VIEW_FACING)):
                 marker = Marker()
                 marker.header.frame_id = 'map'
-                marker.ns = 'arena'
+                marker.ns = name
                 marker.id = index * 2 + offset
                 marker.type = kind
                 marker.action = Marker.ADD

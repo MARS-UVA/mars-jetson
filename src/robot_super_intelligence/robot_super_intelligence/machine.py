@@ -11,6 +11,15 @@ class Machine:
 
     success_outcomes = frozenset()
 
+    @classmethod
+    def valid(cls, request, arena_markers=None):
+        """Validate any goal fields needed by this machine before work starts."""
+        return True
+
+    @classmethod
+    def from_goal(cls, request, arena_markers=None):
+        return cls(request.time_limit_sec)
+
     def __init__(self, time_limit_sec, states=None, clock=time.monotonic):
         if not math.isfinite(time_limit_sec) or time_limit_sec <= 0:
             raise ValueError('time_limit_sec must be positive and finite')

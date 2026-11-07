@@ -11,11 +11,12 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from robot_control_msgs.msg import RobotState
 
+from .arena_markers import ArenaMarkers
 from .child_operation import ChildOperation
 from .control_routing import ControlRouting
 from .states import DumpMaterial, Excavate, Traverse
 from .machine_runner import MachineRunner
-from .machines import FullAutoMachine, RunStartMachine
+from .machines import MACHINES
 from .outcomes import Outcome
 
 
@@ -41,6 +42,7 @@ class StateManager(Node):
         super().__init__('robot_super_intelligence', **kwargs)
         self.busy = False
         self.run = None
+        self.arena_markers = ArenaMarkers(self)
         self.control = ControlRouting(
             self, is_busy=lambda: self.busy,
             is_stopping=lambda: self.run is not None and bool(self.run.reason),
@@ -50,10 +52,7 @@ class StateManager(Node):
             ManageRobot.Goal.DIG: Excavate(self),
             ManageRobot.Goal.DUMP: DumpMaterial(self),
         }
-        self.machines = {
-            ManageRobot.Goal.FULL_AUTO: FullAutoMachine,
-            ManageRobot.Goal.RUN_START: RunStartMachine,
-        }
+        self.machines = dict(MACHINES)
         self.action_server = ActionServer(
             self, ManageRobot, 'manage_robot',
             goal_callback=self.on_goal, cancel_callback=self.on_cancel,
@@ -84,7 +83,11 @@ class StateManager(Node):
                 or not math.isfinite(request.time_limit_sec) or request.time_limit_sec <= 0):
             return GoalResponse.REJECT
         state = self.operations.get(request.operation)
-        if request.operation not in self.machines and (state is None or not state.valid(request)):
+        if request.operation == ManageRobot.Goal.RUN_MACHINE:
+            machine = self.machines.get(request.machine_name)
+            if machine is None or not machine.valid(request, self.arena_markers):
+                return GoalResponse.REJECT
+        elif state is None or not state.valid(request):
             return GoalResponse.REJECT
         if not self.control.mux.service_is_ready():
             return GoalResponse.REJECT
@@ -139,7 +142,7 @@ class StateManager(Node):
             if run.reason:
                 run.starting = False
                 self.stop_run(run.reason)
-            elif goal.request.operation in self.machines:
+            elif goal.request.operation == ManageRobot.Goal.RUN_MACHINE:
                 self.control.select('', lambda error: self.machine_selected(run, error))
             else:
                 run.starting = False
@@ -162,7 +165,8 @@ class StateManager(Node):
             try:
                 self.control.publish_mode(RobotState.FULL_AUTO)
                 run.runner = MachineRunner(
-                    self, self.machines[run.goal.request.operation](run.goal.request.time_limit_sec),
+                    self, self.machines[run.goal.request.machine_name].from_goal(
+                        run.goal.request, arena_markers=self.arena_markers),
                     lambda step, done: self.dispatch(run, step, done),
                     lambda: self.feedback(run))
                 run.runner.start(lambda outcome: self.machine_completed(run, outcome))

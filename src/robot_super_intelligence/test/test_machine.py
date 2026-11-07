@@ -3,7 +3,7 @@
 import pytest
 
 from robot_super_intelligence.machine import Machine
-from robot_super_intelligence.machines import FullAutoMachine, RunStartMachine
+from robot_super_intelligence.machines import DigTraverseDumpMachine, FullAutoMachine, RunStartMachine
 from robot_super_intelligence.outcomes import Outcome
 from robot_super_intelligence.states import (
     DumpMaterial, Excavate, RunEnd, RunStart,
@@ -36,7 +36,7 @@ def simulated_states():
 
 
 @pytest.mark.parametrize('limit', [0, -1, float('nan'), float('inf')])
-@pytest.mark.parametrize('machine_type', [FullAutoMachine, RunStartMachine])
+@pytest.mark.parametrize('machine_type', [FullAutoMachine, RunStartMachine, DigTraverseDumpMachine])
 def test_invalid_deadlines(machine_type, limit):
     with pytest.raises(ValueError):
         machine_type(limit)
@@ -162,3 +162,22 @@ def test_engine_supports_a_different_initial_state():
     assert machine.done
     assert machine.result is Outcome.DUMP_SUCCESS
     assert machine.completed_cycles == 0
+
+
+def test_dig_traverse_dump_has_explicit_transitions_for_every_state_outcome():
+    machine = DigTraverseDumpMachine(10)
+    assert machine.current is Excavate
+    for state in (Excavate, TraverseToConstruction, DumpMaterial):
+        for outcome in machine.states[state].outcomes:
+            assert (state, outcome) in machine.transitions
+    for outcome, expected in [
+        (Outcome.EXCAVATE_SUCCESS, TraverseToConstruction),
+        (Outcome.CONSTRUCTION_REACHED, DumpMaterial),
+        (Outcome.DUMP_SUCCESS, RunEnd),
+    ]:
+        machine.advance(outcome)
+        assert machine.current is expected
+    machine.advance(Outcome.RUN_END)
+    assert machine.done
+    assert machine.result is Outcome.DUMP_SUCCESS
+    assert machine.completed_cycles == 1

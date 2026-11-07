@@ -6,8 +6,12 @@ This package replaces `robot_state_controller` and owns robot modes, command
 routing, and action supervision. Startup uses the manager and standard muxes:
 
 - `manager.py` exposes `/manage_robot` (`autonomy_msgs/ManageRobot`). An operation
-  enum selects navigation, dig, dump, or a machine. It owns parent goals, machine
+  enum selects navigation, dig, dump, or `RUN_MACHINE` (3). A `machine_name`
+  string selects a registered machine. It owns parent goals, machine
   execution, deadlines, feedback, and results.
+- `arena_markers.py` subscribes to `/arena/markers` and derives the construction
+  approach from the published polygon. Enable the marker publisher before starting
+  DigTraverseDump (for example, `arena_name:=ARENA_NASA` in startup).
 - `child_operation.py` manages one child goal at a time: routing, acceptance,
   cancellation, and terminal results. Ownership is retained through late acceptance.
 - `control_routing.py` owns mux selection, locks, stop heartbeat, mode publishing,
@@ -29,15 +33,25 @@ Full-auto dispatches its current step through the same manager path.
 state-completion callbacks. Each class under `machines/` defines its own states,
 explicit transitions, initial/end states, and successful ending outcomes:
 
-- `FullAutoMachine` (`operation: 3`): RunStart → construction traversal → dump →
+- `FullAutoMachine` (`machine_name: full_auto`): RunStart → construction traversal → dump →
   excavation traversal → excavate → back to construction, until the deadline.
-- `RunStartMachine` (`operation: 4`): RunStart → construction traversal → RunEnd.
+- `RunStartMachine` (`machine_name: run_start`): RunStart → construction traversal → RunEnd.
   It finishes successfully with `CONSTRUCTION_REACHED`; its deadline is a failure.
 
-Both reuse the classes under `states/` and run in the robot's FULL_AUTO control
+- `DigTraverseDumpMachine` (`machine_name: dig_traverse_dump`): Excavate (Dig) →
+  TraverseToConstruction → DumpMaterial (Dump) → RunEnd, once. Uses the goal's
+  `routine_index` for dig/dump. Construction comes from `/arena/markers`: a
+  `LINE_STRIP` polygon with namespace `Construction zone`. Traversal reads the
+  latest polygon, approaches the midpoint of its highest-local-Y edge, and faces
+  inward. Marker pose and frame are respected; visual line height is ignored.
+  Goals are rejected until valid geometry is received. Deletion, expiry, or invalid
+  geometry before traversal fails the run. A navigation goal already underway
+  keeps its target. Finishes with `DUMP_SUCCESS`; failures and deadlines abort.
+
+These reuse the classes under `states/` and run in the robot's FULL_AUTO control
 mode. No extra node or action server is needed for a new machine. Operational
-states remain placeholders returning `NOT_IMPLEMENTED`, so both machines currently
-abort at the first traversal without motion.
+states in FullAuto and RunStart remain placeholders returning `NOT_IMPLEMENTED`.
+DigTraverseDump supplies the state arguments needed to dispatch real child actions.
 
 ## Ownership and stopping
 
@@ -60,7 +74,7 @@ commands do not automatically stop those joints. No extra watchdog node is used.
 Routine servers retain their own control-loop timers and do not change modes.
 The legacy mode topics accept stop/teleop/idle requests but cannot start autonomy;
 repeated ESTOP requests never toggle it off. The old `/full_auto` action endpoint
-is replaced by `/manage_robot` with `operation: 3`.
+is replaced by `/manage_robot` with `operation: 3, machine_name: full_auto`.
 
 ## Extending
 
@@ -77,8 +91,9 @@ owns its `client`, `valid(request)`, and
 `send_goal(request, feedback, on_response)`, plus its
 `source` and `mode`. Register it in the manager's `operations` mapping and extend
 `ManageRobot.action` and mux source configuration as needed. Construct states with
-a ROS node to create their clients. Their current full-auto `start()` methods
-remain placeholders; standalone operations use `send_goal()`. Tests cover the
+a ROS node to create their clients. Their `start()` methods dispatch child
+operations when configured by a machine; unconfigured states remain placeholders.
+Standalone operations use `send_goal()`. Tests cover the
 graph separately from ROS delegation, cancellation races, and command routing.
 
 `MachineRunner.start(on_complete)` reports one final outcome. State transitions
@@ -89,15 +104,17 @@ uses a small async adapter so acknowledgements retain their original meaning.
 
 For a new machine, subclass `Machine` under `machines/`, defining `state_types`,
 `initial_state`, `end_state`, `transitions`, and `success_outcomes`. Export the
-class and register it in the manager's `machines` mapping with a new
-`ManageRobot.action` operation constant. The shared runner stays unchanged.
+class and register its string name in `MACHINES` in `machines/__init__.py`.
+No action-interface change is needed. Empty or unknown machine names are rejected.
 
 ## Run
 
 ```bash
 ros2 service call /robot_state/estop std_srvs/srv/SetBool '{data: false}'
 # Full excavation loop
-ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, time_limit_sec: 600.0}' --feedback
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: full_auto, time_limit_sec: 600.0}' --feedback
+# One dig / traverse / dump, using the published arena markers.
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: dig_traverse_dump, routine_index: 0, time_limit_sec: 120.0}' --feedback
 # Short startup sequence instead
-ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 4, time_limit_sec: 30.0}' --feedback
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: run_start, time_limit_sec: 30.0}' --feedback
 ```

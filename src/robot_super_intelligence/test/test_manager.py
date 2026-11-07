@@ -13,7 +13,7 @@ import yaml
 import rclpy
 from action_msgs.msg import GoalStatus
 from autonomy_msgs.action import Dig, Dump, ManageRobot
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Point, Twist, Vector3
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.executors import SingleThreadedExecutor
@@ -24,6 +24,7 @@ from rclpy.task import Future
 from robot_control_msgs.msg import RobotState
 from std_msgs.msg import Float64MultiArray
 from std_srvs.srv import SetBool
+from visualization_msgs.msg import Marker, MarkerArray
 
 from robot_super_intelligence.manager import StateManager
 from robot_super_intelligence.outcomes import Outcome
@@ -49,6 +50,7 @@ class Routine(Node):
 
     async def on_goal(self, request):
         self.requested = True
+        self.request = request
         if self.acceptance is not None:
             await self.acceptance
         return GoalResponse.REJECT if self.reject else GoalResponse.ACCEPT
@@ -129,6 +131,9 @@ def system(request):
         return future.result()
 
     def send(operation=ManageRobot.Goal.DIG, limit=10.0, **kwargs):
+        if isinstance(operation, str):
+            kwargs['machine_name'] = operation
+            operation = ManageRobot.Goal.RUN_MACHINE
         goal = ManageRobot.Goal(operation=operation, time_limit_sec=float(limit), **kwargs)
         if operation == ManageRobot.Goal.NAVIGATE:
             goal.target_pose.header.frame_id = 'map'
@@ -164,7 +169,17 @@ def system(request):
           and manager.control.mux.service_is_ready()
           and all(state.client.server_is_ready() for state in manager.operations.values())
           )
-    yield SimpleNamespace(manager=manager, routines=routines, node=client_node,
+    marker_pub = client_node.create_publisher(MarkerArray, '/arena/markers', 1)
+    construction = Marker(ns='Construction zone', id=4, type=Marker.LINE_STRIP)
+    construction.header.frame_id = 'map'
+    construction.pose.orientation.w = 1.0
+    construction.points = [Point(x=x, y=y, z=0.05) for x, y in (
+        (3.88, 0.0), (6.88, 0.0), (6.88, 1.5), (3.88, 1.5), (3.88, 0.0))]
+    until(lambda: marker_pub.get_subscription_count() > 0)
+    marker_pub.publish(MarkerArray(markers=[construction]))
+    until(lambda: manager.arena_markers.construction_goal() is not None)
+    yield SimpleNamespace(marker_pub=marker_pub, construction=construction,
+                          manager=manager, routines=routines, node=client_node,
                           until=until, call=call, send=send, estop=estop, teleop=teleop,
                           velocities=velocities, arms=arms, executor=executor)
 
@@ -316,7 +331,7 @@ def test_standalone_deadline_cancels_child_and_aborts(system):
 def test_full_auto_placeholder_uses_machine_runner(system):
     s = system
     clear(s)
-    goal = s.send(ManageRobot.Goal.FULL_AUTO)
+    goal = s.send('full_auto')
     response = result(s, goal)
     assert response.status == GoalStatus.STATUS_ABORTED
     assert response.result.outcome == 'NOT_IMPLEMENTED'
@@ -393,8 +408,8 @@ class WaitingState:
 
 
 @pytest.mark.parametrize('operation, expected_status', [
-    (ManageRobot.Goal.FULL_AUTO, GoalStatus.STATUS_SUCCEEDED),
-    (ManageRobot.Goal.RUN_START, GoalStatus.STATUS_ABORTED),
+    ('full_auto', GoalStatus.STATUS_SUCCEEDED),
+    ('run_start', GoalStatus.STATUS_ABORTED),
 ])
 def test_machine_deadline_finishes_waiting_state_without_polling(system, operation, expected_status):
     s = system
@@ -408,7 +423,7 @@ def test_machine_deadline_finishes_waiting_state_without_polling(system, operati
     assert response.result.outcome == 'TIME_LIMIT_REACHED'
 
 
-@pytest.mark.parametrize('operation', [ManageRobot.Goal.FULL_AUTO, ManageRobot.Goal.RUN_START])
+@pytest.mark.parametrize('operation', ['full_auto', 'run_start'])
 def test_machine_step_uses_the_internal_dispatcher_and_waits_for_cancel(system, operation):
     s = system
     clear(s)
@@ -453,7 +468,7 @@ def test_machine_can_dispatch_successive_child_operations(system):
             dispatch(ManageRobot.Goal(operation=ManageRobot.Goal.DIG), dug)
 
     with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(DigThenDump())):
-        goal = s.send(ManageRobot.Goal.RUN_START)
+        goal = s.send('run_start')
         dig = s.routines[ManageRobot.Goal.DIG]
         dump = s.routines[ManageRobot.Goal.DUMP]
         s.until(lambda: dig.goal is not None)
@@ -535,8 +550,8 @@ def test_state_rejects_unsupported_routine_before_dispatch(system, operation):
 
 
 @pytest.mark.parametrize('operation, status, outcome', [
-    (ManageRobot.Goal.FULL_AUTO, GoalStatus.STATUS_ABORTED, 'NOT_IMPLEMENTED'),
-    (ManageRobot.Goal.RUN_START, GoalStatus.STATUS_SUCCEEDED, 'CONSTRUCTION_REACHED'),
+    ('full_auto', GoalStatus.STATUS_ABORTED, 'NOT_IMPLEMENTED'),
+    ('run_start', GoalStatus.STATUS_SUCCEEDED, 'CONSTRUCTION_REACHED'),
 ])
 def test_goal_selects_the_machine_graph(system, operation, status, outcome):
     s = system
@@ -554,7 +569,7 @@ def test_goal_selects_the_machine_graph(system, operation, status, outcome):
     assert s.manager.control.mode == RobotState.TELEOP
 
 
-@pytest.mark.parametrize('operation', [ManageRobot.Goal.FULL_AUTO, ManageRobot.Goal.RUN_START])
+@pytest.mark.parametrize('operation', ['full_auto', 'run_start'])
 def test_estop_interrupts_either_machine(system, operation):
     s = system
     clear(s)
@@ -574,3 +589,156 @@ def test_unknown_operation_is_rejected(system):
     clear(system)
     assert not system.send(operation=99).accepted
     assert not system.manager.busy
+
+
+@pytest.mark.parametrize('marker_shift', [0.0, 0.5])
+def test_dig_traverse_dump_delegates_in_order_and_finishes(system, marker_shift):
+    s = system
+    clear(s)
+    goal = s.send('dig_traverse_dump')
+    assert goal.accepted
+    dig, nav, dump = [s.routines[operation] for operation in (
+        ManageRobot.Goal.DIG, ManageRobot.Goal.NAVIGATE, ManageRobot.Goal.DUMP)]
+    s.until(lambda: dig.goal is not None)
+    assert not nav.requested and not dump.requested
+    assert dig.request.index == 0
+    # Read the latest published geometry after digging, not at parent acceptance.
+    s.construction.pose.position.x = marker_shift
+    s.marker_pub.publish(MarkerArray(markers=[s.construction]))
+    s.until(lambda: s.manager.arena_markers.construction_goal().pose.position.x
+            == pytest.approx(5.38 + marker_shift))
+    dig.finish()
+    s.until(lambda: nav.goal is not None)
+    assert not dump.requested
+    assert nav.request.pose.header.frame_id == 'map'
+    assert nav.request.pose.pose.position.x == pytest.approx(5.38 + marker_shift)
+    assert nav.request.pose.pose.position.y == 1.5
+    assert nav.request.pose.pose.orientation.z == pytest.approx(-2**-0.5)
+    assert nav.request.pose.pose.orientation.w == pytest.approx(2**-0.5)
+    nav.finish()
+    s.until(lambda: dump.goal is not None)
+    assert dump.request.index == 0
+    dump.finish()
+    response = result(s, goal)
+    assert response.status == GoalStatus.STATUS_SUCCEEDED
+    assert response.result.outcome == 'DUMP_SUCCESS'
+    assert response.result.completed_cycles == 1
+    assert not s.manager.busy
+    assert s.manager.control.mode == RobotState.TELEOP
+
+
+@pytest.mark.parametrize('stage', [0, 1, 2])
+@pytest.mark.parametrize('stop', ['failure', 'cancel', 'estop'])
+def test_dig_traverse_dump_stops_at_each_stage(system, stage, stop):
+    s = system
+    clear(s)
+    goal = s.send('dig_traverse_dump')
+    routines = [s.routines[operation] for operation in (
+        ManageRobot.Goal.DIG, ManageRobot.Goal.NAVIGATE, ManageRobot.Goal.DUMP)]
+    for routine in routines[:stage]:
+        s.until(lambda: routine.goal is not None)
+        routine.finish()
+    routine = routines[stage]
+    s.until(lambda: routine.goal is not None)
+    if stop == 'failure':
+        routine.finish(success=False)
+    else:
+        if stop == 'cancel':
+            cancel = goal.cancel_goal_async()
+            s.until(cancel.done)
+        else:
+            assert s.call(s.estop, True).success
+        s.until(lambda: routine.goal.is_cancel_requested)
+        assert s.manager.busy
+        routine.finish(canceled=True)
+    response = result(s, goal)
+    assert response.status == (GoalStatus.STATUS_CANCELED if stop == 'cancel'
+                               else GoalStatus.STATUS_ABORTED)
+    assert response.result.outcome == {'failure': 'FAILED', 'cancel': 'CANCELED',
+                                       'estop': 'ESTOP'}[stop]
+    assert response.result.completed_cycles == 0
+    assert not any(r.requested for r in routines[stage+1:])
+    assert s.manager.control.mode == (RobotState.ESTOP if stop == 'estop' else RobotState.TELEOP)
+
+
+def test_dig_traverse_dump_rejects_invalid_routine_before_dig(system):
+    s = system
+    clear(s)
+    assert not s.send('dig_traverse_dump', routine_index=99).accepted
+    assert not any(r.requested for r in s.routines.values())
+
+
+def test_dig_traverse_dump_deadline_aborts_and_waits_for_child(system):
+    s = system
+    clear(s)
+    goal = s.send('dig_traverse_dump', limit=0.2)
+    dig = s.routines[ManageRobot.Goal.DIG]
+    s.until(lambda: dig.goal is not None and dig.goal.is_cancel_requested)
+    assert s.manager.busy
+    dig.finish(canceled=True)
+    response = result(s, goal)
+    assert response.status == GoalStatus.STATUS_ABORTED
+    assert response.result.outcome == 'TIME_LIMIT_REACHED'
+    assert not s.routines[ManageRobot.Goal.NAVIGATE].requested
+    assert not s.routines[ManageRobot.Goal.DUMP].requested
+
+
+def test_dig_traverse_dump_requires_published_construction(system):
+    s = system
+    clear(s)
+    s.marker_pub.publish(MarkerArray(markers=[Marker(action=Marker.DELETEALL)]))
+    s.until(lambda: s.manager.arena_markers.construction_goal() is None)
+    assert not s.send('dig_traverse_dump').accepted
+    assert not any(r.requested for r in s.routines.values())
+
+
+def test_deleted_construction_during_dig_aborts_before_navigation(system):
+    s = system
+    clear(s)
+    goal = s.send('dig_traverse_dump')
+    dig = s.routines[ManageRobot.Goal.DIG]
+    s.until(lambda: dig.goal is not None)
+    s.marker_pub.publish(MarkerArray(markers=[Marker(
+        ns='Construction zone', id=4, action=Marker.DELETE)]))
+    s.until(lambda: s.manager.arena_markers.construction_goal() is None)
+    dig.finish()
+    response = result(s, goal)
+    assert response.status == GoalStatus.STATUS_ABORTED
+    assert response.result.outcome == 'FAILED'
+    assert not s.routines[ManageRobot.Goal.NAVIGATE].requested
+    assert not s.routines[ManageRobot.Goal.DUMP].requested
+
+
+@pytest.mark.parametrize('name', ['', 'missing_machine', 'full_auto '])
+def test_empty_or_unknown_machine_name_is_rejected(system, name):
+    s = system
+    clear(s)
+    assert not s.send(ManageRobot.Goal.RUN_MACHINE, machine_name=name).accepted
+    assert not s.manager.busy
+    assert not any(r.requested for r in s.routines.values())
+
+
+@pytest.mark.parametrize('operation', [4, 5])
+def test_old_machine_operation_numbers_are_rejected(system, operation):
+    s = system
+    clear(s)
+    assert not s.send(operation).accepted
+    assert not s.manager.busy
+
+
+def test_machine_can_be_registered_under_a_new_name_without_interface_changes(system):
+    from robot_super_intelligence.machines import RunStartMachine
+    s = system
+    clear(s)
+    s.manager.machines['club_test'] = RunStartMachine
+
+    class ReachedConstruction(WaitingState):
+        def start(self, dispatch, on_complete):
+            on_complete(Outcome.CONSTRUCTION_REACHED)
+
+    with patch('robot_super_intelligence.manager.MachineRunner', runner_factory(ReachedConstruction())):
+        goal = s.send(ManageRobot.Goal.RUN_MACHINE, machine_name='club_test')
+        assert goal.accepted
+        response = result(s, goal)
+    assert response.status == GoalStatus.STATUS_SUCCEEDED
+    assert response.result.outcome == 'CONSTRUCTION_REACHED'
