@@ -5,8 +5,9 @@ from std_msgs.msg import String
 from apriltag_msgs.msg import AprilTagDetectionArray
 from robot_perception_interfaces.srv import AprilTagGate
 
-from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+import time
 
 
 class AprilTagGateNode(Node):
@@ -15,9 +16,10 @@ class AprilTagGateNode(Node):
         super().__init__('AprilTagGate')
         
         self.subscriberGroup = ReentrantCallbackGroup()
+        self.serviceGroup = ReentrantCallbackGroup()
         self.detectionPub = self.create_publisher(AprilTagDetectionArray, "/detections", 10, callback_group=self.subscriberGroup)
         self.detectionsSub = self.create_subscription(AprilTagDetectionArray ,"/apriltag/detections", self.AprilTag_callback, 10)
-        self.AprilTagGateService = self.create_service(AprilTagGate, "/AprilTagGate", self.AprilTagService_callback)
+        self.AprilTagGateService = self.create_service(AprilTagGate, "/AprilTagGate", self.AprilTagService_callback, callback_group=self.serviceGroup)
         self.detectionsSub
         
         self.detectionData = AprilTagDetectionArray()
@@ -40,6 +42,7 @@ class AprilTagGateNode(Node):
             self.TotalDetection += len(msg.detections)
             self.size = len(msg.detections)
             self.updated = True
+            self.get_logger().info("Detection Updated")
             
         if self.TotalDetection > 0:
              self.timeLast = msg.header.stamp.sec + (msg.header.stamp.nanosec / 1e9)
@@ -47,7 +50,7 @@ class AprilTagGateNode(Node):
         
         
     
-    async def AprilTagService_callback(self,request,responce):
+    def AprilTagService_callback(self,request,responce):
         
         totalCall = self.get_parameter("send_detections").get_parameter_value().integer_value
         
@@ -55,21 +58,21 @@ class AprilTagGateNode(Node):
             
             #waiting for subscriber to update with new tag detections
             while self.updated == False:
-                self.get_logger().info("waiting for new detection")
+                time.sleep(0.01)
             self.detectionPub.publish(self.detectionData)
             
             self.get_logger().info(f"Total AprilTag Detections: {self.TotalDetection}")
             
             #should log all tag data for each detection
-            for detection in range(self.totalDetection):
+            for detection in range(self.TotalDetection):
                 family = self.detectionData.detections[detection].family
                 id = self.detectionData.detections[detection].id
-                pose = self.detectionData.detections[detection].pose
+                centre = self.detectionData.detections[detection].centre
+                cornerdata = self.detectionData.detections[detection].corners
                 
-                position = "x: " + str(pose.pose.position.x) + "y: " + str(pose.pose.position.y) + "z: " + str(pose.pose.position.z)
-                orientation = "x: " + str(pose.pose.orientation.x) + "y: " + str(pose.pose.orientation.y) + "z: " + str(pose.pose.orientation.z) + "w: " + str(pose.pose.orientation.w)
-                
-                responce.data = "Family: " + str(family) + "ID: " + id + " at " + str(self.timeIndex) + " seconds since startup | position: " + position + "| Orientation: " +  orientation
+                position = "x: " + str(centre.x) + "y: " + str(centre.y)
+                corners = f"1:({cornerdata[0].x}, {cornerdata[0].y}) 2:({cornerdata[1].x}, {cornerdata[1].y}) 3:({cornerdata[2].x}, {cornerdata[2].y}) 4:({cornerdata[3].x}, {cornerdata[3].y})"
+                responce.data = "Family: " + str(family) + "ID: " + str(id) + " at " + str(self.timeIndex) + " seconds since startup | position: " + position + "| corners: " + corners
                 self.get_logger().info(responce.data)
             
             responce.success = True
@@ -77,8 +80,8 @@ class AprilTagGateNode(Node):
             #clears data of previous detection
             self.detectionData = AprilTagDetectionArray()
             self.size = len(self.detectionData.detections)
-            self.totalDetection = 0
-            self.updated.clear()
+            self.TotalDetection = 0
+            self.updated = False
         
         
         return responce
