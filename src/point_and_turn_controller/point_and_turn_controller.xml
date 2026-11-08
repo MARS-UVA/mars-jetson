@@ -1,0 +1,11 @@
+<class_libraries>
+  <library path="point_and_turn_controller">
+    <class type="point_and_turn_controller::PointAndTurnController"
+           base_class_type="nav2_core::Controller">
+      <description>
+        Rotates in place to face the next path corner, then drives straight to it.
+        Never commands linear and angular velocity together unless drive_heading_gain > 0.
+      </description>
+    </class>
+  </library>
+</class_libraries>
