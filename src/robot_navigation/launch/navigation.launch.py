@@ -30,8 +30,6 @@ def launch_navigation(context):
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'odom_topic': LaunchConfiguration('odom_topic'),
         }
-        if filename == 'planner.yaml':
-            rewrites['planner_server.ros__parameters.planner_plugins'] = f'[{planner_id}]'
         if filename == 'local_costmap.yaml':
             rewrites[
                 'local_costmap.local_costmap.ros__parameters.voxel_layer.observation_sources'
@@ -70,6 +68,10 @@ def launch_navigation(context):
     for package, executable, filenames in servers:
         remappings = []
         server_parameters = [configured_params[filename] for filename in filenames]
+        if executable == 'planner_server':
+            # RewrittenYaml rewrites scalar strings and does not parse YAML lists.
+            # A Python list keeps planner_plugins typed as a ROS string_array.
+            server_parameters.append({'planner_plugins': [planner_id]})
         if executable == 'bt_navigator':
             server_parameters.append({
                 'default_nav_to_pose_bt_xml': PathJoinSubstitution([
