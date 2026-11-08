@@ -7,7 +7,6 @@ from robot_perception_interfaces.srv import AprilTagGate
 
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-import asyncio
 
 
 class AprilTagGateNode(Node):
@@ -27,7 +26,7 @@ class AprilTagGateNode(Node):
         self.timeLast = 0.0
         self.size = 0
         
-        self.updated = asyncio.Event()
+        self.updated = False
         self.declare_parameter("send_detections", 100)
         
         self.get_logger().info("April Tag Service Initialized")
@@ -40,9 +39,7 @@ class AprilTagGateNode(Node):
         if (len(msg.detections) > 0) and (len(msg.detections) > self.size):
             self.TotalDetection += len(msg.detections)
             self.size = len(msg.detections)
-            self.updated.set()
-        else:
-            self.updated = False
+            self.updated = True
             
         if self.TotalDetection > 0:
              self.timeLast = msg.header.stamp.sec + (msg.header.stamp.nanosec / 1e9)
@@ -57,7 +54,8 @@ class AprilTagGateNode(Node):
         for i in range(1, totalCall):
             
             #waiting for subscriber to update with new tag detections
-            await self.updated.wait()
+            while self.updated == False:
+                self.get_logger().info("waiting for new detection")
             self.detectionPub.publish(self.detectionData)
             
             self.get_logger().info(f"Total AprilTag Detections: {self.TotalDetection}")
