@@ -101,7 +101,59 @@ class FrontloaderDig:
         return self.phase, Command(), True
 
 class GroundDrumDig:
-    pass 
+    """Spin while lowering, dig while reversing, then stop and raise."""
+
+    LOWER_SPEED_AERIAL = 1.0
+    LOWER_SPEED_GROUND = 0.75
+    LOWER_SLOWDOWN_TARGET = 0.69
+    RAISE_SPEED = 1.0
+    DIG_SPEED = 0.75
+    DIG_TIME = 30.0
+    DRIVE_SPEED = 0.25
+    LOWER_TARGET = 0.9
+    RAISE_TARGET = 0.6
+
+    def __init__(self, _parameters):
+        self.phase = 'lowering'
+        self.started = None
+
+    def step(self, now, positions):
+        if positions is None:
+            return self.phase, Command(), False
+
+        front, back = positions
+        if self.phase == 'lowering':
+            def lower_speed(position):
+                if position >= self.LOWER_TARGET:
+                    return 0.0
+                if position >= self.LOWER_SLOWDOWN_TARGET:
+                    return -self.LOWER_SPEED_GROUND
+                return -self.LOWER_SPEED_AERIAL
+
+            if min(front, back) < self.LOWER_TARGET:
+                return self.phase, Command(
+                    front_arm=lower_speed(front),
+                    back_arm=lower_speed(back),
+                    front_drum=self.DIG_SPEED,
+                    back_drum=self.DIG_SPEED,
+                ), False
+            self.phase = 'digging'
+            self.started = now
+
+        if self.phase == 'digging':
+            if now - self.started < self.DIG_TIME:
+                return self.phase, Command(
+                    front_drum=self.DIG_SPEED,
+                    back_drum=self.DIG_SPEED,
+                    drive=-self.DRIVE_SPEED,
+                ), False
+            self.phase = 'raising'
+            return self.phase, Command(), False
+
+        return self.phase, Command(
+            front_arm=self.RAISE_SPEED if front > self.RAISE_TARGET else 0.0,
+            back_arm=self.RAISE_SPEED if back > self.RAISE_TARGET else 0.0,
+        ), max(front, back) <= self.RAISE_TARGET
 
 
 class DigNode(RoutineServer):
