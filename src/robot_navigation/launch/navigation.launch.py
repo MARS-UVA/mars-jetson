@@ -13,12 +13,25 @@ from nav2_common.launch import RewrittenYaml
 def launch_navigation(context):
     local_lidar = IfCondition(
         LaunchConfiguration('enable_local_lidar', default='false')).evaluate(context)
+    planner_choices = {
+        'smac': 'SmacPlanner',
+        'theta_star': 'ThetaStar',
+        'smoothed_lazy_theta_star': 'LazyThetaStar',
+    }
+    planner_choice = LaunchConfiguration(
+        'global_planner', default='smoothed_lazy_theta_star').perform(context)
+    if planner_choice not in planner_choices:
+        raise RuntimeError(
+            'global_planner must be one of: smac, theta_star, smoothed_lazy_theta_star')
+    planner_id = planner_choices[planner_choice]
 
     def parameters(filename):
         rewrites = {
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'odom_topic': LaunchConfiguration('odom_topic'),
         }
+        if filename == 'planner.yaml':
+            rewrites['planner_server.ros__parameters.planner_plugins'] = f'[{planner_id}]'
         if filename == 'local_costmap.yaml':
             rewrites[
                 'local_costmap.local_costmap.ros__parameters.voxel_layer.observation_sources'
@@ -94,6 +107,11 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
+        DeclareLaunchArgument(
+            'global_planner', default_value='smoothed_lazy_theta_star',
+            description=(
+                'Global planner: smac, theta_star, or smoothed_lazy_theta_star'),
+        ),
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
         DeclareLaunchArgument(
             'config_dir', default_value=PathJoinSubstitution([

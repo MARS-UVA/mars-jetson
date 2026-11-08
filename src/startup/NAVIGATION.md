@@ -98,6 +98,9 @@ behavior, BT navigator, and velocity smoother servers plus their lifecycle
 manager. Both controller and
 recovery velocities pass through the same velocity smoother and mux. The launch
 does not start a collision monitor, route server, docking server, or waypoint follower.
+Select the global planner with `global_planner:=smac`, `global_planner:=theta_star`,
+or `global_planner:=smoothed_lazy_theta_star` (the default). The same argument is
+available on the integrated `deploy.sh` launch and the standalone navigation launch.
 
 The configuration uses `/odom` as a placeholder parameter value. The navigation
 launch rewrites each `odom_topic` to `/rtabmap/icp_odom` for the integrated launch;
@@ -120,7 +123,7 @@ planning, controller, costmaps, behaviors, and both smoothers. See the
 [package guide](../robot_navigation/README.md) for the file layout and launch arguments.
 [navigation.rviz](../robot_navigation/rviz/navigation.rviz) defines the navigation view.
 
-- **Planner:** Lazy Theta* searches the 2D costmap with Bresenham line-of-sight
+- **Default planner:** Smoothed Lazy Theta* searches the 2D costmap with Bresenham line-of-sight
   checks, a 0.6 m/rad turn penalty, and unknown space allowed. The path is sampled
   at 0.05 m intervals and corners receive collision-checked circular fillets up to
   0.6 m radius. Fillets shrink near obstacles or short segments. This geometric

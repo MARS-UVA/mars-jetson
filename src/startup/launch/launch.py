@@ -29,6 +29,7 @@ def launch_nav2(context):
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
             'odom_topic': '/rtabmap/icp_odom',
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
+            'global_planner': LaunchConfiguration('global_planner'),
         }.items(),
     )]
 
@@ -65,6 +66,9 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
+    ), DeclareLaunchArgument(
+        'global_planner', default_value='smoothed_lazy_theta_star',
+        description='Global planner: smac, theta_star, or smoothed_lazy_theta_star',
     ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',

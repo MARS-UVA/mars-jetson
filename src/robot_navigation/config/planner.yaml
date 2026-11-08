@@ -3,6 +3,25 @@ planner_server:
     use_sim_time: false
     expected_planner_frequency: 0.25
     planner_plugins: [LazyThetaStar]
+    SmacPlanner:
+      plugin: nav2_smac_planner::SmacPlannerHybrid
+      tolerance: 0.20
+      allow_unknown: true
+      downsample_costmap: false
+      max_planning_time: 2.0
+      motion_model_for_search: REEDS_SHEPP # Forward and reverse maneuvers.
+      angle_quantization_bins: 72
+      minimum_turning_radius: 0.40 # Initial curved-path radius; tune in simulation.
+      analytic_expansion_max_length: 3.0
+      cost_penalty: 2.0 # Prefer clearance when choosing the global route.
+      smooth_path: true
+    ThetaStar:
+      plugin: nav2_theta_star_planner::ThetaStarPlanner
+      how_many_corners: 8
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+      using_astar: true
+      allow_unknown: true
     LazyThetaStar:
       plugin: nav2_lazy_theta_star_planner::LazyThetaStarPlanner
       turn_penalty_weight: 0.6
