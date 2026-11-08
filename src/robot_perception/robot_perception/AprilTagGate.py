@@ -38,7 +38,7 @@ class AprilTagGateNode(Node):
         self.timeIndex = msg.header.stamp.sec + (msg.header.stamp.nanosec / 1e9)
         
         if (len(msg.detections) > 0) and (len(msg.detections) > self.size):
-            self.TotalDetection += 1
+            self.TotalDetection += len(msg.detections)
             self.size = len(msg.detections)
             self.updated.set()
         else:
@@ -54,28 +54,35 @@ class AprilTagGateNode(Node):
         
         totalCall = self.get_parameter("send_detections").get_parameter_value().integer_value
         
-        for i in range(totalCall):
+        for i in range(1, totalCall):
+            
+            #waiting for subscriber to update with new tag detections
             await self.updated.wait()
             self.detectionPub.publish(self.detectionData)
             
-            #The array index might need to be zero since detection data is cleared at the end
-            #Figure out when testing if an error is thrown
-            family = self.detectionData.detections[self.TotalDetection -1].family
-            id = self.detectionData.detections[self.TotalDetection -1].id
-            pose = self.detectionData.detections[self.TotalDetection -1].pose
+            self.get_logger().info(f"Total AprilTag Detections: {self.TotalDetection}")
             
-            position = "x: " + str(pose.pose.position.x) + "y: " + str(pose.pose.position.y) + "z: " + str(pose.pose.position.z)
-            orientation = "x: " + str(pose.pose.orientation.x) + "y: " + str(pose.pose.orientation.y) + "z: " + str(pose.pose.orientation.z) + "w: " + str(pose.pose.orientation.w)
+            #should log all tag data for each detection
+            for detection in range(self.totalDetection):
+                family = self.detectionData.detections[detection].family
+                id = self.detectionData.detections[detection].id
+                pose = self.detectionData.detections[detection].pose
+                
+                position = "x: " + str(pose.pose.position.x) + "y: " + str(pose.pose.position.y) + "z: " + str(pose.pose.position.z)
+                orientation = "x: " + str(pose.pose.orientation.x) + "y: " + str(pose.pose.orientation.y) + "z: " + str(pose.pose.orientation.z) + "w: " + str(pose.pose.orientation.w)
+                
+                responce.data = "Family: " + str(family) + "ID: " + id + " at " + str(self.timeIndex) + " seconds since startup | position: " + position + "| Orientation: " +  orientation
+                self.get_logger().info(responce.data)
             
-            responce.data = "Family: " + str(family) + "ID: " + id + " at " + str(self.timeIndex) + " seconds since startup | position: " + position + "| Orientation: " +  orientation
-            
-            self.get_logger().info(responce.data)
             responce.success = True
+            
+            #clears data of previous detection
             self.detectionData = AprilTagDetectionArray()
             self.size = len(self.detectionData.detections)
+            self.totalDetection = 0
             self.updated.clear()
         
-        self.get_logger().info(f"Total AprilTag Detections: {self.TotalDetection}")
+        
         return responce
         
         
