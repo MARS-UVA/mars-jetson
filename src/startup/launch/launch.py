@@ -74,7 +74,7 @@ def generate_launch_description():
     ), DeclareLaunchArgument(
         # robot_navigation validates the name, so the list lives in one place.
         'controller', default_value='rpp',
-        description='Nav2 FollowPath controller when enable_nav2:=true (mppi or rpp)',
+        description='Nav2 FollowPath controller when enable_nav2:=true (mppi, pnt or rpp)',
     ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',

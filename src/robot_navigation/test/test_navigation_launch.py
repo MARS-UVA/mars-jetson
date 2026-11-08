@@ -106,6 +106,7 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
 
 PLUGINS = {
     'mppi': 'nav2_mppi_controller::MPPIController',
+    'pnt': 'point_and_turn_controller::PointAndTurnController',
     'rpp': 'nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController',
 }
 
@@ -115,7 +116,7 @@ def test_default_controller_is_rpp():
     assert LAUNCH['DEFAULT_CONTROLLER'] == 'rpp'
 
 
-@pytest.mark.parametrize('controller', [None, 'mppi', 'rpp'])
+@pytest.mark.parametrize('controller', [None, 'mppi', 'pnt', 'rpp'])
 def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller):
     settings = {} if controller is None else {'controller': controller}
     plugin = PLUGINS[controller or LAUNCH['DEFAULT_CONTROLLER']]
@@ -135,6 +136,17 @@ def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller):
         # Follows the planner's reverse segments, so it cannot rotate to heading.
         assert server['FollowPath']['allow_reversing'] is True
         assert server['FollowPath']['use_rotate_to_heading'] is False
+    if plugin == PLUGINS['pnt']:
+        follow = server['FollowPath']
+        checker = server['goal_checker']
+        # Stopping outside the goal checker's tolerance would leave the robot
+        # parked short of a goal the checker never accepts.
+        assert follow['goal_arrival_tolerance'] < checker['xy_goal_tolerance']
+        assert follow['final_align_tolerance'] < checker['yaw_goal_tolerance']
+        # The plugin rejects this at configure; catch it before launch.
+        assert follow['align_tolerance'] < follow['realign_tolerance']
+        # Follows the planner's reverse segments instead of pivoting.
+        assert follow['allow_reversing'] is True
 
 
 def test_unknown_controller_is_rejected():

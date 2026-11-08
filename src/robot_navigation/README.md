@@ -38,6 +38,7 @@ the standalone navigation launch starts no GUI.
 | `config/controller.yaml` | Controller server, progress checker, goal checker |
 | `config/controller_mppi.yaml` | MPPI `FollowPath` plugin only (`controller:=mppi`) |
 | `config/controller_rpp.yaml` | Regulated Pure Pursuit `FollowPath` plugin only (`controller:=rpp`, default) |
+| `config/controller_pnt.yaml` | Point-and-turn `FollowPath` plugin only (`controller:=pnt`); see `src/point_and_turn_controller` |
 | `config/global_costmap.yaml` | RTAB-Map static layer and global inflation |
 | `config/local_costmap.yaml` | Local voxel/inflation layers and simulation LiDAR filter |
 | `config/bt_navigator.yaml` | NavigateToPose and NavigateThroughPoses navigators |
@@ -57,8 +58,11 @@ Launch arguments:
 - `config_dir`: directory holding the YAML files in the table above; defaults
   to this package's installed `config` directory. Of the
   `controller_<name>.yaml` files, only the selected one has to exist.
-- `controller`: `rpp` (default) or `mppi`. Loads `controller_<name>.yaml` on top
-  of `controller.yaml`; any other value is rejected. The plugin is always named
+- `controller`: `rpp` (default), `mppi` or `pnt`. Loads `controller_<name>.yaml`
+  on top of `controller.yaml`; any other value is rejected. `pnt` rotates in
+  place to face each path corner and then drives straight to it, so it never
+  curves through a turn; it also turns to the goal heading and backs up the
+  planner's reverse segments. The plugin is always named
   `FollowPath`, so the behavior trees are unchanged. The startup launch
   declares the same default and forwards the argument, for example
   `./deploy.sh ... enable_nav2:=true controller:=mppi`. See
