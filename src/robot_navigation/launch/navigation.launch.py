@@ -56,6 +56,14 @@ def launch_navigation(context):
         ))
     for package, executable, filenames in servers:
         remappings = []
+        server_parameters = [configured_params[filename] for filename in filenames]
+        if executable == 'bt_navigator':
+            server_parameters.append({
+                'default_nav_to_pose_bt_xml': PathJoinSubstitution([
+                    FindPackageShare('robot_navigation'), 'behavior_trees',
+                    'navigate_to_pose_thetastar.xml',
+                ]),
+            })
         if executable in ('controller_server', 'behavior_server'):
             remappings = [('cmd_vel', '/cmd_vel/navigation_raw')]
         elif executable == 'velocity_smoother':
@@ -66,7 +74,7 @@ def launch_navigation(context):
         nodes.append(Node(
             package=package, executable=executable, name=executable,
             output='screen',
-            parameters=[configured_params[filename] for filename in filenames],
+            parameters=server_parameters,
             remappings=remappings,
         ))
     nodes.append(Node(
