@@ -63,12 +63,54 @@ class BrunoDig:
             front_arm=p['actuator_speed_aerial'] if front > target else 0.0,
             back_arm=p['actuator_speed_aerial'] if back > target else 0.0,
         ), max(front, back) <= target
+        
+class FrontloaderDig:
+    """Time-based placeholder for lowering, driving, and raising the loader."""
+
+    LOWER_SPEED = 0.5
+    RAISE_SPEED = 0.5
+    DRIVE_SPEED = 0.25
+    LOWER_TIME = 2.0
+    DRIVE_TIME = 12.0
+    RAISE_TIME = 2.0
+
+    def __init__(self, parameters):
+        self.phase = 'lowering'
+        self.started = None
+
+    def step(self, now, positions=None):
+        if self.started is None:
+            self.started = now
+
+        if self.phase == 'lowering':
+            if now - self.started < self.LOWER_TIME:
+                return self.phase, Command(front_arm=-self.LOWER_SPEED), False
+            self.phase = 'driving'
+            self.started = now
+            return self.phase, Command(), False
+
+        if self.phase == 'driving':
+            if now - self.started < self.DRIVE_TIME:
+                return self.phase, Command(drive=self.DRIVE_SPEED), False
+            self.phase = 'raising'
+            self.started = now
+            return self.phase, Command(), False
+
+        if now - self.started < self.RAISE_TIME:
+            return self.phase, Command(front_arm=self.RAISE_SPEED), False
+        return self.phase, Command(), True
+
+class GroundDrumDig:
+    pass 
 
 
 class DigNode(RoutineServer):
     def __init__(self):
         super().__init__('dig', Dig, RobotState.DIG, DEFAULTS,
-                         {Dig.Goal.BRUNO_INDEX: BrunoDig})
+                         {Dig.Goal.BRUNO_INDEX: BrunoDig,
+                          Dig.Goal.FRONTLOADER_INDEX: FrontloaderDig,
+                          Dig.Goal.GROUND_DRUM_INDEX: GroundDrumDig},
+                         )
         self.actuator_positions = None
         self.position_sub = self.create_subscription(Position, 'position', self.on_position, 10)
 
