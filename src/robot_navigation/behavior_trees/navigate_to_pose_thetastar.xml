@@ -8,8 +8,8 @@
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence name="NavigateWithReplanning">
         <ControllerSelector selected_controller="{selected_controller}" default_controller="FollowPath" topic_name="controller_selector"/>
-        <!-- An empty planner ID selects the launch-configured default plugin. -->
-        <PlannerSelector selected_planner="{selected_planner}" default_planner="" topic_name="planner_selector"/>
+        <!-- navigation.launch.py replaces the default with its selected planner plugin ID. -->
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="__DEFAULT_PLANNER__" topic_name="planner_selector"/>
         <RateController hz="1.0">
           <RecoveryNode number_of_retries="1" name="ComputePathToPose">
             <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>

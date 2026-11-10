@@ -3,6 +3,7 @@
 from pathlib import Path
 import runpy
 import shutil
+from xml.etree import ElementTree
 
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
@@ -43,15 +44,37 @@ def parameters(node):
     return result
 
 
+def launch_overrides(node):
+    node_key = f'/{node.node_name.lstrip("/")}'
+    result = {}
+    for filename, _ in node._Node__expanded_parameter_arguments:
+        settings = yaml.full_load(Path(filename).read_text())
+        if node_key in settings:
+            result.update(settings[node_key]['ros__parameters'])
+    return result
+
+
+@pytest.mark.parametrize('planner_choice,planner_id,plugin_type', [
+    ('smac', 'SmacPlanner', 'nav2_smac_planner::SmacPlannerHybrid'),
+    ('theta_star', 'ThetaStar', 'nav2_theta_star_planner::ThetaStarPlanner'),
+    (
+        'smoothed_lazy_theta_star', 'LazyThetaStar',
+        'nav2_lazy_theta_star_planner::LazyThetaStarPlanner',
+    ),
+])
 @pytest.mark.parametrize('sim_time,odom_topic,autostart', [
     ('true', '/rtabmap/icp_odom', 'true'),
     ('false', '/test/odometry', 'false'),
 ])
 @pytest.mark.parametrize('local_lidar', ['false', 'true'])
-def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, local_lidar):
+def test_split_parameters_and_command_path(
+    sim_time, odom_topic, autostart, local_lidar,
+    planner_choice, planner_id, plugin_type,
+):
     nodes = expanded_nodes(
         use_sim_time=sim_time, odom_topic=odom_topic,
         autostart=autostart, enable_local_lidar=local_lidar,
+        global_planner=planner_choice,
     )
     expected = SERVERS | {'lifecycle_manager_navigation'}
     if local_lidar == 'true':
@@ -67,13 +90,21 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
     controller = parameters(nodes['controller_server'])
     planner = parameters(nodes['planner_server'])
     planner_params = planner['planner_server']['ros__parameters']
-    assert planner_params['planner_plugins'] == ['LazyThetaStar']
-    lazy_theta_star = planner_params['LazyThetaStar']
-    assert lazy_theta_star['plugin'] == (
-        'nav2_lazy_theta_star_planner::LazyThetaStarPlanner')
-    assert lazy_theta_star['interpolation_step'] == 0.05
-    assert lazy_theta_star['smoothing_radius'] > 0.0
-    assert lazy_theta_star['turn_penalty_weight'] >= 0.0
+    assert list(launch_overrides(nodes['planner_server'])['planner_plugins']) == [
+        planner_id]
+    assert planner_params[planner_id]['plugin'] == plugin_type
+    if planner_id == 'LazyThetaStar':
+        lazy_theta_star = planner_params[planner_id]
+        assert lazy_theta_star['interpolation_step'] == 0.05
+        assert lazy_theta_star['smoothing_radius'] > 0.0
+        assert lazy_theta_star['turn_penalty_weight'] >= 0.0
+
+    bt_navigator_overrides = launch_overrides(nodes['bt_navigator'])
+    behavior_tree = ElementTree.parse(
+        bt_navigator_overrides['default_nav_to_pose_bt_xml'])
+    planner_selector = behavior_tree.find('.//PlannerSelector')
+    assert planner_selector is not None
+    assert planner_selector.attrib['default_planner'] == planner_id
     local = controller['local_costmap']['local_costmap']['ros__parameters']
     global_map = planner['global_costmap']['global_costmap']['ros__parameters']
     assert local['use_sim_time'] is (sim_time == 'true')

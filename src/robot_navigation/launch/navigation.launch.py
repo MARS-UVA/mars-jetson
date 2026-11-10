@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
-from nav2_common.launch import RewrittenYaml
+from nav2_common.launch import ReplaceString, RewrittenYaml
 
 
 def launch_navigation(context):
@@ -74,10 +74,13 @@ def launch_navigation(context):
             server_parameters.append({'planner_plugins': [planner_id]})
         if executable == 'bt_navigator':
             server_parameters.append({
-                'default_nav_to_pose_bt_xml': PathJoinSubstitution([
-                    FindPackageShare('robot_navigation'), 'behavior_trees',
-                    'navigate_to_pose_thetastar.xml',
-                ]),
+                'default_nav_to_pose_bt_xml': ReplaceString(
+                    source_file=PathJoinSubstitution([
+                        FindPackageShare('robot_navigation'), 'behavior_trees',
+                        'navigate_to_pose_thetastar.xml',
+                    ]),
+                    replacements={'__DEFAULT_PLANNER__': planner_id},
+                ),
             })
         if executable in ('controller_server', 'behavior_server'):
             remappings = [('cmd_vel', '/cmd_vel/navigation_raw')]
