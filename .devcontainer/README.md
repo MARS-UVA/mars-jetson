@@ -36,5 +36,22 @@ machines. Camera media uses WebRTC ICE separately from these signaling ports;
 bridge-mode camera connectivity must be verified and may need a TURN relay.
 See `docs/rosbridge.md` for the connection details.
 
+To clear leftover ROS nodes or Gazebo servers before relaunching, run the cleanup
+script inside the dev container from a separate terminal:
+
+```bash
+python3 scripts/stop_ros.py --dry-run  # Preview matching processes.
+python3 scripts/stop_ros.py            # Stop with SIGINT, then SIGTERM.
+python3 scripts/stop_ros.py --force --include-zenoh  # Also stop routers and force survivors.
+```
+
+The script stops matching active processes as well as stale ones, across ROS
+domains, for the current user in the container. It includes launchers, workspace
+nodes, ROS executables, Gazebo, RViz, and the discovery daemon. Zenoh routers are
+optional. It preserves the invoking terminal, workspace files, map databases, and
+shared memory. No sourced ROS environment is needed. Stop external services that
+automatically restart the stack separately; a nonzero exit status means matching
+processes survived cleanup.
+
 XQuartz may eventually replace or supplement noVNC in the macOS profile, but it
 requires an X server and display-access configuration on each developer's Mac.
