@@ -19,10 +19,10 @@
       <uri>model://ground_plane</uri>
     </include>
 
-    <!-- Full board centered at Y=1 on the 2 x 2 m starting-zone wall. -->
+    <!-- Single tag 1 centered at Y=1 on the 2 x 2 m starting-zone wall. -->
     <include>
-      <uri>model://apriltag_board</uri>
-      <pose>0 1.09 0.25 1.57079632679 -1.57079632679 1.57079632679</pose>
+      <uri>model://Apriltag36_11_00001</uri>
+      <pose>0 1 0.25 1.57079632679 -1.57079632679 1.57079632679</pose>
     </include>
 
     <!-- arena frame boundary 
