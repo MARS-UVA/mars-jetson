@@ -151,6 +151,15 @@ def generate_launch_description():
         output="screen",
     )
     
+    # Lets the control station open the gate for a few seconds (std_msgs only,
+    # so rosbridge needs no robot_perception_interfaces).
+    apriltaggatetrigger = Node(
+        package='startup',
+        executable='apriltag_gate_trigger',
+        name='apriltag_gate_trigger',
+        output='screen',
+    )
+
     apriltaggateclient = Node(
         package='robot_perception',
         executable='AprilTagClient',
@@ -210,6 +219,7 @@ def generate_launch_description():
         apriltag,
         apriltaggate,
         apriltaggateclient,
+        apriltaggatetrigger,
         *controllers
     ])
 

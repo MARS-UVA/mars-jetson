@@ -28,6 +28,7 @@ from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 from startup.marker_priors import ARENA_APRILTAG_PRIORS
+import json
 import os
 from pathlib import Path
 import math
@@ -157,8 +158,13 @@ def launch_rtabmap(context):
             # Remove body returns from occupancy grids in blue-forward base_link axes.
             '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '
             '--Grid/FootprintHeight 0.50 '
-            '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
+            '--Icp/VoxelSize 0.05 --Icp/PointToPlane true '
+            # Values RTAB-Map otherwise forces internally for a 3D lidar; made
+            # explicit so marker_prior_tuner re-sends them on update_parameters.
+            '--RGBD/ProximityPathMaxNeighbors 1'
         )
+        if not enable_rgbd:
+            rtabmap_args += ' --Kp/MaxFeatures -1'
     elif marker_priors:
         rtabmap_args = '-d --Rtabmap/CreateIntermediateNodes false'
     if sync_rgbd:
@@ -197,6 +203,31 @@ def launch_rtabmap(context):
             'rviz': 'false',
         }.items(),
     )
+    # Lets the control station shift the priors at runtime. update_parameters
+    # resets every RTAB-Map setting that is not a ROS parameter, so the .ini
+    # and rtabmap_args settings are handed over to be re-sent with the priors.
+    tuner = []
+    if marker_priors:
+        settings = {
+            'Optimizer/Strategy': marker_optimizer,
+            'Optimizer/PriorsIgnored': 'false',
+            'Marker/PriorsVarianceLinear': '0.000001',
+            'Marker/PriorsVarianceAngular': '0.000001',
+        }
+        tokens = rtabmap_args.split()
+        for key, value in zip(tokens, tokens[1:]):
+            if key.startswith('--') and '/' in key:
+                settings[key[2:]] = value
+        tuner = [Node(
+            package='startup', executable='marker_prior_tuner',
+            name='marker_prior_tuner', output='screen',
+            parameters=[{
+                'base_priors': marker_priors,
+                'rtabmap_settings': json.dumps(settings),
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+        )]
+
     if sync_rgbd:
         # The upstream launch does not expose RGBDImages input arguments.
         # Apply these to mapping, visualization and optional RGB-D odometry.
@@ -204,8 +235,8 @@ def launch_rtabmap(context):
             SetParameter(name='rgbd_cameras', value=0),
             SetRemap(src='rgbd_images', dst='/rgbd_images'),
             rtabmap,
-        ])]
-    return [rtabmap]
+        ])] + tuner
+    return [rtabmap] + tuner
 
 
 def generate_launch_description():

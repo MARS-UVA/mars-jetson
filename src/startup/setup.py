@@ -31,6 +31,8 @@ setup(
     entry_points={
         'console_scripts': [
             'actuator_position_feedback = scripts.actuator_position_feedback:main',
+            'marker_prior_tuner = startup.marker_prior_tuner:main',
+            'apriltag_gate_trigger = startup.apriltag_gate_trigger:main',
         ],
     },
 )
