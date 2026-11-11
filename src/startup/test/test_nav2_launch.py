@@ -60,6 +60,36 @@ def test_deploy_arguments_supply_sensor_defaults_and_simulation_clock():
     arguments = dict(navigation[0].launch_arguments)
     assert perform_substitutions(ctx, [arguments['use_sim_time']]) == 'true'
     assert perform_substitutions(ctx, [arguments['enable_local_lidar']]) == 'false'
+    assert perform_substitutions(ctx, [arguments['controller']]) == navigation_default()
+
+
+def navigation_default():
+    share = Path(FindPackageShare('robot_navigation').find('robot_navigation'))
+    return runpy.run_path(str(share / 'launch/navigation.launch.py'))['DEFAULT_CONTROLLER']
+
+
+def test_controller_default_matches_navigation_launch():
+    # Consistency only; robot_navigation's tests check the required value.
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    ctx = context()
+    argument = next(action for action in launch['generate_launch_description']().entities
+                    if isinstance(action, DeclareLaunchArgument)
+                    and action.name == 'controller')
+    argument.execute(ctx)
+    assert ctx.launch_configurations['controller'] == navigation_default()
+    # The fallback used when launch_nav2 runs without the declaration.
+    ctx = context(enable_nav2='true', robot_backend='gazebo', enable_rtabmap='true',
+                  enable_rgbd='true', enable_lidar='true')
+    arguments = dict(launch['launch_nav2'](ctx)[0].launch_arguments)
+    assert perform_substitutions(ctx, [arguments['controller']]) == navigation_default()
+
+
+def test_controller_choice_reaches_navigation_launch():
+    launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
+    ctx = context(enable_nav2='true', robot_backend='gazebo', enable_rtabmap='true',
+                  enable_rgbd='true', enable_lidar='true', controller='rpp')
+    arguments = dict(launch['launch_nav2'](ctx)[0].launch_arguments)
+    assert perform_substitutions(ctx, [arguments['controller']]) == 'rpp'
 
 
 @pytest.mark.parametrize('sim_time', ['true', 'false'])

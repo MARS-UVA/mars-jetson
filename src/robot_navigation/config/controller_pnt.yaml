@@ -1,0 +1,91 @@
+# Point-and-turn plugin parameters, loaded after controller.yaml when
+# controller:=pnt. The plugin rotates in place to face the next path corner,
+# then drives straight to it; see src/point_and_turn_controller/README.md.
+# Every parameter is written out, because each one is a deliberate choice.
+controller_server:
+  ros__parameters:
+    FollowPath:
+      plugin: point_and_turn_controller::PointAndTurnController
+
+      # Speeds. The velocity smoother (smoothers.yaml) still applies its
+      # 0.60 m/s, 2.40 rad/s and 0.60 m/s^2 limits on top of these.
+      #
+      # Lower than RPP's 0.60: every segment ends in a full stop, and 0.40
+      # equals the smoother's reverse limit (min_velocity -0.40), so forward
+      # and reverse segments drive at the same speed.
+      max_linear_speed: 0.40
+      # Braking profile v = sqrt(2 * decel * remaining). Below the smoother's
+      # 0.60 m/s^2 so the smoother never has to cut the braking short.
+      # Stopping from 0.40 m/s takes 0.20 m.
+      linear_decel: 0.40
+      # Floor for the last centimetres before a corner, so arrival doesn't
+      # crawl. A speed-limit zone below it still wins.
+      min_linear_speed: 0.05
+      # A 90 degree pivot in about 2 s. The footprint's far corner, 0.95 m
+      # out, then moves at 0.76 m/s, close to the top linear speed.
+      max_angular_speed: 0.80
+      # Skid-steer drivetrains stall at low turn rates. One 20 Hz cycle at
+      # this floor turns 0.0075 rad, well inside align_tolerance.
+      min_angular_speed: 0.15
+      # Full rate beyond 0.53 rad of error (0.80 / 1.5), then slowing
+      # proportionally over the last ~30 degrees to avoid overshoot.
+      angular_gain: 1.5
+
+      # Hysteresis. DRIVE starts once the heading error is within 0.05 rad
+      # (about 5 cm of miss at 1 m) and stops for a re-aim only past
+      # 0.20 rad, so noise near one threshold can't flip the state.
+      align_tolerance: 0.05
+      realign_tolerance: 0.20
+      # Re-aim if slip pushes the robot this far off the line it aligned to.
+      # Under half the footprint's 0.40 m half-width, so a corridor planned
+      # around the footprint still holds the robot.
+      max_cross_track_error: 0.15
+      # Within this distance of a corner the bearing swings wildly, so DRIVE
+      # stops checking it and ALIGN uses the segment heading instead.
+      min_bearing_distance: 0.15
+
+      # Arrival. All are inside the shared goal checker's 0.20 m / 0.20 rad
+      # (controller.yaml), so the controller never stops where the checker
+      # still says no. A launch test keeps them below it.
+      segment_arrival_tolerance: 0.05
+      goal_arrival_tolerance: 0.10
+      final_align_tolerance: 0.10
+
+      # The behavior tree replans about once a second. A new plan with a
+      # corner within 0.25 m of the current target keeps the robot in its
+      # current state instead of re-aiming every second.
+      replan_match_tolerance: 0.25
+
+      # 0 keeps DRIVE purely linear (the task's requirement). Raise it to
+      # trade some combined motion for less slip drift; the cap applies
+      # only when the gain is non-zero.
+      drive_heading_gain: 0.0
+      max_drive_angular_speed: 0.20
+
+      # Smac Hybrid-A* (planner.yaml) plans REEDS_SHEPP paths with reverse
+      # segments. With this on, each segment runs in whichever direction
+      # needs the smaller rotation, so the robot backs up those segments
+      # instead of pivoting 180 degrees.
+      allow_reversing: true
+
+      # Path simplification. 0.05 m equals one local costmap cell: smaller
+      # wiggles are planner noise, not corners. 0.10 m is two cells; a
+      # shorter leg isn't worth a pivot.
+      corridor_tolerance: 0.05
+      min_segment_length: 0.10
+
+      # Matches RPP and MPPI; RTAB-Map's map -> odom lags more than Nav2's
+      # 0.1 s default in simulation.
+      transform_tolerance: 0.2
+      # Added to the braking distance in the DRIVE look-ahead to cover
+      # costmap and command latency (one 10 Hz costmap update at 0.40 m/s
+      # is 4 cm; 0.15 m leaves room for that plus TF lag).
+      collision_margin: 0.15
+      # The plugin default is 0.10 rad. At 0.10 rad the footprint's far
+      # corner moves 9.5 cm (two cells) between sweep samples, enough to
+      # step over a one-cell obstacle. resolution / 0.95 m = 0.05 rad keeps
+      # it to one cell.
+      rotation_check_step: 0.05
+      # The local costmap doesn't track unknown space, so it has no unknown
+      # cells. The flag only matters if that changes; then set it to false.
+      allow_unknown: true

@@ -28,8 +28,9 @@ def launch_nav2(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
             'odom_topic': '/rtabmap/icp_odom',
-            'arena_name': LaunchConfiguration('arena_name', default=''),
+            'arena_name': LaunchConfiguration('arena_name', default='ARENA_NASA'),
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
+            'controller': LaunchConfiguration('controller', default='rpp'),
         }.items(),
     )]
 
@@ -68,8 +69,12 @@ def generate_launch_description():
         'enable_local_lidar', default_value='false',
         description='Use filtered LiDAR alongside RGB-D in the local navigation costmap',
     ), DeclareLaunchArgument(
-        'arena_name', default_value='',
+        'arena_name', default_value='ARENA_NASA',
         description='Arena markers configuration; empty disables markers, requires enable_nav2',
+    ), DeclareLaunchArgument(
+        # robot_navigation validates the name, so the list lives in one place.
+        'controller', default_value='rpp',
+        description='Nav2 FollowPath controller when enable_nav2:=true (mppi, pnt or rpp)',
     ), DeclareLaunchArgument(
         'enable_nav2', default_value='false',
         description='Run optional Nav2 navigation with RTAB-Map and all obstacle sensors in Gazebo',
