@@ -94,7 +94,7 @@ def launch_navigation(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('arena_name', default_value=''),
+        DeclareLaunchArgument('arena_name', default_value='ARENA_NASA'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),

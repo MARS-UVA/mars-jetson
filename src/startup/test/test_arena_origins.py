@@ -53,13 +53,14 @@ def test_interior_corner_is_zero_and_dimensions_are_preserved(path):
 @pytest.mark.parametrize('path', WORLDS, ids=lambda p: p.stem)
 def test_prior_matches_textured_face_and_detector_axes(path):
     world = ET.parse(path).getroot().find('world')
-    board = pose(included(world, 'apriltag_board'))
+    model_name = 'Apriltag36_11_00001' if path.name == 'arena_nasa.world' else 'apriltag_board'
+    board = pose(included(world, model_name))
     r = rotation(*board[3:])
     fields = PRIORS[path.name].split()
     assert fields[0] == '1'
     prior = list(map(float, fields[1:]))
     # +Z face of the 1 cm box is the observed face. Include overrides the
-    # board model pose; tag 1's link and visual origins are both zero.
+    # model pose; tag 1's link and visual origins are both zero.
     expected_position = [board[i] + .005*r[i][2] for i in range(3)]
     assert prior[:3] == pytest.approx(expected_position, abs=1e-8)
     # Gazebo's +Z box UVs: image-right=-local Y, image-up=+local X.
@@ -68,6 +69,21 @@ def test_prior_matches_textured_face_and_detector_axes(path):
     for actual, expected in zip(rotation(*prior[3:]), expected_rotation):
         assert actual == pytest.approx(expected, abs=1e-9)
     assert rotation(*prior[3:])[0][2] > .99, 'Prior must face into the arena (+X)'
+
+
+def test_default_arena_has_one_tag_matching_its_prior():
+    world = ET.parse(ROOT / 'world/arena_nasa.world').getroot().find('world')
+    tag_includes = [i for i in world.findall('include')
+                    if 'apriltag' in i.findtext('uri', '').lower()]
+    assert len(tag_includes) == 1
+    assert tag_includes[0].findtext('uri') == 'model://Apriltag36_11_00001'
+    tag = ET.parse(ROOT / 'models/Apriltag36_11_00001/model.sdf').getroot().find('model')
+    visuals = tag.findall('.//visual')
+    assert len(visuals) == 1
+    assert visuals[0].findtext('material/pbr/metal/albedo_map').endswith('tag36_11_00001.png')
+    assert pose(tag_includes[0])[:3] == [0, 1, .25]
+    assert len(PRIORS['arena_nasa.world'].split('|')) == 1
+    assert PRIORS['arena_nasa.world'].split()[0] == '1'
 
 
 def test_crater_mesh_bounds_match_corner_based_world():

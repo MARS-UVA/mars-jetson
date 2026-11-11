@@ -132,6 +132,10 @@ def launch_rtabmap(context):
                 '[Core]\n'
                 f'Optimizer\\Strategy = {marker_optimizer}\n'
                 'Optimizer\\PriorsIgnored = false\n'
+                # Keep observations on distinct nodes so repeated tag sightings
+                # can trigger graph optimization and apply the surveyed prior.
+                # Rehearsal can otherwise merge stationary frames into one node.
+                'Mem\\RehearsalSimilarity = 1.0\n'
                 'Marker\\PriorsVarianceLinear = 0.000001\n'
                 'Marker\\PriorsVarianceAngular = 0.000001\n'
                 f'Marker\\Priors = {marker_priors}\n'

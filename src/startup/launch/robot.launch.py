@@ -126,6 +126,7 @@ def generate_launch_description():
         remappings=[
             ('image_rect', '/front_camera/image_raw'),
             ('camera_info', '/front_camera/camera_info'),
+            ('/detections', '/apriltag/detections'),
         ],
         parameters=[
             os.path.join(get_package_share_directory('startup'), 'config', 'apriltag.yaml'),
@@ -137,6 +138,24 @@ def generate_launch_description():
             },
         ],
         output='screen'
+    )
+    
+    apriltaggate = Node(
+        
+        package='robot_perception',
+        executable="AprilTagGate",
+        name="apriltag_service_node",
+        parameters=[{
+            "send_detections" : 100,
+        }],
+        output="screen",
+    )
+    
+    apriltaggateclient = Node(
+        package='robot_perception',
+        executable='AprilTagClient',
+        name="apriltag_client_node",
+        output="screen"
     )
 
     controllers = [
@@ -189,6 +208,8 @@ def generate_launch_description():
         gstreamer,
         twist_stamper,
         apriltag,
+        apriltaggate,
+        apriltaggateclient,
         *controllers
     ])
 
