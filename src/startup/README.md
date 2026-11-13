@@ -12,8 +12,9 @@ ros2 launch startup launch.py robot_backend:=gazebo enable_rgbd:=true
 
 This adds two Gazebo `rgbd_camera` sensors, facing opposite sides of the robot
 (-Y/blue and +Y/orange in `frame_assembly`), each tilted 15 degrees downward.
-The blue camera sits above the legacy `rear_camera` position. The
-original front/rear cameras are independent. The option defaults to `false`.
+The blue camera sits above the legacy `front_camera` position. The
+original front/rear cameras are independent: front is blue and rear is orange.
+The option defaults to `false`.
 Restart the robot launch to change it; the sensor is part of the spawned URDF.
 
 `launch.py` passes `enable_rgbd` to both Xacro and `gazebo.launch.py`. The latter

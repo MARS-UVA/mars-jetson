@@ -6,8 +6,9 @@ from launch.actions import IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PythonExpression
-from launch_ros.actions import Node
+from launch_ros.actions import Node, ComposableNodeContainer
 from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
@@ -212,4 +213,3 @@ def generate_launch_description():
         apriltaggateclient,
         *controllers
     ])
-
