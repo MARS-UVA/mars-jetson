@@ -1,0 +1,11 @@
+<library path="canivore_hardware">
+  <class
+    name="canivore_hardware/CanivoreHardware"
+    type="canivore_hardware::CanivoreHardware"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Drives TalonFX motors over a CTRE CANivore with Phoenix 6. Joints with can_id -1 are
+      treated as not connected and echo their commands, for bench testing without hardware.
+    </description>
+  </class>
+</library>

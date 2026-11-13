@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>canivore_hardware</name>
+  <version>0.0.0</version>
+  <description>ros2_control hardware interface that drives TalonFX motors (Kraken X60) through a CTRE CANivore using Phoenix 6.</description>
+  <maintainer email="todo@virginia.edu">MARS UVA</maintainer>
+  <license>TODO: License declaration</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>serial_msgs</depend>
+  <!-- Phoenix 6 (C++) is not a rosdep key. Install it from CTRE's APT repository:
+       sudo apt install phoenix6   (plus canivore-usb on the machine the CANivore plugs into) -->
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

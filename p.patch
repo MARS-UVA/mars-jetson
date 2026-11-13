@@ -1,0 +1,1193 @@
+diff --git a/src/canivore_hardware/CMakeLists.txt b/src/canivore_hardware/CMakeLists.txt
+new file mode 100644
+index 0000000..df732de
+--- /dev/null
++++ b/src/canivore_hardware/CMakeLists.txt
+@@ -0,0 +1,62 @@
++cmake_minimum_required(VERSION 3.8)
++project(canivore_hardware)
++
++# Phoenix 6 headers use C++20 features (std::span, etc.)
++set(CMAKE_CXX_STANDARD 20)
++set(CMAKE_CXX_STANDARD_REQUIRED ON)
++set(CMAKE_CXX_EXTENSIONS OFF)
++
++if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++  add_compile_options(-Wall -Wextra -Wpedantic)
++endif()
++
++find_package(ament_cmake REQUIRED)
++find_package(hardware_interface REQUIRED)
++find_package(pluginlib REQUIRED)
++find_package(rclcpp REQUIRED)
++find_package(rclcpp_lifecycle REQUIRED)
++find_package(serial_msgs REQUIRED)
++# Installed by CTRE's "phoenix6" APT package (config lives in /usr/lib/phoenix6/cmake).
++find_package(phoenix6 REQUIRED PATHS /usr/lib/phoenix6/cmake)
++
++add_library(${PROJECT_NAME} SHARED
++  src/canivore_hardware.cpp
++)
++target_include_directories(${PROJECT_NAME} PUBLIC
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++  $<INSTALL_INTERFACE:include>
++)
++target_link_libraries(${PROJECT_NAME} phoenix6)
++ament_target_dependencies(${PROJECT_NAME}
++  hardware_interface
++  pluginlib
++  rclcpp
++  rclcpp_lifecycle
++  serial_msgs
++)
++
++# Phoenix installs its .so files in /usr/lib/phoenix6, outside the default library path.
++# Without this RPATH the plugin builds but fails to load at runtime.
++get_filename_component(PHOENIX6_LIBRARY_DIR "${phoenix6_DIR}/.." ABSOLUTE)
++set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "${PHOENIX6_LIBRARY_DIR}")
++
++pluginlib_export_plugin_description_file(hardware_interface canivore_hardware.xml)
++
++install(TARGETS ${PROJECT_NAME}
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib
++  RUNTIME DESTINATION bin
++)
++install(DIRECTORY include/ DESTINATION include)
++
++if(BUILD_TESTING)
++  find_package(ament_lint_auto REQUIRED)
++  set(ament_cmake_copyright_FOUND TRUE)
++  set(ament_cmake_cpplint_FOUND TRUE)
++  ament_lint_auto_find_test_dependencies()
++endif()
++
++ament_export_include_directories(include)
++ament_export_libraries(${PROJECT_NAME})
++ament_export_dependencies(hardware_interface pluginlib rclcpp rclcpp_lifecycle serial_msgs)
++ament_package()
+diff --git a/src/canivore_hardware/README.md b/src/canivore_hardware/README.md
+new file mode 100644
+index 0000000..f479620
+--- /dev/null
++++ b/src/canivore_hardware/README.md
+@@ -0,0 +1,82 @@
++# canivore_hardware
++
++ros2_control hardware interface (`canivore_hardware/CanivoreHardware`) that drives the robot's
++TalonFX motors through a CTRE CANivore using Phoenix 6, instead of the ESP32 serial link. Every
++joint is a TalonFX running closed-loop velocity control on the motor.
++
++It is a drop-in replacement for `robot_serial_hardware/RobotSerialHardware`: same joints, same
++velocity command interface, and it also publishes `/current_bus_voltage` and `/temperature`.
++
++For testing without the robot, see the separate `canivore_hardware_bench` package.
++
++## Building
++
++Needs CTRE's `phoenix6` APT package, plus `canivore-usb` on the computer the CANivore plugs
++into. Both come from CTRE's APT repository (see CTRE's "Installing Phoenix 6 (non-FRC)" docs).
++
++```bash
++colcon build --packages-select teleop_msgs serial_msgs canivore_hardware
++```
++
++## Using it in a URDF
++
++```xml
++<ros2_control name="RobotSystem" type="system">
++  <hardware>
++    <plugin>canivore_hardware/CanivoreHardware</plugin>
++    <param name="canbus">*</param>
++  </hardware>
++  <joint name="front_left_wheel_joint">
++    <command_interface name="velocity"/>
++    <state_interface name="position"/>
++    <state_interface name="velocity"/>
++    <state_interface name="effort"/>
++    <param name="can_id">10</param>
++    <param name="gear_ratio">12.0</param>
++  </joint>
++  <!-- ... -->
++</ros2_control>
++```
++
++Every joint needs a `velocity` command interface. `position`, `velocity` and `effort` state
++interfaces are filled if present. Effort is reported as motor current in amps.
++
++### Hardware parameters (`<hardware>`)
++
++| Param | Default | Meaning |
++|---|---|---|
++| `canbus` | `*` | CANivore name or serial number; `*` = any CANivore |
++| `feed_timeout_ms` | `100` | Motors disable themselves if `write()` stops for this long |
++| `enable_foc` | `false` | Field-oriented control on the Krakens; needs Phoenix Pro licenses |
++| `status_frequency_hz` | `100` | How often each Kraken reports position/velocity/current |
++| `feedback_publish_hz` | `10` | Rate of `/current_bus_voltage` and `/temperature` |
++| `activation_timeout_s` | `0.5` | How long to wait for devices to answer when activating |
++
++### Joint parameters (`<joint>`)
++
++| Param | Default | Meaning |
++|---|---|---|
++| `can_id` | `-1` | TalonFX CAN ID. `-1` = not connected: the joint echoes its command (for testing) |
++| `gear_ratio` | `1.0` | Motor rotations per joint rotation |
++| `inverted` | `false` | Flip direction so a positive command matches the URDF convention |
++| `neutral_mode` | `brake` | `brake` or `coast` when idle |
++| `max_velocity` | `0` | Clamp on commands in rad/s (0 = no clamp) |
++| `stator_current_limit` | none | Amps |
++| `supply_current_limit` | none | Amps |
++| `kP`, `kS`, `kV` | `0` | Slot 0 velocity gains (joint units). With all three at 0 the motor won't move |
++| `min_position`, `max_position` | none | Travel limits in rad, applied as TalonFX soft limits |
++| `initial_position` | none | Joint angle at power-on; needed before soft limits make sense |
++
++Settings are applied to the devices every time the plugin configures, so anything set by hand
++in Phoenix Tuner X (gains, limits, inversion, brake mode) is overwritten.
++
++## Behavior notes
++
++- **Activation fails** if any connected device doesn't answer, with the joint name and CAN ID in
++  the error. Nothing moves in that case.
++- **Lost contact** while running makes `read()` return an error; the controller manager then
++  deactivates the hardware and every motor is set to neutral.
++- **Soft limits without `initial_position`** log a warning: the encoder reads 0 wherever the
++  joint is at power-on, so the limits would be in the wrong place.
++- `velocity_controllers/JointGroupVelocityController` (`arm_drum_controller`) has no command
++  timeout in Jazzy, so the arms and drums keep their last command until something sends zeros.
+diff --git a/src/canivore_hardware/canivore_hardware.xml b/src/canivore_hardware/canivore_hardware.xml
+new file mode 100644
+index 0000000..2c1e1b1
+--- /dev/null
++++ b/src/canivore_hardware/canivore_hardware.xml
+@@ -0,0 +1,11 @@
++<library path="canivore_hardware">
++  <class
++    name="canivore_hardware/CanivoreHardware"
++    type="canivore_hardware::CanivoreHardware"
++    base_class_type="hardware_interface::SystemInterface">
++    <description>
++      Drives TalonFX motors over a CTRE CANivore with Phoenix 6. Joints with can_id -1 are
++      treated as not connected and echo their commands, for bench testing without hardware.
++    </description>
++  </class>
++</library>
+diff --git a/src/canivore_hardware/include/canivore_hardware/canivore_hardware.hpp b/src/canivore_hardware/include/canivore_hardware/canivore_hardware.hpp
+new file mode 100644
+index 0000000..b3678ee
+--- /dev/null
++++ b/src/canivore_hardware/include/canivore_hardware/canivore_hardware.hpp
+@@ -0,0 +1,98 @@
++#pragma once
++
++#include <memory>
++#include <optional>
++#include <string>
++#include <vector>
++
++#include <ctre/phoenix6/TalonFX.hpp>
++
++#include "hardware_interface/system_interface.hpp"
++#include "rclcpp/rclcpp.hpp"
++#include "rclcpp_lifecycle/state.hpp"
++#include "serial_msgs/msg/current_bus_voltage.hpp"
++#include "serial_msgs/msg/temperature.hpp"
++
++namespace canivore_hardware
++{
++
++/// Everything the plugin knows about one ros2_control joint.
++struct JointMotor
++{
++  // ---- Read from the URDF (<joint><param .../></joint>) ----
++  std::string name;
++  int can_id{-1};                 // -1 = not connected: the joint echoes its command
++  double gear_ratio{1.0};         // motor rotations per joint rotation
++  bool inverted{false};           // flip so that +velocity matches the URDF convention
++  bool brake{true};               // neutral mode: brake (true) or coast (false)
++  double max_velocity{0.0};       // rad/s clamp on commands, 0 = no clamp
++  double stator_current_limit{0.0};  // A, 0 = keep Phoenix default
++  double supply_current_limit{0.0};  // A, 0 = keep Phoenix default
++  double kP{0.0}, kS{0.0}, kV{0.0};  // Slot0 gains, in Phoenix units (V per rotation/s)
++  std::optional<double> min_position;      // rad, enables reverse soft limit
++  std::optional<double> max_position;      // rad, enables forward soft limit
++  std::optional<double> initial_position;  // rad, encoder is set to this on configure
++
++  // ---- Interface names, built once so read()/write() don't rebuild strings ----
++  std::string cmd_velocity, st_position, st_velocity, st_effort;
++  bool has_position{false}, has_velocity{false}, has_effort{false};
++
++  // ---- Phoenix objects, only created for connected joints ----
++  std::unique_ptr<ctre::phoenix6::hardware::TalonFX> talon;
++  ctre::phoenix6::controls::VelocityVoltage velocity_request{units::turns_per_second_t{0.0}};
++
++  // ---- Latest values ----
++  double position{0.0};    // rad
++  double velocity{0.0};    // rad/s
++  double current{0.0};     // A (stator current, used as effort)
++  double temperature{0.0}; // degrees C
++  double supply_voltage{0.0};
++
++  bool connected() const {return can_id >= 0;}
++};
++
++class CanivoreHardware : public hardware_interface::SystemInterface
++{
++public:
++  hardware_interface::CallbackReturn on_init(
++    const hardware_interface::HardwareComponentInterfaceParams & params) override;
++
++  hardware_interface::CallbackReturn on_configure(const rclcpp_lifecycle::State &) override;
++  hardware_interface::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &) override;
++  hardware_interface::CallbackReturn on_activate(const rclcpp_lifecycle::State &) override;
++  hardware_interface::CallbackReturn on_deactivate(const rclcpp_lifecycle::State &) override;
++  hardware_interface::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &) override;
++  hardware_interface::CallbackReturn on_error(const rclcpp_lifecycle::State &) override;
++
++  hardware_interface::return_type read(
++    const rclcpp::Time & time, const rclcpp::Duration & period) override;
++  hardware_interface::return_type write(
++    const rclcpp::Time & time, const rclcpp::Duration & period) override;
++
++private:
++  bool configure_motor(JointMotor & motor);
++  void stop_all_motors();
++  void publish_feedback(const rclcpp::Time & time);
++  JointMotor * find(const std::string & joint_name);
++
++  // ---- Hardware-level params (<hardware><param .../></hardware>) ----
++  std::string canbus_name_{"*"};  // must outlive canbus_, which keeps a view of it
++  int feed_timeout_ms_{100};
++  bool enable_foc_{false};
++  double status_frequency_hz_{100.0};
++  double feedback_publish_hz_{10.0};
++  double activation_timeout_s_{0.5};
++
++  std::unique_ptr<ctre::phoenix6::CANBus> canbus_;
++  std::vector<JointMotor> motors_;
++  // Every status signal of every connected motor, refreshed together once per read().
++  std::vector<ctre::phoenix6::BaseStatusSignal *> signals_;
++  ctre::phoenix6::controls::NeutralOut neutral_request_{};
++
++  rclcpp::Publisher<serial_msgs::msg::CurrentBusVoltage>::SharedPtr current_bus_pub_;
++  rclcpp::Publisher<serial_msgs::msg::Temperature>::SharedPtr temperature_pub_;
++  double last_feedback_publish_s_{-1.0e9};  // seconds; plain double avoids clock-type mismatches
++  bool read_error_logged_{false};
++};
++
++}  // namespace canivore_hardware
+diff --git a/src/canivore_hardware/package.xml b/src/canivore_hardware/package.xml
+new file mode 100644
+index 0000000..30e3929
+--- /dev/null
++++ b/src/canivore_hardware/package.xml
+@@ -0,0 +1,26 @@
++<?xml version="1.0"?>
++<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
++<package format="3">
++  <name>canivore_hardware</name>
++  <version>0.0.0</version>
++  <description>ros2_control hardware interface that drives TalonFX motors (Kraken X60) through a CTRE CANivore using Phoenix 6.</description>
++  <maintainer email="todo@virginia.edu">MARS UVA</maintainer>
++  <license>TODO: License declaration</license>
++
++  <buildtool_depend>ament_cmake</buildtool_depend>
++
++  <depend>hardware_interface</depend>
++  <depend>pluginlib</depend>
++  <depend>rclcpp</depend>
++  <depend>rclcpp_lifecycle</depend>
++  <depend>serial_msgs</depend>
++  <!-- Phoenix 6 (C++) is not a rosdep key. Install it from CTRE's APT repository:
++       sudo apt install phoenix6   (plus canivore-usb on the machine the CANivore plugs into) -->
++
++  <test_depend>ament_lint_auto</test_depend>
++  <test_depend>ament_lint_common</test_depend>
++
++  <export>
++    <build_type>ament_cmake</build_type>
++  </export>
++</package>
+diff --git a/src/canivore_hardware/src/canivore_hardware.cpp b/src/canivore_hardware/src/canivore_hardware.cpp
+new file mode 100644
+index 0000000..0b0a4b6
+--- /dev/null
++++ b/src/canivore_hardware/src/canivore_hardware.cpp
+@@ -0,0 +1,538 @@
++#include "canivore_hardware/canivore_hardware.hpp"
++
++#include <algorithm>
++#include <cmath>
++#include <numbers>
++#include <set>
++#include <stdexcept>
++
++#include <ctre/phoenix6/unmanaged/Unmanaged.hpp>
++
++#include "hardware_interface/types/hardware_interface_type_values.hpp"
++#include "pluginlib/class_list_macros.hpp"
++
++using hardware_interface::CallbackReturn;
++using hardware_interface::return_type;
++namespace p6 = ctre::phoenix6;
++
++namespace canivore_hardware
++{
++
++namespace
++{
++
++constexpr double kTwoPi = 2.0 * std::numbers::pi;
++
++double rad_to_turns(double rad) {return rad / kTwoPi;}
++double turns_to_rad(double turns) {return turns * kTwoPi;}
++
++// ---- Parameter helpers. URDF params are always strings; these parse them with defaults. ----
++
++using ParamMap = std::unordered_map<std::string, std::string>;
++
++const std::string * lookup(const ParamMap & params, const std::string & key)
++{
++  const auto it = params.find(key);
++  if (it == params.end() || it->second.empty()) {
++    return nullptr;
++  }
++  return &it->second;
++}
++
++std::string get_string(const ParamMap & params, const std::string & key, const std::string & fallback)
++{
++  const auto * value = lookup(params, key);
++  return value ? *value : fallback;
++}
++
++double get_double(const ParamMap & params, const std::string & key, double fallback)
++{
++  const auto * value = lookup(params, key);
++  if (!value) {
++    return fallback;
++  }
++  try {
++    return std::stod(*value);
++  } catch (const std::exception &) {
++    throw std::invalid_argument("param '" + key + "' is not a number: '" + *value + "'");
++  }
++}
++
++std::optional<double> get_optional_double(const ParamMap & params, const std::string & key)
++{
++  // xacro writes "None" for values that were left out of the YAML.
++  const auto * value = lookup(params, key);
++  if (!value || *value == "None" || *value == "none") {
++    return std::nullopt;
++  }
++  return get_double(params, key, 0.0);
++}
++
++int get_int(const ParamMap & params, const std::string & key, int fallback)
++{
++  return static_cast<int>(std::lround(get_double(params, key, fallback)));
++}
++
++bool get_bool(const ParamMap & params, const std::string & key, bool fallback)
++{
++  const auto * value = lookup(params, key);
++  if (!value) {
++    return fallback;
++  }
++  std::string v = *value;
++  std::transform(v.begin(), v.end(), v.begin(), ::tolower);
++  if (v == "true" || v == "1" || v == "yes") {return true;}
++  if (v == "false" || v == "0" || v == "no") {return false;}
++  throw std::invalid_argument("param '" + key + "' is not a boolean: '" + *value + "'");
++}
++
++}  // namespace
++
++// =====================================================================================
++// on_init: read and validate parameters. Never touches the CAN bus.
++// =====================================================================================
++CallbackReturn CanivoreHardware::on_init(
++  const hardware_interface::HardwareComponentInterfaceParams & params)
++{
++  if (hardware_interface::SystemInterface::on_init(params) != CallbackReturn::SUCCESS) {
++    return CallbackReturn::ERROR;
++  }
++  const auto & info = get_hardware_info();
++
++  try {
++    const auto & hw = info.hardware_parameters;
++    canbus_name_ = get_string(hw, "canbus", "*");
++    feed_timeout_ms_ = get_int(hw, "feed_timeout_ms", 100);
++    enable_foc_ = get_bool(hw, "enable_foc", false);
++    status_frequency_hz_ = get_double(hw, "status_frequency_hz", 100.0);
++    feedback_publish_hz_ = get_double(hw, "feedback_publish_hz", 10.0);
++    activation_timeout_s_ = get_double(hw, "activation_timeout_s", 0.5);
++
++    std::set<int> used_ids;
++    for (const auto & joint : info.joints) {
++      JointMotor m;
++      m.name = joint.name;
++      const auto & jp = joint.parameters;
++      m.can_id = get_int(jp, "can_id", -1);
++      m.gear_ratio = get_double(jp, "gear_ratio", 1.0);
++      m.inverted = get_bool(jp, "inverted", false);
++      m.brake = get_string(jp, "neutral_mode", "brake") != "coast";
++      m.max_velocity = get_double(jp, "max_velocity", 0.0);
++      m.stator_current_limit = get_double(jp, "stator_current_limit", 0.0);
++      m.supply_current_limit = get_double(jp, "supply_current_limit", 0.0);
++      m.kP = get_double(jp, "kP", 0.0);
++      m.kS = get_double(jp, "kS", 0.0);
++      m.kV = get_double(jp, "kV", 0.0);
++      m.min_position = get_optional_double(jp, "min_position");
++      m.max_position = get_optional_double(jp, "max_position");
++      m.initial_position = get_optional_double(jp, "initial_position");
++
++      if (m.connected()) {
++        if (m.can_id > 62) {
++          RCLCPP_ERROR(get_logger(), "Joint '%s': CAN ID %d is out of range 0-62",
++            m.name.c_str(), m.can_id);
++          return CallbackReturn::ERROR;
++        }
++        if (!used_ids.insert(m.can_id).second) {
++          RCLCPP_ERROR(get_logger(), "Joint '%s': CAN ID %d is used by another joint",
++            m.name.c_str(), m.can_id);
++          return CallbackReturn::ERROR;
++        }
++        if ((m.min_position || m.max_position) && !m.initial_position) {
++          RCLCPP_WARN(get_logger(),
++            "Joint '%s': soft limits are set but initial_position is not. The encoder will read 0 "
++            "wherever the joint is at power-on, so the limits will be in the wrong place.",
++            m.name.c_str());
++        }
++      }
++      if (m.gear_ratio <= 0.0) {
++        RCLCPP_ERROR(get_logger(), "Joint '%s': gear_ratio must be > 0", m.name.c_str());
++        return CallbackReturn::ERROR;
++      }
++
++      // This plugin only accepts velocity commands, which is what both controllers send.
++      bool has_velocity_command = false;
++      for (const auto & ci : joint.command_interfaces) {
++        if (ci.name == hardware_interface::HW_IF_VELOCITY) {
++          has_velocity_command = true;
++        } else {
++          RCLCPP_ERROR(get_logger(), "Joint '%s': unsupported command interface '%s'",
++            m.name.c_str(), ci.name.c_str());
++          return CallbackReturn::ERROR;
++        }
++      }
++      if (!has_velocity_command) {
++        RCLCPP_ERROR(get_logger(), "Joint '%s' needs a velocity command interface",
++          m.name.c_str());
++        return CallbackReturn::ERROR;
++      }
++      for (const auto & si : joint.state_interfaces) {
++        if (si.name == hardware_interface::HW_IF_POSITION) {m.has_position = true;}
++        if (si.name == hardware_interface::HW_IF_VELOCITY) {m.has_velocity = true;}
++        if (si.name == hardware_interface::HW_IF_EFFORT) {m.has_effort = true;}
++      }
++
++      m.cmd_velocity = m.name + "/" + hardware_interface::HW_IF_VELOCITY;
++      m.st_position = m.name + "/" + hardware_interface::HW_IF_POSITION;
++      m.st_velocity = m.name + "/" + hardware_interface::HW_IF_VELOCITY;
++      m.st_effort = m.name + "/" + hardware_interface::HW_IF_EFFORT;
++      m.position = m.initial_position.value_or(0.0);
++
++      RCLCPP_INFO(get_logger(), "Joint '%s': %s, gear ratio %.3f%s",
++        m.name.c_str(),
++        m.connected() ? ("TalonFX CAN ID " + std::to_string(m.can_id)).c_str() :
++        "NOT CONNECTED (echoes commands)",
++        m.gear_ratio, m.inverted ? ", inverted" : "");
++      motors_.push_back(std::move(m));
++    }
++  } catch (const std::exception & e) {
++    RCLCPP_ERROR(get_logger(), "Bad hardware parameter: %s", e.what());
++    return CallbackReturn::ERROR;
++  }
++
++  // Same feedback topics the serial plugin publishes, so the dashboard and dig/dump keep working.
++  if (auto node = get_node()) {
++    current_bus_pub_ =
++      node->create_publisher<serial_msgs::msg::CurrentBusVoltage>("current_bus_voltage", 10);
++    temperature_pub_ = node->create_publisher<serial_msgs::msg::Temperature>("temperature", 10);
++  } else {
++    RCLCPP_WARN(get_logger(), "No node available; feedback topics will not be published");
++  }
++
++  RCLCPP_INFO(get_logger(), "Configured %zu joints on CAN bus '%s'", motors_.size(),
++    canbus_name_.c_str());
++  return CallbackReturn::SUCCESS;
++}
++
++// =====================================================================================
++// on_configure: create the TalonFX objects and push configs to them. Apply() blocks, which is
++// fine here but would not be in read()/write().
++// =====================================================================================
++CallbackReturn CanivoreHardware::on_configure(const rclcpp_lifecycle::State &)
++{
++  signals_.clear();
++  const bool any_connected =
++    std::any_of(motors_.begin(), motors_.end(), [](const auto & m) {return m.connected();});
++  if (!any_connected) {
++    RCLCPP_WARN(get_logger(), "No joints have a CAN ID; running with every joint echoing commands");
++    return CallbackReturn::SUCCESS;
++  }
++
++  canbus_ = std::make_unique<p6::CANBus>(canbus_name_);
++  for (auto & m : motors_) {
++    if (!m.connected()) {
++      continue;
++    }
++    m.talon = std::make_unique<p6::hardware::TalonFX>(m.can_id, *canbus_);
++    if (!configure_motor(m)) {
++      return CallbackReturn::ERROR;
++    }
++    // Pointers stay valid for the lifetime of the TalonFX object.
++    signals_.push_back(&m.talon->GetPosition(false));
++    signals_.push_back(&m.talon->GetVelocity(false));
++    signals_.push_back(&m.talon->GetStatorCurrent(false));
++    signals_.push_back(&m.talon->GetDeviceTemp(false));
++    signals_.push_back(&m.talon->GetSupplyVoltage(false));
++  }
++
++  // Ask for the signals we use at a steady rate, then turn off every status frame we don't use.
++  p6::BaseStatusSignal::SetUpdateFrequencyForAll(units::hertz_t{status_frequency_hz_}, signals_);
++  for (auto & m : motors_) {
++    if (m.talon) {
++      m.talon->OptimizeBusUtilization();
++    }
++  }
++  return CallbackReturn::SUCCESS;
++}
++
++bool CanivoreHardware::configure_motor(JointMotor & m)
++{
++  p6::configs::TalonFXConfiguration config{};
++
++  config.MotorOutput.NeutralMode =
++    m.brake ? p6::signals::NeutralModeValue::Brake : p6::signals::NeutralModeValue::Coast;
++  config.MotorOutput.Inverted = m.inverted ?
++    p6::signals::InvertedValue::Clockwise_Positive :
++    p6::signals::InvertedValue::CounterClockwise_Positive;
++
++  // With this set, every position/velocity the TalonFX reports or accepts is in *joint*
++  // rotations, so the code only converts rotations <-> radians.
++  config.Feedback.SensorToMechanismRatio = m.gear_ratio;
++
++  if (m.stator_current_limit > 0.0) {
++    config.CurrentLimits.StatorCurrentLimit = units::ampere_t{m.stator_current_limit};
++    config.CurrentLimits.StatorCurrentLimitEnable = true;
++  }
++  if (m.supply_current_limit > 0.0) {
++    config.CurrentLimits.SupplyCurrentLimit = units::ampere_t{m.supply_current_limit};
++    config.CurrentLimits.SupplyCurrentLimitEnable = true;
++  }
++
++  config.Slot0.kP = m.kP;
++  config.Slot0.kS = m.kS;
++  config.Slot0.kV = m.kV;
++
++  // Gazebo stops the arms at their joint limits; on the real robot these soft limits do it.
++  if (m.max_position) {
++    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
++    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = units::turn_t{rad_to_turns(*m.max_position)};
++  }
++  if (m.min_position) {
++    config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
++    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = units::turn_t{rad_to_turns(*m.min_position)};
++  }
++
++  const auto status = m.talon->GetConfigurator().Apply(config);
++  if (!status.IsOK()) {
++    RCLCPP_ERROR(get_logger(),
++      "Joint '%s': could not configure TalonFX CAN ID %d on bus '%s': %s. "
++      "Check the CAN ID, the bus name and that the device is powered.",
++      m.name.c_str(), m.can_id, canbus_name_.c_str(), status.GetName());
++    return false;
++  }
++
++  // The built-in encoder starts at zero wherever the joint is at power-on. If the joint has a
++  // known starting position (e.g. arms stowed against a hard stop), tell the encoder.
++  if (m.initial_position) {
++    const auto pos_status = m.talon->SetPosition(units::turn_t{rad_to_turns(*m.initial_position)});
++    if (!pos_status.IsOK()) {
++      RCLCPP_ERROR(get_logger(), "Joint '%s': could not set initial position: %s",
++        m.name.c_str(), pos_status.GetName());
++      return false;
++    }
++  }
++  return true;
++}
++
++CallbackReturn CanivoreHardware::on_cleanup(const rclcpp_lifecycle::State &)
++{
++  stop_all_motors();
++  signals_.clear();
++  for (auto & m : motors_) {
++    m.talon.reset();
++  }
++  canbus_.reset();
++  return CallbackReturn::SUCCESS;
++}
++
++// =====================================================================================
++// on_activate: make sure every connected device is actually answering before anything moves.
++// =====================================================================================
++CallbackReturn CanivoreHardware::on_activate(const rclcpp_lifecycle::State &)
++{
++  if (!signals_.empty()) {
++    p6::BaseStatusSignal::WaitForAll(units::second_t{activation_timeout_s_}, false, signals_);
++    bool all_ok = true;
++    for (auto & m : motors_) {
++      if (!m.talon) {
++        continue;
++      }
++      const auto status = m.talon->GetPosition(false).GetStatus();
++      if (!status.IsOK()) {
++        RCLCPP_ERROR(get_logger(), "Joint '%s': TalonFX CAN ID %d not responding on bus '%s': %s",
++          m.name.c_str(), m.can_id, canbus_name_.c_str(), status.GetName());
++        all_ok = false;
++      }
++    }
++    if (!all_ok) {
++      return CallbackReturn::ERROR;
++    }
++  }
++
++  // Start with zero commands and states that reflect the hardware.
++  for (auto & m : motors_) {
++    set_command(m.cmd_velocity, 0.0);
++    if (m.talon) {
++      m.position = turns_to_rad(m.talon->GetPosition(false).GetValueAsDouble());
++    }
++    m.velocity = 0.0;
++    if (m.has_position) {set_state(m.st_position, m.position);}
++    if (m.has_velocity) {set_state(m.st_velocity, 0.0);}
++    if (m.has_effort) {set_state(m.st_effort, 0.0);}
++  }
++  read_error_logged_ = false;
++  RCLCPP_INFO(get_logger(), "Activated");
++  return CallbackReturn::SUCCESS;
++}
++
++CallbackReturn CanivoreHardware::on_deactivate(const rclcpp_lifecycle::State &)
++{
++  stop_all_motors();
++  RCLCPP_INFO(get_logger(), "Deactivated, motors set to neutral");
++  return CallbackReturn::SUCCESS;
++}
++
++CallbackReturn CanivoreHardware::on_shutdown(const rclcpp_lifecycle::State &)
++{
++  stop_all_motors();
++  return CallbackReturn::SUCCESS;
++}
++
++CallbackReturn CanivoreHardware::on_error(const rclcpp_lifecycle::State &)
++{
++  stop_all_motors();
++  return CallbackReturn::SUCCESS;
++}
++
++void CanivoreHardware::stop_all_motors()
++{
++  for (auto & m : motors_) {
++    if (m.talon) {
++      m.talon->SetControl(neutral_request_);
++    }
++  }
++}
++
++// =====================================================================================
++// read(): runs every control cycle (500 Hz in controllers.yaml).
++// =====================================================================================
++return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
++{
++  if (!signals_.empty()) {
++    // One call refreshes every signal from every motor; much cheaper than one call each.
++    const auto status = p6::BaseStatusSignal::RefreshAll(false, signals_);
++    if (!status.IsOK()) {
++      if (!read_error_logged_) {
++        RCLCPP_ERROR(get_logger(), "Lost contact with motors on bus '%s': %s",
++          canbus_name_.c_str(), status.GetName());
++        read_error_logged_ = true;
++      }
++      // Returning ERROR makes the controller manager deactivate the hardware, which stops
++      // the motors. Better than driving on stale feedback.
++      return return_type::ERROR;
++    }
++  }
++
++  for (auto & m : motors_) {
++    if (m.talon) {
++      m.position = turns_to_rad(m.talon->GetPosition(false).GetValueAsDouble());
++      m.velocity = turns_to_rad(m.talon->GetVelocity(false).GetValueAsDouble());
++      m.current = m.talon->GetStatorCurrent(false).GetValueAsDouble();
++      m.temperature = m.talon->GetDeviceTemp(false).GetValueAsDouble();
++      m.supply_voltage = m.talon->GetSupplyVoltage(false).GetValueAsDouble();
++    } else {
++      // Not connected: behave like a perfect motor, so the controllers and everything
++      // downstream can be tested without hardware.
++      m.velocity = get_command(m.cmd_velocity);
++      if (!std::isfinite(m.velocity)) {
++        m.velocity = 0.0;
++      }
++      m.position += m.velocity * period.seconds();
++      // A real joint stops at the end of its travel, so the echo should too.
++      if (m.min_position && m.position < *m.min_position) {
++        m.position = *m.min_position;
++        m.velocity = 0.0;
++      }
++      if (m.max_position && m.position > *m.max_position) {
++        m.position = *m.max_position;
++        m.velocity = 0.0;
++      }
++      m.current = 0.0;
++    }
++    if (m.has_position) {set_state(m.st_position, m.position);}
++    if (m.has_velocity) {set_state(m.st_velocity, m.velocity);}
++    if (m.has_effort) {set_state(m.st_effort, m.current);}
++  }
++
++  publish_feedback(time);
++  return return_type::OK;
++}
++
++// =====================================================================================
++// write(): convert joint velocity commands (rad/s) to Phoenix requests (rotations/s).
++// =====================================================================================
++return_type CanivoreHardware::write(const rclcpp::Time &, const rclcpp::Duration &)
++{
++  if (signals_.empty()) {
++    return return_type::OK;  // nothing connected
++  }
++
++  // Safety feed: the motors only stay enabled while this keeps being called. If the controller
++  // manager crashes or stalls, they disable themselves after feed_timeout_ms_.
++  ctre::phoenix::unmanaged::FeedEnable(feed_timeout_ms_);
++
++  for (auto & m : motors_) {
++    if (!m.talon) {
++      continue;
++    }
++    double command = get_command(m.cmd_velocity);
++    if (!std::isfinite(command)) {
++      command = 0.0;
++    }
++    if (m.max_velocity > 0.0) {
++      command = std::clamp(command, -m.max_velocity, m.max_velocity);
++    }
++    m.talon->SetControl(
++      m.velocity_request
++      .WithVelocity(units::turns_per_second_t{rad_to_turns(command)})
++      .WithEnableFOC(enable_foc_));
++  }
++  return return_type::OK;
++}
++
++JointMotor * CanivoreHardware::find(const std::string & joint_name)
++{
++  for (auto & m : motors_) {
++    if (m.name == joint_name) {
++      return &m;
++    }
++  }
++  return nullptr;
++}
++
++void CanivoreHardware::publish_feedback(const rclcpp::Time & time)
++{
++  if (!current_bus_pub_ || feedback_publish_hz_ <= 0.0) {
++    return;
++  }
++  const double now = time.seconds();
++  if (now - last_feedback_publish_s_ < 1.0 / feedback_publish_hz_) {
++    return;
++  }
++  last_feedback_publish_s_ = now;
++
++  auto current = [this](const char * joint) -> float {
++      const auto * m = find(joint);
++      return m ? static_cast<float>(m->current) : 0.0f;
++    };
++  auto temperature = [this](const char * joint) -> float {
++      const auto * m = find(joint);
++      return m ? static_cast<float>(m->temperature) : 0.0f;
++    };
++
++  serial_msgs::msg::CurrentBusVoltage bus;
++  bus.front_left_wheel_current = current("front_left_wheel_joint");
++  bus.front_right_wheel_current = current("front_right_wheel_joint");
++  bus.back_left_wheel_current = current("rear_left_wheel_joint");
++  bus.back_right_wheel_current = current("rear_right_wheel_joint");
++  bus.front_drum_current = current("front_drum_joint");
++  bus.back_drum_current = current("rear_drum_joint");
++  bus.front_actuator_current = current("front_arm_joint");
++  bus.back_actuator_current = current("rear_arm_joint");
++  // Every TalonFX measures its own supply voltage; average them as the main battery voltage.
++  // Nothing on the CAN bus measures the aux battery, so it stays 0.
++  double voltage_sum = 0.0;
++  int voltage_count = 0;
++  for (const auto & m : motors_) {
++    if (m.talon) {
++      voltage_sum += m.supply_voltage;
++      ++voltage_count;
++    }
++  }
++  bus.main_battery_voltage = voltage_count ? static_cast<float>(voltage_sum / voltage_count) : 0.0f;
++  bus.aux_battery_voltage = 0.0f;
++  current_bus_pub_->publish(bus);
++
++  serial_msgs::msg::Temperature temp;
++  temp.front_left_wheel_temperature = temperature("front_left_wheel_joint");
++  temp.front_right_wheel_temperature = temperature("front_right_wheel_joint");
++  temp.back_left_wheel_temperature = temperature("rear_left_wheel_joint");
++  temp.back_right_wheel_temperature = temperature("rear_right_wheel_joint");
++  temp.front_drum_temperature = temperature("front_drum_joint");
++  temp.back_drum_temperature = temperature("rear_drum_joint");
++  temperature_pub_->publish(temp);
++}
++
++}  // namespace canivore_hardware
++
++PLUGINLIB_EXPORT_CLASS(canivore_hardware::CanivoreHardware, hardware_interface::SystemInterface)
+diff --git a/src/canivore_hardware_bench/CMakeLists.txt b/src/canivore_hardware_bench/CMakeLists.txt
+new file mode 100644
+index 0000000..49c4818
+--- /dev/null
++++ b/src/canivore_hardware_bench/CMakeLists.txt
+@@ -0,0 +1,9 @@
++cmake_minimum_required(VERSION 3.8)
++project(canivore_hardware_bench)
++
++find_package(ament_cmake REQUIRED)
++
++install(DIRECTORY config launch urdf DESTINATION share/${PROJECT_NAME})
++install(PROGRAMS scripts/drive_check.py DESTINATION lib/${PROJECT_NAME})
++
++ament_package()
+diff --git a/src/canivore_hardware_bench/config/bench_controllers.yaml b/src/canivore_hardware_bench/config/bench_controllers.yaml
+new file mode 100644
+index 0000000..0bdba8c
+--- /dev/null
++++ b/src/canivore_hardware_bench/config/bench_controllers.yaml
+@@ -0,0 +1,36 @@
++# Same controllers as the robot (startup/config/controllers.yaml), copied so the bench doesn't
++# depend on the startup package.
++controller_manager:
++  ros__parameters:
++    update_rate: 500  # Hz
++
++    joint_state_broadcaster:
++      type: joint_state_broadcaster/JointStateBroadcaster
++
++    base_controller:
++      type: diff_drive_controller/DiffDriveController
++
++    arm_drum_controller:
++      type: velocity_controllers/JointGroupVelocityController
++
++base_controller:
++  ros__parameters:
++    left_wheel_names: [front_left_wheel_joint, rear_left_wheel_joint]
++    right_wheel_names: [front_right_wheel_joint, rear_right_wheel_joint]
++    wheel_separation: 0.4318
++    wheel_radius: 0.1778
++    base_frame_id: base_link
++    enable_odom_tf: false
++    publish_rate: 50.0
++    cmd_vel_timeout: 0.5
++    open_loop: true
++    linear.x.has_velocity_limits: true
++    linear.x.max_velocity: 0.80
++    linear.x.min_velocity: -0.80
++    angular.z.has_velocity_limits: true
++    angular.z.max_velocity: 2.4
++    angular.z.min_velocity: -2.4
++
++arm_drum_controller:
++  ros__parameters:
++    joints: [front_arm_joint, rear_arm_joint, front_drum_joint, rear_drum_joint]
+diff --git a/src/canivore_hardware_bench/config/bench_hardware.yaml b/src/canivore_hardware_bench/config/bench_hardware.yaml
+new file mode 100644
+index 0000000..f80b675
+--- /dev/null
++++ b/src/canivore_hardware_bench/config/bench_hardware.yaml
+@@ -0,0 +1,23 @@
++# Bench settings for canivore_hardware. Used only by canivore_hardware_bench, never by the robot.
++#
++# can_id: -1 means "not connected": the joint echoes its command back as its state, so the
++# whole stack runs with no hardware. To bench-test a motor, give just that joint its real CAN
++# ID (from Phoenix Tuner X) and leave the rest at -1.
++#
++# Keys left out fall back to the plugin's defaults (see canivore_hardware/README.md).
++
++canbus: "*"              # "*" = any CANivore found
++feed_timeout_ms: 100
++enable_foc: false
++
++joints:
++  front_left_wheel_joint:  {can_id: -1, max_velocity: 10.0}
++  front_right_wheel_joint: {can_id: -1, max_velocity: 10.0}
++  rear_left_wheel_joint:   {can_id: -1, max_velocity: 10.0}
++  rear_right_wheel_joint:  {can_id: -1, max_velocity: 10.0}
++  front_drum_joint:        {can_id: -1, max_velocity: 10.0, neutral_mode: coast}
++  rear_drum_joint:         {can_id: -1, max_velocity: 10.0, neutral_mode: coast}
++  # Arm limits match the URDF (-1.2 to 0.2 rad, 2 rad/s). On real hardware, also set
++  # initial_position (the arm angle at power-on) or the soft limits will be in the wrong place.
++  front_arm_joint: {can_id: -1, max_velocity: 2.0, min_position: -1.2, max_position: 0.2}
++  rear_arm_joint:  {can_id: -1, max_velocity: 2.0, min_position: -1.2, max_position: 0.2}
+diff --git a/src/canivore_hardware_bench/launch/bench.launch.py b/src/canivore_hardware_bench/launch/bench.launch.py
+new file mode 100644
+index 0000000..32b5b74
+--- /dev/null
++++ b/src/canivore_hardware_bench/launch/bench.launch.py
+@@ -0,0 +1,51 @@
++"""Bench test for canivore_hardware, separate from the robot's own launch files.
++
++    ros2 launch canivore_hardware_bench bench.launch.py
++    ros2 launch canivore_hardware_bench bench.launch.py hardware_config:=/path/to/my.yaml
++
++Starts robot_state_publisher, the controller manager with canivore_hardware, and the same three
++controllers the robot uses. Then run `ros2 run canivore_hardware_bench drive_check.py`.
++"""
++
++from launch import LaunchDescription
++from launch.actions import DeclareLaunchArgument
++from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
++from launch_ros.actions import Node
++from launch_ros.parameter_descriptions import ParameterValue
++from launch_ros.substitutions import FindPackageShare
++
++
++def generate_launch_description():
++    pkg = FindPackageShare('canivore_hardware_bench')
++
++    robot_description = ParameterValue(Command([
++        'xacro ', PathJoinSubstitution([pkg, 'urdf', 'bench.urdf.xacro']),
++        ' hardware_config:=', LaunchConfiguration('hardware_config'),
++    ]), value_type=str)
++    controllers = PathJoinSubstitution([pkg, 'config', 'bench_controllers.yaml'])
++
++    def spawner(name):
++        return Node(
++            package='controller_manager', executable='spawner', output='screen',
++            arguments=[name, '--controller-manager', '/controller_manager',
++                       '--param-file', controllers],
++        )
++
++    return LaunchDescription([
++        DeclareLaunchArgument(
++            'hardware_config',
++            default_value=PathJoinSubstitution([pkg, 'config', 'bench_hardware.yaml']),
++            description='YAML with CAN IDs and settings for each joint',
++        ),
++        Node(
++            package='robot_state_publisher', executable='robot_state_publisher', output='screen',
++            parameters=[{'robot_description': robot_description}],
++        ),
++        Node(
++            package='controller_manager', executable='ros2_control_node', output='screen',
++            parameters=[{'robot_description': robot_description}, controllers],
++        ),
++        spawner('joint_state_broadcaster'),
++        spawner('base_controller'),
++        spawner('arm_drum_controller'),
++    ])
+diff --git a/src/canivore_hardware_bench/package.xml b/src/canivore_hardware_bench/package.xml
+new file mode 100644
+index 0000000..c97a9a0
+--- /dev/null
++++ b/src/canivore_hardware_bench/package.xml
+@@ -0,0 +1,28 @@
++<?xml version="1.0"?>
++<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
++<package format="3">
++  <name>canivore_hardware_bench</name>
++  <version>0.0.0</version>
++  <description>Bench test setup for canivore_hardware. Separate from the robot's main launch and URDF.</description>
++  <maintainer email="todo@virginia.edu">MARS UVA</maintainer>
++  <license>TODO: License declaration</license>
++
++  <buildtool_depend>ament_cmake</buildtool_depend>
++
++  <exec_depend>canivore_hardware</exec_depend>
++  <exec_depend>controller_manager</exec_depend>
++  <exec_depend>diff_drive_controller</exec_depend>
++  <exec_depend>velocity_controllers</exec_depend>
++  <exec_depend>joint_state_broadcaster</exec_depend>
++  <exec_depend>robot_state_publisher</exec_depend>
++  <exec_depend>xacro</exec_depend>
++  <exec_depend>launch_ros</exec_depend>
++  <exec_depend>rclpy</exec_depend>
++  <exec_depend>geometry_msgs</exec_depend>
++  <exec_depend>sensor_msgs</exec_depend>
++  <exec_depend>std_msgs</exec_depend>
++
++  <export>
++    <build_type>ament_cmake</build_type>
++  </export>
++</package>
+diff --git a/src/canivore_hardware_bench/scripts/drive_check.py b/src/canivore_hardware_bench/scripts/drive_check.py
+new file mode 100755
+index 0000000..94c5c95
+--- /dev/null
++++ b/src/canivore_hardware_bench/scripts/drive_check.py
+@@ -0,0 +1,64 @@
++#!/usr/bin/env python3
++"""Send fixed commands for a few seconds, then print every joint's position and velocity.
++
++    ros2 run canivore_hardware_bench drive_check.py
++    ros2 run canivore_hardware_bench drive_check.py --linear 0.2 --angular 0 --arms 0 0 --drums 0.5 0.5
++
++With no hardware connected, the wheel velocities should match the diff-drive math for the
++commanded twist, and the arm/drum velocities should equal the commands.
++"""
++
++import argparse
++import time
++
++import rclpy
++from geometry_msgs.msg import TwistStamped
++from rclpy.node import Node
++from sensor_msgs.msg import JointState
++from std_msgs.msg import Float64MultiArray
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--linear', type=float, default=0.3, help='m/s')
++    parser.add_argument('--angular', type=float, default=0.5, help='rad/s')
++    parser.add_argument('--arms', type=float, nargs=2, default=[-0.5, 0.5], metavar=('FRONT', 'REAR'), help='rad/s')
++    parser.add_argument('--drums', type=float, nargs=2, default=[1.0, -1.0], metavar=('FRONT', 'REAR'), help='rad/s')
++    parser.add_argument('--seconds', type=float, default=4.0)
++    args, _ = parser.parse_known_args()
++
++    rclpy.init()
++    node = Node('drive_check')
++    latest = {}
++    node.create_subscription(JointState, '/joint_states', lambda m: latest.update(js=m), 10)
++    cmd_vel = node.create_publisher(TwistStamped, '/base_controller/cmd_vel', 10)
++    arm_drum = node.create_publisher(Float64MultiArray, '/arm_drum_controller/commands', 10)
++
++    end = time.time() + args.seconds
++    while time.time() < end:
++        twist = TwistStamped()
++        twist.header.stamp = node.get_clock().now().to_msg()
++        twist.twist.linear.x = args.linear
++        twist.twist.angular.z = args.angular
++        cmd_vel.publish(twist)
++        # Order matches arm_drum_controller's joint list: front arm, rear arm, front drum, rear drum
++        arm_drum.publish(Float64MultiArray(data=[*args.arms, *args.drums]))
++        rclpy.spin_once(node, timeout_sec=0.05)
++
++    # Send zeros so the arms and drums stop: arm_drum_controller holds its last command.
++    for _ in range(5):
++        arm_drum.publish(Float64MultiArray(data=[0.0] * 4))
++        time.sleep(0.02)
++
++    if 'js' not in latest:
++        print('No /joint_states received. Is the bench launch running?')
++    else:
++        js = latest['js']
++        for name, pos, vel in zip(js.name, js.position, js.velocity):
++            print(f'{name:25s} position {pos:8.3f} rad   velocity {vel:7.3f} rad/s')
++    node.destroy_node()
++    rclpy.shutdown()
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/src/canivore_hardware_bench/urdf/bench.urdf.xacro b/src/canivore_hardware_bench/urdf/bench.urdf.xacro
+new file mode 100644
+index 0000000..32de42c
+--- /dev/null
++++ b/src/canivore_hardware_bench/urdf/bench.urdf.xacro
+@@ -0,0 +1,86 @@
++<?xml version="1.0"?>
++<!-- Minimal robot for bench-testing canivore_hardware. Same joint names as the real robot, but
++     simple shapes and no dependency on the startup package. Not used by the robot itself. -->
++<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="canivore_bench">
++
++  <xacro:arg name="hardware_config" default="$(find canivore_hardware_bench)/config/bench_hardware.yaml"/>
++  <xacro:property name="cfg" value="${xacro.load_yaml('$(arg hardware_config)')}"/>
++
++  <link name="base_link"/>
++
++  <!-- Links and joints -->
++  <xacro:macro name="wheel" params="name x y">
++    <link name="${name}"/>
++    <joint name="${name}_joint" type="continuous">
++      <parent link="base_link"/>
++      <child link="${name}"/>
++      <origin xyz="${x} ${y} 0"/>
++      <axis xyz="0 1 0"/>
++    </joint>
++  </xacro:macro>
++  <xacro:wheel name="front_left_wheel" x="0.2" y="0.2159"/>
++  <xacro:wheel name="front_right_wheel" x="0.2" y="-0.2159"/>
++  <xacro:wheel name="rear_left_wheel" x="-0.2" y="0.2159"/>
++  <xacro:wheel name="rear_right_wheel" x="-0.2" y="-0.2159"/>
++
++  <xacro:macro name="arm_and_drum" params="side x">
++    <link name="${side}_arm"/>
++    <joint name="${side}_arm_joint" type="revolute">
++      <parent link="base_link"/>
++      <child link="${side}_arm"/>
++      <origin xyz="${x} 0 0.1"/>
++      <axis xyz="0 1 0"/>
++      <limit lower="-1.2" upper="0.2" effort="1000" velocity="2.0"/>
++    </joint>
++    <link name="${side}_drum"/>
++    <joint name="${side}_drum_joint" type="continuous">
++      <parent link="${side}_arm"/>
++      <child link="${side}_drum"/>
++      <origin xyz="0.3 0 0"/>
++      <axis xyz="0 1 0"/>
++    </joint>
++  </xacro:macro>
++  <xacro:arm_and_drum side="front" x="0.3"/>
++  <xacro:arm_and_drum side="rear" x="-0.3"/>
++
++  <!-- ros2_control: every value comes from the yaml; keys left out use the plugin defaults -->
++  <xacro:macro name="hw_joint" params="name">
++    <xacro:property name="j" value="${cfg['joints'].get(name, dict())}"/>
++    <joint name="${name}">
++      <command_interface name="velocity"/>
++      <state_interface name="position"/>
++      <state_interface name="velocity"/>
++      <state_interface name="effort"/>
++      <xacro:if value="${'can_id' in j}"><param name="can_id">${j['can_id']}</param></xacro:if>
++      <xacro:if value="${'gear_ratio' in j}"><param name="gear_ratio">${j['gear_ratio']}</param></xacro:if>
++      <xacro:if value="${'inverted' in j}"><param name="inverted">${j['inverted']}</param></xacro:if>
++      <xacro:if value="${'neutral_mode' in j}"><param name="neutral_mode">${j['neutral_mode']}</param></xacro:if>
++      <xacro:if value="${'max_velocity' in j}"><param name="max_velocity">${j['max_velocity']}</param></xacro:if>
++      <xacro:if value="${'stator_current_limit' in j}"><param name="stator_current_limit">${j['stator_current_limit']}</param></xacro:if>
++      <xacro:if value="${'supply_current_limit' in j}"><param name="supply_current_limit">${j['supply_current_limit']}</param></xacro:if>
++      <xacro:if value="${'kP' in j}"><param name="kP">${j['kP']}</param></xacro:if>
++      <xacro:if value="${'kS' in j}"><param name="kS">${j['kS']}</param></xacro:if>
++      <xacro:if value="${'kV' in j}"><param name="kV">${j['kV']}</param></xacro:if>
++      <xacro:if value="${'initial_position' in j}"><param name="initial_position">${j['initial_position']}</param></xacro:if>
++      <xacro:if value="${'min_position' in j}"><param name="min_position">${j['min_position']}</param></xacro:if>
++      <xacro:if value="${'max_position' in j}"><param name="max_position">${j['max_position']}</param></xacro:if>
++    </joint>
++  </xacro:macro>
++
++  <ros2_control name="CanivoreBench" type="system">
++    <hardware>
++      <plugin>canivore_hardware/CanivoreHardware</plugin>
++      <param name="canbus">${cfg.get('canbus', '*')}</param>
++      <param name="feed_timeout_ms">${cfg.get('feed_timeout_ms', 100)}</param>
++      <param name="enable_foc">${cfg.get('enable_foc', False)}</param>
++    </hardware>
++    <xacro:hw_joint name="front_left_wheel_joint"/>
++    <xacro:hw_joint name="front_right_wheel_joint"/>
++    <xacro:hw_joint name="rear_left_wheel_joint"/>
++    <xacro:hw_joint name="rear_right_wheel_joint"/>
++    <xacro:hw_joint name="front_arm_joint"/>
++    <xacro:hw_joint name="rear_arm_joint"/>
++    <xacro:hw_joint name="front_drum_joint"/>
++    <xacro:hw_joint name="rear_drum_joint"/>
++  </ros2_control>
++</robot>
+
