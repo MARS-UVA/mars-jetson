@@ -20,15 +20,18 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     Command, EnvironmentVariable, FindExecutable, IfElseSubstitution,
-    LaunchConfiguration, NotSubstitution, PathJoinSubstitution,
+    LaunchConfiguration, NotSubstitution, PathJoinSubstitution, PythonExpression,
 )
 
 from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
+from startup.marker_priors import ARENA_APRILTAG_PRIORS
 import os
+from pathlib import Path
 import math
+import tempfile
 
 
 # Gazebo spawns the URDF root (blue-forward base_link). Preserve the original
@@ -68,6 +71,7 @@ def launch_rgbd_sync(context):
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'rgbd_cameras': 2, 'approx_sync': True,
             'approx_sync_max_interval': 0.02, 'qos': 2,
+            'qos_camera_info': 2, 
         }],
         remappings=[
             ('rgbd_image0', '/rgbd_blue/rgbd_image'),
@@ -90,6 +94,76 @@ def launch_rtabmap(context):
     if sync_rgbd and not enable_rgbd:
         raise RuntimeError('rtabmap_sync requires enable_rgbd:=true')
 
+    marker_priors = LaunchConfiguration('rtabmap_marker_priors').perform(context).strip()
+    if marker_priors == 'auto':
+        world_name = Path(LaunchConfiguration('choose_sim_map').perform(context)).name
+        if world_name not in ARENA_APRILTAG_PRIORS:
+            raise RuntimeError('Set rtabmap_marker_priors explicitly for a custom world')
+        marker_priors = ARENA_APRILTAG_PRIORS[world_name]
+    marker_optimizer = LaunchConfiguration('rtabmap_optimizer_strategy').perform(context)
+    marker_config_path = ''
+    if marker_priors:
+        seen_ids = set()
+        for marker_entry in marker_priors.split('|'):
+            fields = marker_entry.split()
+            if len(fields) != 7:
+                raise RuntimeError(
+                    'rtabmap_marker_priors entries must be "id x y z roll pitch yaw"'
+                )
+            try:
+                marker_id = int(fields[0])
+                pose_values = [float(value) for value in fields[1:]]
+            except ValueError as error:
+                raise RuntimeError(
+                    'rtabmap_marker_priors must contain numeric values'
+                ) from error
+            if marker_id <= 0 or marker_id in seen_ids or not all(
+                    math.isfinite(value) for value in pose_values):
+                raise RuntimeError(
+                    'rtabmap_marker_priors requires unique positive IDs and finite poses'
+                )
+            seen_ids.add(marker_id)
+        if marker_optimizer not in ('1', '2'):
+            raise RuntimeError('rtabmap_optimizer_strategy must be 1 (g2o) or 2 (GTSAM)')
+        with tempfile.NamedTemporaryFile(
+                mode='w', prefix='startup_rtabmap_marker_priors_', suffix='.ini',
+                delete=False) as marker_config:
+            marker_config.write(
+                '[Core]\n'
+                f'Optimizer\\Strategy = {marker_optimizer}\n'
+                'Optimizer\\PriorsIgnored = false\n'
+                # Keep observations on distinct nodes so repeated tag sightings
+                # can trigger graph optimization and apply the surveyed prior.
+                # Rehearsal can otherwise merge stationary frames into one node.
+                'Mem\\RehearsalSimilarity = 1.0\n'
+                'Marker\\PriorsVarianceLinear = 0.000001\n'
+                'Marker\\PriorsVarianceAngular = 0.000001\n'
+                f'Marker\\Priors = {marker_priors}\n'
+            )
+            marker_config_path = marker_config.name
+
+    rtabmap_args = ''
+    if enable_lidar:
+        rtabmap_args = (
+            '-d '
+            # Avoid the RTAB-Map intermediate-node weight error in this LiDAR setup.
+            '--Rtabmap/CreateIntermediateNodes false '
+            '--Reg/Strategy 1 '
+            '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
+            # Flat arena: wheel radius 0.1778 - axle Z 0.04445 gives
+            # ground Z ~-0.133 m in base_link. Allow ~5 cm floor tolerance.
+            '--Grid/NormalsSegmentation false --Grid/MaxGroundHeight -0.08 '
+            '--Grid/MapFrameProjection false --Grid/GroundIsObstacle false '
+            # Remove body returns from occupancy grids in blue-forward base_link axes.
+            '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '
+            '--Grid/FootprintHeight 0.50 '
+            '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
+        )
+    elif marker_priors:
+        rtabmap_args = '-d --Rtabmap/CreateIntermediateNodes false'
+    if sync_rgbd:
+        rtabmap_args += ' --Vis/EstimationType 0'
+
     # Resolve the optional package only when RTAB-Map is requested.
     rtabmap = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
@@ -109,20 +183,11 @@ def launch_rtabmap(context):
             'publish_tf_odom': 'true',
             'vo_frame_id': 'odom',
             'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
-            'rtabmap_args': (
-                '--Reg/Strategy 1 --Reg/Force3DoF true '
-                '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
-                # Flat arena: wheel radius 0.1778 - axle Z 0.04445 gives
-                # ground Z ~-0.133 m in base_link. Allow ~5 cm floor tolerance.
-                '--Grid/NormalsSegmentation false --Grid/MaxGroundHeight -0.08 '
-                '--Grid/MapFrameProjection false --Grid/GroundIsObstacle false '
-                # Remove body returns from occupancy grids, in blue-forward base_link axes.
-                # Use the unpadded envelope; retain obstacles outside the robot.
-                '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '
-                '--Grid/FootprintHeight 0.50 '
-                '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
-                if enable_lidar else ''
-            ) + (' --Vis/EstimationType 0' if sync_rgbd else ''),
+            'rtabmap_args': rtabmap_args,
+            'cfg': marker_config_path,
+            'tag_topic': '/detections', 
+            'tag_linear_variance': '0.0025',
+            'tag_angular_variance': '0.01',
             'rgb_topic': '/rgbd_blue/color/image_raw',
             'depth_topic': '/rgbd_blue/depth/image_raw',
             'camera_info_topic': '/rgbd_blue/camera_info',
@@ -150,15 +215,20 @@ def generate_launch_description():
     os.environ['GAZEBO_MODEL_PATH'] = f"$GAZEBO_MODEL_PATH:{get_package_share_directory('startup')}/models"
     # Nodes important for running the simulation and controlling the robot
     # Center the robot in the assumed 2 x 2 m starting zone.
+    # Tires reach 0.13335 m below base_link; start clear of the floor and settle.
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
         output='screen',
         arguments=['-topic', 'robot_description', '-name',
                    'Bruno', '-allow_renaming', 'true',
-                    '-x', '1.00',
-                    '-y', '-1.50',
-                    '-z', '0.12',
+                    '-x', PythonExpression([
+                        "'0.95' if '", LaunchConfiguration('choose_sim_map'),
+                        "' == 'arena_ucf.world' else '1.0'"]),
+                    '-y', PythonExpression([
+                        "'0.735' if '", LaunchConfiguration('choose_sim_map'),
+                        "' == 'arena_ucf.world' else '1.0'"]),
+                    '-z', '0.16',
                     '-Y', str(CAD_SPAWN_YAW - CAD_YAW_IN_BASE),],
     )
 
@@ -168,6 +238,7 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/front_camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
         ],
         output='screen',
     )
@@ -258,6 +329,15 @@ def generate_launch_description():
             description='RTAB-Map database to save or resume',
         ),
         DeclareLaunchArgument(
+            'rtabmap_marker_priors',
+            default_value='auto',
+            description='AprilTag poses: auto for bundled world, empty to disable, or id x y z roll pitch yaw separated by |',
+        ),
+        DeclareLaunchArgument(
+            'rtabmap_optimizer_strategy', default_value='1',
+            description='RTAB-Map graph optimizer: 1=g2o, 2=GTSAM (required for marker priors)',
+        ),
+        DeclareLaunchArgument(
             'enable_rgbd', default_value=LaunchConfiguration('enable_rtabmap'),
             description='Bridge the optional blue and orange RGB-D cameras (also enable it in robot_description)',
         ),
@@ -270,7 +350,7 @@ def generate_launch_description():
             description='Synchronize blue and orange RGB-D cameras into /rgbd_images',
         ),
         DeclareLaunchArgument(
-            'choose_map', default_value='arena_nasa.world',
+            'choose_sim_map', default_value='arena_nasa.world',
             description='Choose the Gazebo world to load (arena_nasa.world, arena_nasa_copy.world, arena_nasa_copy2.world, or arena_nasa_copy3.world)',
         ),
         OpaqueFunction(function=launch_rgbd_sync),
@@ -309,7 +389,7 @@ def generate_launch_description():
                     PathJoinSubstitution([
                         FindPackageShare('startup'),
                         'world',
-                        LaunchConfiguration('choose_map'),
+                        LaunchConfiguration('choose_sim_map'),
                     ])
             ])]
         ),

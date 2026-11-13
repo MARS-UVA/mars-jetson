@@ -10,9 +10,25 @@ from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import RewrittenYaml
 
 
+# Each file holds only the FollowPath plugin block and is loaded after
+# controller.yaml, so every controller shares the server and checker settings.
+CONTROLLER_CONFIGS = {
+    'mppi': 'controller_mppi.yaml',
+    'pnt': 'controller_pnt.yaml',
+    'rpp': 'controller_rpp.yaml',
+}
+# startup/launch/launch.py declares the same default; a startup test checks it.
+DEFAULT_CONTROLLER = 'rpp'
+
+
 def launch_navigation(context):
     local_lidar = IfCondition(
         LaunchConfiguration('enable_local_lidar', default='false')).evaluate(context)
+    controller = LaunchConfiguration('controller', default=DEFAULT_CONTROLLER).perform(context)
+    if controller not in CONTROLLER_CONFIGS:
+        raise RuntimeError(
+            f'controller must be one of {sorted(CONTROLLER_CONFIGS)}, got {controller!r}')
+    controller_file = CONTROLLER_CONFIGS[controller]
 
     def parameters(filename):
         rewrites = {
@@ -33,14 +49,15 @@ def launch_navigation(context):
 
     configured_params = {
         filename: parameters(filename) for filename in (
-            'planner.yaml', 'controller.yaml', 'global_costmap.yaml',
+            'planner.yaml', 'controller.yaml', controller_file, 'global_costmap.yaml',
             'local_costmap.yaml', 'bt_navigator.yaml', 'behaviors.yaml',
             'smoothers.yaml',
         )
     }
     # Costmaps are created by their owning servers and need their own namespaces.
     servers = [
-        ('nav2_controller', 'controller_server', ['controller.yaml', 'local_costmap.yaml']),
+        ('nav2_controller', 'controller_server',
+         ['controller.yaml', controller_file, 'local_costmap.yaml']),
         ('nav2_smoother', 'smoother_server', ['smoothers.yaml']),
         ('nav2_planner', 'planner_server', ['planner.yaml', 'global_costmap.yaml']),
         ('nav2_behaviors', 'behavior_server', ['behaviors.yaml']),
@@ -48,6 +65,16 @@ def launch_navigation(context):
         ('nav2_velocity_smoother', 'velocity_smoother', ['smoothers.yaml']),
     ]
     nodes = []
+    arena_name = LaunchConfiguration('arena_name', default='').perform(context)
+    if arena_name:
+        nodes.append(Node(
+            package='robot_navigation', executable='arena_markers_node',
+            name='arena_markers_node', output='screen',
+            parameters=[{
+                'arena_name': arena_name,
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+        ))
     if local_lidar:
         nodes.append(Node(
             package='robot_navigation', executable='navigation_cloud_filter',
@@ -84,14 +111,19 @@ def launch_navigation(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('arena_name', default_value='ARENA_NASA'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
         DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
         DeclareLaunchArgument(
+            'controller', default_value=DEFAULT_CONTROLLER, choices=list(CONTROLLER_CONFIGS),
+            description='FollowPath controller plugin configuration to load',
+        ),
+        DeclareLaunchArgument(
             'config_dir', default_value=PathJoinSubstitution([
                 FindPackageShare('robot_navigation'), 'config',
             ]),
-            description='Directory containing the seven Nav2 parameter files',
+            description='Directory containing the Nav2 parameter files',
         ),
         OpaqueFunction(function=launch_navigation),
     ])

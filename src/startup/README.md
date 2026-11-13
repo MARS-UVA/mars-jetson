@@ -115,12 +115,47 @@ The existing controller configuration disables wheel odometry TF publication
 disabled; restore it to true if returning to wheel odometry, and do not run
 RTAB-Map odometry TF alongside it.
 
-The database defaults to `/tmp/rgbd_visual_test.db` and is resumed on subsequent
-runs. Pass `rtabmap_database_path:=/tmp/another_test.db` for a separate map;
-use a fresh database when switching sensor configurations.
+The database defaults to `/tmp/rgbd_visual_test.db`. With LiDAR enabled, the
+launch starts a fresh map on each run; the AprilTag-prior configuration also
+starts fresh when running RGB-D alone. Pass `rtabmap_database_path:=/tmp/another_test.db`
+to choose a different database path.
 In RViz, select fixed frame `map` and add `/rtabmap/cloud_map` as a PointCloud2
 display to view the accumulated map. Odometry is published on
 `/rtabmap/icp_odom` when LiDAR is enabled, otherwise `/rtabmap/visual_odom`.
+
+### Anchor a fresh RTAB-Map map with surveyed AprilTags
+
+`rtabmap_marker_priors:=auto` selects tag 1's surveyed pose for the selected
+bundled world. Each world's lower-X/lower-Y interior corner is `(0, 0)`.
+The NASA worlds span `x=0..6.88`, `y=0..5`; the UCF clear interior spans
+`x=0..9.04`, `y=0..4.47` (excluding wall thickness).
+
+`startup/marker_priors.py` uses the detector's PnP frame: X image-right,
+Y image-up, Z out of the printed face. This differs from the native AprilTag
+library's pose convention. The main NASA board origin is `(0, 1.09, 0.25)`,
+centering the full board at Y=1 on the 2 x 2 m starting-zone wall.
+Its tag-1 prior is approximately `(0.005, 1.09, 0.25)` with RPY
+`(pi/2, 0, pi/2)`. The 5 mm X offset accounts for the textured box face.
+Other worlds retain their own board placements and use corresponding priors.
+Only tag 1 is surveyed; the other board tags are not assigned fixed priors.
+
+Override with `rtabmap_marker_priors:="id x y z roll pitch yaw"` for a custom
+layout, or an empty value to disable priors. Positions are meters and angles
+radians. Keep the default `pose_estimation_method:=pnp` in `apriltag_ros`.
+
+The launch enables RTAB-Map prior optimization and uses its g2o optimizer.
+AprilTag observations still have finite uncertainty. The map is anchored when
+RTAB-Map processes a detection of one of these tags; ICP or visual odometry then
+tracks relative motion as usual. Keep a board tag in view during startup so the
+initial graph can acquire its global anchor. These
+defaults apply to the bundled NASA world; change `rtabmap_marker_priors` when
+using tags at different positions.
+
+The default optimizer setting requires an RTAB-Map build with g2o support. For
+a build with GTSAM instead, pass `rtabmap_optimizer_strategy:=2`. The launch
+rejects malformed priors; it requires unique positive tag IDs and six finite
+pose values per ID. The AprilTag node follows the selected backend clock so its
+detection timestamps can be transformed against TF.
 
 Teleoperation uses `turn_speed_scale: 2.0` to double commanded turning speed.
 The controller angular velocity limits are ±1.6 rad/s (previously ±0.8 rad/s).
@@ -162,3 +197,24 @@ change it. It does not affect the RGB-D cameras, which are always color.
 The same flag applies to the real cameras (`robot_backend:=serial`): by default
 `v4l2_camera` converts the YUYV frames to `mono8` before the H.264 encoder, and
 `color_cameras:=true` publishes the native `yuv422_yuy2` instead.
+### Arena diagram with all obstacles converted to craters
+
+`world/arena_nasa_craters.world` uses a fixed layout matching the supplied arena
+illustration approximately. All seven blue rock markers become 0.35 m diameter,
+0.18 m deep bowls. All three orange crater markers become 0.45 m diameter,
+0.25 m deep bowls. These diameters use the midpoints of the diagram's 30–40 cm
+and 40–50 cm ranges; depths are simulation choices, not specified by the image.
+The starting and construction zones stay flat, and the central column remains.
+Random rock populations have been removed from this world.
+
+Centers are estimated from the illustration. The arena interior remains
+x=0..6.88 m, y=0..5 m. The terrain mesh remains centered locally and is
+placed at `(3.44, 2.5)` in the world. The generator uses local Y coordinates
+centered on zero. Edit
+`models/arena_terrain/generate_heightmap.py` to change positions or dimensions,
+then run it to regenerate the PNG and visual/collision mesh. The mesh uses
+fine cells around craters and coarse triangles over flat ground. Its maximum
+subdivision depth of 8 keeps the former grid's roughly 2.7 x 2 cm crater detail,
+with shared edge vertices so the different resolutions meet without cracks.
+The generated OBJ has about 4,200 vertices and 8,300 triangles (0.54 MB).
+Restart deployment with a fresh RTAB-Map database after replacing the terrain.
