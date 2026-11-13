@@ -120,32 +120,37 @@ def generate_launch_description():
         ]
     )
     
-    front_cropbox_config = os.path.join(
+    front_arm_cropbox_config = os.path.join(
         get_package_share_directory('startup'),
         'config',
+        'cropboxes',
         'front_arm_cropbox.yaml'
     )
     
     rear_arm_cropbox_config = os.path.join(
         get_package_share_directory('startup'),
         'config',
+        'cropboxes',
         'rear_arm_cropbox.yaml'
     )
 
     front_arm_link_cropbox_config = os.path.join(
         get_package_share_directory('startup'),
         'config',
+        'cropboxes',
         'front_arm_link_cropbox.yaml'
     )
     rear_arm_link_cropbox_config = os.path.join(
         get_package_share_directory('startup'),
         'config',
+        'cropboxes',
         'rear_arm_link_cropbox.yaml'
     )
 
     main_body_cropbox_config = os.path.join(
         get_package_share_directory('startup'),
         'config',
+        'cropboxes',
         'main_body_cropbox.yaml'
     )
     
@@ -203,16 +208,16 @@ def generate_launch_description():
                     ('/input', '/unilidar/cloud'),
                     ('/output', '/unilidar/cloud_no_front_arm')
                 ],
-                parameters=[front_cropbox_config]
+                parameters=[front_arm_cropbox_config]
             )
         ]
     )
     
     front_rgbd_cropbox_config = os.path.join(
-        get_package_share_directory('startup'), 'config', 'front_arm_cropbox_rgbd.yaml',
+        get_package_share_directory('startup'), 'config', 'cropboxes', 'front_arm_cropbox_rgbd.yaml',
     )
     rear_rgbd_cropbox_config = os.path.join(
-        get_package_share_directory('startup'), 'config', 'rear_arm_cropbox_rgbd.yaml',
+        get_package_share_directory('startup'), 'config', 'cropboxes', 'rear_arm_cropbox_rgbd.yaml',
     )
     
     rgbd_cropbox = ComposableNodeContainer(

@@ -70,6 +70,10 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         drum:
           Alpha: 1
           Show Axes: false
@@ -151,6 +155,24 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        rgbd_blue_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rgbd_blue_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rgbd_orange_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rgbd_orange_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         unilidar_link:
           Alpha: 1
           Show Axes: false
@@ -178,9 +200,9 @@ Visualization Manager:
         Value: /front_camera/image_raw
       Value: false
       Visibility:
-        "": true
         Grid: true
         Image: true
+        Imu: true
         PointCloud2: true
         Rear Camera: true
         RobotModel: true
@@ -201,10 +223,10 @@ Visualization Manager:
         Value: /rear_camera/image_raw
       Value: false
       Visibility:
-        "": true
         Front Camera: true
         Grid: true
         Image: true
+        Imu: true
         PointCloud2: true
         RobotModel: true
         TF: true
@@ -283,7 +305,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /unilidar/cloud
+        Value: /unilidar/cloud_filtered
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -359,10 +381,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6597968339920044
+      Pitch: 0.6097970008850098
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 2.9690959453582764
+      Yaw: 3.624096393585205
     Saved: ~
 Window Geometry:
   Displays:
@@ -386,5 +408,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1920
-  X: 0
-  Y: 0
+  X: -32
+  Y: -32
