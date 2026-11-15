@@ -114,26 +114,77 @@ CallbackReturn CanivoreHardware::on_init(
       JointMotor m;
       m.name = joint.name;
       const auto & jp = joint.parameters;
+
+      const auto type = get_string(jp, "device_type", "talonfx");
+      if (type == "talonfx") {
+        m.device_type = DeviceType::TalonFX;
+      } else if (type == "talonfxs") {
+        m.device_type = DeviceType::TalonFXS;
+      } else {
+        RCLCPP_ERROR(get_logger(), "Joint '%s': device_type must be talonfx or talonfxs, not '%s'",
+          m.name.c_str(), type.c_str());
+        return CallbackReturn::ERROR;
+      }
+      const bool fxs = m.device_type == DeviceType::TalonFXS;
+
       m.can_id = get_int(jp, "can_id", -1);
-      m.gear_ratio = get_double(jp, "gear_ratio", 1.0);
       m.inverted = get_bool(jp, "inverted", false);
       m.brake = get_string(jp, "neutral_mode", "brake") != "coast";
-      m.max_velocity = get_double(jp, "max_velocity", 0.0);
+      m.max_velocity = get_double(jp, "max_velocity", fxs ? 1.0 : 0.0);
       m.stator_current_limit = get_double(jp, "stator_current_limit", 0.0);
       m.supply_current_limit = get_double(jp, "supply_current_limit", 0.0);
+      m.min_position = get_optional_double(jp, "min_position");
+      m.max_position = get_optional_double(jp, "max_position");
+
+      // talonfx
+      m.gear_ratio = get_double(jp, "gear_ratio", 1.0);
       m.kP = get_double(jp, "kP", 0.0);
       m.kS = get_double(jp, "kS", 0.0);
       m.kV = get_double(jp, "kV", 0.0);
-      m.min_position = get_optional_double(jp, "min_position");
-      m.max_position = get_optional_double(jp, "max_position");
       m.initial_position = get_optional_double(jp, "initial_position");
+
+      // talonfxs
+      const auto wiring = get_string(jp, "brushed_wiring", "AB");
+      if (wiring == "AB") {
+        m.brushed_wiring = p6::signals::BrushedMotorWiringValue::Leads_A_and_B;
+      } else if (wiring == "AC") {
+        m.brushed_wiring = p6::signals::BrushedMotorWiringValue::Leads_A_and_C;
+      } else if (wiring == "BC") {
+        m.brushed_wiring = p6::signals::BrushedMotorWiringValue::Leads_B_and_C;
+      } else {
+        RCLCPP_ERROR(get_logger(), "Joint '%s': brushed_wiring must be AB, AC or BC, not '%s'",
+          m.name.c_str(), wiring.c_str());
+        return CallbackReturn::ERROR;
+      }
+      const auto sensor = get_string(jp, "feedback_sensor", "none");
+      if (sensor == "none" || sensor == "None") {
+        m.sensor = ActuatorSensor::None;
+      } else if (sensor == "analog") {
+        m.sensor = ActuatorSensor::Analog;
+      } else if (sensor == "quadrature") {
+        m.sensor = ActuatorSensor::Quadrature;
+      } else if (sensor == "pulsewidth") {
+        m.sensor = ActuatorSensor::PulseWidth;
+      } else {
+        RCLCPP_ERROR(get_logger(),
+          "Joint '%s': feedback_sensor must be none, analog, quadrature or pulsewidth, not '%s'",
+          m.name.c_str(), sensor.c_str());
+        return CallbackReturn::ERROR;
+      }
+      m.quadrature_edges_per_rotation = get_int(jp, "quadrature_edges_per_rotation", 4096);
+      m.sensor_retracted = get_optional_double(jp, "sensor_retracted");
+      m.sensor_extended = get_optional_double(jp, "sensor_extended");
+
+      // arm angle <-> extension mapping
       m.feedback_angle_start = get_double(jp, "feedback_angle_start", -1.2);
       m.feedback_angle_end = get_double(jp, "feedback_angle_end", 0.2);
       m.feedback_output_start = get_double(jp, "feedback_output_start", 1.0);
       m.feedback_output_end = get_double(jp, "feedback_output_end", 0.0);
-      if (m.feedback_angle_start == m.feedback_angle_end) {
-        RCLCPP_ERROR(get_logger(), "Joint '%s': feedback_angle_start and feedback_angle_end "
-          "must differ", m.name.c_str());
+      if (m.feedback_angle_start == m.feedback_angle_end ||
+        m.feedback_output_start == m.feedback_output_end)
+      {
+        RCLCPP_ERROR(get_logger(), "Joint '%s': feedback_angle_start/end and "
+          "feedback_output_start/end must each differ", m.name.c_str());
         return CallbackReturn::ERROR;
       }
 
@@ -148,15 +199,27 @@ CallbackReturn CanivoreHardware::on_init(
             m.name.c_str(), m.can_id);
           return CallbackReturn::ERROR;
         }
-        if ((m.min_position || m.max_position) && !m.initial_position) {
+        if (!fxs && (m.min_position || m.max_position) && !m.initial_position) {
           RCLCPP_WARN(get_logger(),
             "Joint '%s': soft limits are set but initial_position is not. The encoder will read 0 "
             "wherever the joint is at power-on, so the limits will be in the wrong place.",
             m.name.c_str());
         }
+        if (fxs && !m.measures_extension()) {
+          RCLCPP_WARN(get_logger(),
+            "Joint '%s': no calibrated actuator sensor (feedback_sensor, sensor_retracted, "
+            "sensor_extended). Its position will be ESTIMATED from commands and the plugin "
+            "cannot stop it at the ends of travel; the actuator's own limit switches must.",
+            m.name.c_str());
+        }
       }
       if (m.gear_ratio <= 0.0) {
         RCLCPP_ERROR(get_logger(), "Joint '%s': gear_ratio must be > 0", m.name.c_str());
+        return CallbackReturn::ERROR;
+      }
+      if (fxs && m.max_velocity <= 0.0) {
+        RCLCPP_ERROR(get_logger(), "Joint '%s': a talonfxs joint needs max_velocity > 0 "
+          "(the command that means 100%% output)", m.name.c_str());
         return CallbackReturn::ERROR;
       }
 
@@ -188,11 +251,12 @@ CallbackReturn CanivoreHardware::on_init(
       m.st_effort = m.name + "/" + hardware_interface::HW_IF_EFFORT;
       m.position = m.initial_position.value_or(0.0);
 
-      RCLCPP_INFO(get_logger(), "Joint '%s': %s, gear ratio %.3f%s",
+      const std::string device = fxs ? "Talon FXS actuator" : "TalonFX";
+      RCLCPP_INFO(get_logger(), "Joint '%s': %s%s",
         m.name.c_str(),
-        m.connected() ? ("TalonFX CAN ID " + std::to_string(m.can_id)).c_str() :
+        m.connected() ? (device + " CAN ID " + std::to_string(m.can_id)).c_str() :
         "NOT CONNECTED (echoes commands)",
-        m.gear_ratio, m.inverted ? ", inverted" : "");
+        m.inverted ? ", inverted" : "");
       motors_.push_back(std::move(m));
     }
   } catch (const std::exception & e) {
@@ -216,9 +280,22 @@ CallbackReturn CanivoreHardware::on_init(
 }
 
 // =====================================================================================
-// on_configure: create the TalonFX objects and push configs to them. Apply() blocks, which is
+// on_configure: create the device objects and push configs to them. Apply() blocks, which is
 // fine here but would not be in read()/write().
 // =====================================================================================
+template<typename Device>
+void CanivoreHardware::collect_signals(JointMotor & m, Device & device)
+{
+  // Pointers stay valid for the lifetime of the device object.
+  m.position_signal = &device.GetPosition(false);
+  m.velocity_signal = &device.GetVelocity(false);
+  m.current_signal = &device.GetStatorCurrent(false);
+  m.temperature_signal = &device.GetDeviceTemp(false);
+  m.supply_signal = &device.GetSupplyVoltage(false);
+  signals_.insert(signals_.end(),
+    {m.position_signal, m.velocity_signal, m.current_signal, m.temperature_signal, m.supply_signal});
+}
+
 CallbackReturn CanivoreHardware::on_configure(const rclcpp_lifecycle::State &)
 {
   signals_.clear();
@@ -234,29 +311,39 @@ CallbackReturn CanivoreHardware::on_configure(const rclcpp_lifecycle::State &)
     if (!m.connected()) {
       continue;
     }
-    m.talon = std::make_unique<p6::hardware::TalonFX>(m.can_id, *canbus_);
-    if (!configure_motor(m)) {
-      return CallbackReturn::ERROR;
+    if (m.device_type == DeviceType::TalonFX) {
+      m.talon_fx = std::make_unique<p6::hardware::TalonFX>(m.can_id, *canbus_);
+      if (!configure_talon_fx(m)) {
+        return CallbackReturn::ERROR;
+      }
+      collect_signals(m, *m.talon_fx);
+    } else {
+      m.talon_fxs = std::make_unique<p6::hardware::TalonFXS>(m.can_id, *canbus_);
+      if (!configure_talon_fxs(m)) {
+        return CallbackReturn::ERROR;
+      }
+      collect_signals(m, *m.talon_fxs);
+      if (m.sensor == ActuatorSensor::Analog) {
+        m.analog_signal = &m.talon_fxs->GetAnalogVoltage(false);
+        signals_.push_back(m.analog_signal);
+      }
     }
-    // Pointers stay valid for the lifetime of the TalonFX object.
-    signals_.push_back(&m.talon->GetPosition(false));
-    signals_.push_back(&m.talon->GetVelocity(false));
-    signals_.push_back(&m.talon->GetStatorCurrent(false));
-    signals_.push_back(&m.talon->GetDeviceTemp(false));
-    signals_.push_back(&m.talon->GetSupplyVoltage(false));
   }
 
   // Ask for the signals we use at a steady rate, then turn off every status frame we don't use.
   p6::BaseStatusSignal::SetUpdateFrequencyForAll(units::hertz_t{status_frequency_hz_}, signals_);
   for (auto & m : motors_) {
-    if (m.talon) {
-      m.talon->OptimizeBusUtilization();
+    if (m.talon_fx) {
+      m.talon_fx->OptimizeBusUtilization();
+    }
+    if (m.talon_fxs) {
+      m.talon_fxs->OptimizeBusUtilization();
     }
   }
   return CallbackReturn::SUCCESS;
 }
 
-bool CanivoreHardware::configure_motor(JointMotor & m)
+bool CanivoreHardware::configure_talon_fx(JointMotor & m)
 {
   p6::configs::TalonFXConfiguration config{};
 
@@ -283,7 +370,6 @@ bool CanivoreHardware::configure_motor(JointMotor & m)
   config.Slot0.kS = m.kS;
   config.Slot0.kV = m.kV;
 
-  // Gazebo stops the arms at their joint limits; on the real robot these soft limits do it.
   if (m.max_position) {
     config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
     config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = units::turn_t{rad_to_turns(*m.max_position)};
@@ -293,7 +379,7 @@ bool CanivoreHardware::configure_motor(JointMotor & m)
     config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = units::turn_t{rad_to_turns(*m.min_position)};
   }
 
-  const auto status = m.talon->GetConfigurator().Apply(config);
+  const auto status = m.talon_fx->GetConfigurator().Apply(config);
   if (!status.IsOK()) {
     RCLCPP_ERROR(get_logger(),
       "Joint '%s': could not configure TalonFX CAN ID %d on bus '%s': %s. "
@@ -303,9 +389,9 @@ bool CanivoreHardware::configure_motor(JointMotor & m)
   }
 
   // The built-in encoder starts at zero wherever the joint is at power-on. If the joint has a
-  // known starting position (e.g. arms stowed against a hard stop), tell the encoder.
+  // known starting position, tell the encoder.
   if (m.initial_position) {
-    const auto pos_status = m.talon->SetPosition(units::turn_t{rad_to_turns(*m.initial_position)});
+    const auto pos_status = m.talon_fx->SetPosition(units::turn_t{rad_to_turns(*m.initial_position)});
     if (!pos_status.IsOK()) {
       RCLCPP_ERROR(get_logger(), "Joint '%s': could not set initial position: %s",
         m.name.c_str(), pos_status.GetName());
@@ -315,12 +401,64 @@ bool CanivoreHardware::configure_motor(JointMotor & m)
   return true;
 }
 
+bool CanivoreHardware::configure_talon_fxs(JointMotor & m)
+{
+  p6::configs::TalonFXSConfiguration config{};
+
+  // A Talon FXS drives nothing until told what is connected to it.
+  config.Commutation.MotorArrangement = p6::signals::MotorArrangementValue::Brushed_DC;
+  config.Commutation.BrushedMotorWiring = m.brushed_wiring;
+
+  config.MotorOutput.NeutralMode =
+    m.brake ? p6::signals::NeutralModeValue::Brake : p6::signals::NeutralModeValue::Coast;
+  config.MotorOutput.Inverted = m.inverted ?
+    p6::signals::InvertedValue::Clockwise_Positive :
+    p6::signals::InvertedValue::CounterClockwise_Positive;
+
+  if (m.stator_current_limit > 0.0) {
+    config.CurrentLimits.StatorCurrentLimit = units::ampere_t{m.stator_current_limit};
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+  }
+  if (m.supply_current_limit > 0.0) {
+    config.CurrentLimits.SupplyCurrentLimit = units::ampere_t{m.supply_current_limit};
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
+  }
+
+  // Encoder-type actuator sensors feed the FXS's position signal; an analog potentiometer is
+  // read separately as a voltage.
+  if (m.sensor == ActuatorSensor::Quadrature) {
+    config.ExternalFeedback.ExternalFeedbackSensorSource =
+      p6::signals::ExternalFeedbackSensorSourceValue::Quadrature;
+    config.ExternalFeedback.QuadratureEdgesPerRotation = m.quadrature_edges_per_rotation;
+  } else if (m.sensor == ActuatorSensor::PulseWidth) {
+    config.ExternalFeedback.ExternalFeedbackSensorSource =
+      p6::signals::ExternalFeedbackSensorSourceValue::PulseWidth;
+  }
+
+  const auto status = m.talon_fxs->GetConfigurator().Apply(config);
+  if (!status.IsOK()) {
+    RCLCPP_ERROR(get_logger(),
+      "Joint '%s': could not configure Talon FXS CAN ID %d on bus '%s': %s. "
+      "Check the CAN ID, the bus name and that the device is powered.",
+      m.name.c_str(), m.can_id, canbus_name_.c_str(), status.GetName());
+    return false;
+  }
+  return true;
+}
+
 CallbackReturn CanivoreHardware::on_cleanup(const rclcpp_lifecycle::State &)
 {
   stop_all_motors();
   signals_.clear();
   for (auto & m : motors_) {
-    m.talon.reset();
+    m.position_signal = nullptr;
+    m.velocity_signal = nullptr;
+    m.current_signal = nullptr;
+    m.temperature_signal = nullptr;
+    m.supply_signal = nullptr;
+    m.analog_signal = nullptr;
+    m.talon_fx.reset();
+    m.talon_fxs.reset();
   }
   canbus_.reset();
   return CallbackReturn::SUCCESS;
@@ -335,13 +473,14 @@ CallbackReturn CanivoreHardware::on_activate(const rclcpp_lifecycle::State &)
     p6::BaseStatusSignal::WaitForAll(units::second_t{activation_timeout_s_}, false, signals_);
     bool all_ok = true;
     for (auto & m : motors_) {
-      if (!m.talon) {
+      if (!m.has_hardware()) {
         continue;
       }
-      const auto status = m.talon->GetPosition(false).GetStatus();
+      const auto status = m.position_signal->GetStatus();
       if (!status.IsOK()) {
-        RCLCPP_ERROR(get_logger(), "Joint '%s': TalonFX CAN ID %d not responding on bus '%s': %s",
-          m.name.c_str(), m.can_id, canbus_name_.c_str(), status.GetName());
+        RCLCPP_ERROR(get_logger(), "Joint '%s': %s CAN ID %d not responding on bus '%s': %s",
+          m.name.c_str(), m.talon_fx ? "TalonFX" : "Talon FXS", m.can_id, canbus_name_.c_str(),
+          status.GetName());
         all_ok = false;
       }
     }
@@ -353,8 +492,8 @@ CallbackReturn CanivoreHardware::on_activate(const rclcpp_lifecycle::State &)
   // Start with zero commands and states that reflect the hardware.
   for (auto & m : motors_) {
     set_command(m.cmd_velocity, 0.0);
-    if (m.talon) {
-      m.position = turns_to_rad(m.talon->GetPosition(false).GetValueAsDouble());
+    if (m.has_hardware()) {
+      read_motor(m, 0.0);
     }
     m.velocity = 0.0;
     if (m.has_position) {set_state(m.st_position, m.position);}
@@ -388,10 +527,45 @@ CallbackReturn CanivoreHardware::on_error(const rclcpp_lifecycle::State &)
 void CanivoreHardware::stop_all_motors()
 {
   for (auto & m : motors_) {
-    if (m.talon) {
-      m.talon->SetControl(neutral_request_);
+    if (m.talon_fx) {
+      m.talon_fx->SetControl(neutral_request_);
+    }
+    if (m.talon_fxs) {
+      m.talon_fxs->SetControl(neutral_request_);
     }
   }
+}
+
+// Turn one device's latest signal values into joint state. Signals must already be refreshed.
+void CanivoreHardware::read_motor(JointMotor & m, double period_s)
+{
+  m.current = m.current_signal->GetValueAsDouble();
+  m.temperature = m.temperature_signal->GetValueAsDouble();
+  m.supply_voltage = m.supply_signal->GetValueAsDouble();
+
+  if (m.talon_fx) {
+    m.position = turns_to_rad(m.position_signal->GetValueAsDouble());
+    m.velocity = turns_to_rad(m.velocity_signal->GetValueAsDouble());
+    return;
+  }
+
+  // Talon FXS actuator
+  if (!m.measures_extension()) {
+    m.extension.reset();
+    return;  // estimated from commands in read()
+  }
+  const double raw = m.sensor == ActuatorSensor::Analog ?
+    m.analog_signal->GetValueAsDouble() : m.position_signal->GetValueAsDouble();
+  const double ext = (raw - *m.sensor_retracted) / (*m.sensor_extended - *m.sensor_retracted);
+  const double angle = m.extension_to_angle(ext);
+  if (period_s > 0.0) {
+    // The actuator reports extension, not arm speed, so differentiate the angle (lightly
+    // smoothed; a potentiometer reading is noisy).
+    const double raw_velocity = (angle - m.position) / period_s;
+    m.velocity = 0.8 * m.velocity + 0.2 * raw_velocity;
+  }
+  m.extension = ext;
+  m.position = angle;
 }
 
 // =====================================================================================
@@ -400,7 +574,7 @@ void CanivoreHardware::stop_all_motors()
 return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   if (!signals_.empty()) {
-    // One call refreshes every signal from every motor; much cheaper than one call each.
+    // One call refreshes every signal from every device; much cheaper than one call each.
     const auto status = p6::BaseStatusSignal::RefreshAll(false, signals_);
     if (!status.IsOK()) {
       if (!read_error_logged_) {
@@ -415,21 +589,22 @@ return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Dura
   }
 
   for (auto & m : motors_) {
-    if (m.talon) {
-      m.position = turns_to_rad(m.talon->GetPosition(false).GetValueAsDouble());
-      m.velocity = turns_to_rad(m.talon->GetVelocity(false).GetValueAsDouble());
-      m.current = m.talon->GetStatorCurrent(false).GetValueAsDouble();
-      m.temperature = m.talon->GetDeviceTemp(false).GetValueAsDouble();
-      m.supply_voltage = m.talon->GetSupplyVoltage(false).GetValueAsDouble();
+    if (m.has_hardware()) {
+      read_motor(m, period.seconds());
     } else {
-      // Not connected: behave like a perfect motor, so the controllers and everything
-      // downstream can be tested without hardware.
+      m.current = 0.0;
+    }
+
+    // Joints with no hardware, or an actuator with no calibrated sensor: estimate from the
+    // command, so the controllers and everything downstream keep working.
+    const bool estimate = !m.has_hardware() || (m.talon_fxs && !m.measures_extension());
+    if (estimate) {
       m.velocity = get_command(m.cmd_velocity);
       if (!std::isfinite(m.velocity)) {
         m.velocity = 0.0;
       }
       m.position += m.velocity * period.seconds();
-      // A real joint stops at the end of its travel, so the echo should too.
+      // A real joint stops at the end of its travel, so the estimate should too.
       if (m.min_position && m.position < *m.min_position) {
         m.position = *m.min_position;
         m.velocity = 0.0;
@@ -438,8 +613,8 @@ return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Dura
         m.position = *m.max_position;
         m.velocity = 0.0;
       }
-      m.current = 0.0;
     }
+
     if (m.has_position) {set_state(m.st_position, m.position);}
     if (m.has_velocity) {set_state(m.st_velocity, m.velocity);}
     if (m.has_effort) {set_state(m.st_effort, m.current);}
@@ -451,7 +626,7 @@ return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Dura
 }
 
 // =====================================================================================
-// write(): convert joint velocity commands (rad/s) to Phoenix requests (rotations/s).
+// write(): turn joint velocity commands into device requests.
 // =====================================================================================
 return_type CanivoreHardware::write(const rclcpp::Time &, const rclcpp::Duration &)
 {
@@ -464,26 +639,48 @@ return_type CanivoreHardware::write(const rclcpp::Time &, const rclcpp::Duration
   ctre::phoenix::unmanaged::FeedEnable(feed_timeout_ms_);
 
   for (auto & m : motors_) {
-    if (!m.talon) {
+    if (!m.has_hardware()) {
       continue;
     }
     double command = get_command(m.cmd_velocity);
     if (!std::isfinite(command)) {
       command = 0.0;
     }
-    if (m.max_velocity > 0.0) {
-      command = std::clamp(command, -m.max_velocity, m.max_velocity);
+
+    if (m.talon_fx) {
+      // Closed-loop velocity on the motor; soft limits are configured on the device.
+      if (m.max_velocity > 0.0) {
+        command = std::clamp(command, -m.max_velocity, m.max_velocity);
+      }
+      m.talon_fx->SetControl(
+        m.velocity_request
+        .WithVelocity(units::turns_per_second_t{rad_to_turns(command)})
+        .WithEnableFOC(enable_foc_));
+      continue;
     }
-    m.talon->SetControl(
-      m.velocity_request
-      .WithVelocity(units::turns_per_second_t{rad_to_turns(command)})
-      .WithEnableFOC(enable_foc_));
+
+    // Linear actuator: open-loop output, command / max_velocity, like the old ESP32.
+    if (m.extension) {
+      // Stop at the ends of travel. A positive command moves the arm toward
+      // feedback_angle_end; whether that extends or retracts follows from the mapping.
+      const double ext_per_angle = (m.feedback_output_end - m.feedback_output_start) /
+        (m.feedback_angle_end - m.feedback_angle_start);
+      const double ext_direction = command * ext_per_angle;
+      if ((*m.extension >= 1.0 && ext_direction > 0.0) ||
+        (*m.extension <= 0.0 && ext_direction < 0.0))
+      {
+        command = 0.0;
+      }
+    }
+    const double output = std::clamp(command / m.max_velocity, -1.0, 1.0);
+    m.talon_fxs->SetControl(m.duty_cycle_request.WithOutput(output));
   }
   return return_type::OK;
 }
 
-// /position: the arms' 0..1 actuator position that dig/dump wait on. The serial plugin got this
-// from the ESP32; here it comes from the arm angles, mapped the same way the simulation does.
+// /position: the arms' 0..1 actuator extension that dig/dump and the control station use.
+// Measured directly when the actuator has a calibrated sensor (like the old ESP32), otherwise
+// calculated from the arm angle with the same mapping the simulation uses.
 void CanivoreHardware::publish_position(const rclcpp::Time & time)
 {
   if (!position_pub_ || position_publish_hz_ <= 0.0) {
@@ -500,16 +697,13 @@ void CanivoreHardware::publish_position(const rclcpp::Time & time)
   }
   last_position_publish_s_ = now;
 
-  auto calibrated = [](const JointMotor & m) {
-      const double fraction = std::clamp(
-        (m.position - m.feedback_angle_start) / (m.feedback_angle_end - m.feedback_angle_start),
-        0.0, 1.0);
-      return static_cast<float>(
-        m.feedback_output_start + fraction * (m.feedback_output_end - m.feedback_output_start));
+  auto extension = [](const JointMotor & m) {
+      const double ext = m.extension ? *m.extension : m.angle_to_extension(m.position);
+      return static_cast<float>(std::clamp(ext, 0.0, 1.0));
     };
   serial_msgs::msg::Position msg;
-  msg.front_actuator_position = calibrated(*front);
-  msg.back_actuator_position = calibrated(*rear);
+  msg.front_actuator_position = extension(*front);
+  msg.back_actuator_position = extension(*rear);
   position_pub_->publish(msg);
 }
 
@@ -557,7 +751,7 @@ void CanivoreHardware::publish_feedback(const rclcpp::Time & time)
   double voltage_sum = 0.0;
   int voltage_count = 0;
   for (const auto & m : motors_) {
-    if (m.talon) {
+    if (m.has_hardware()) {
       voltage_sum += m.supply_voltage;
       ++voltage_count;
     }

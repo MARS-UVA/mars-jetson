@@ -1,8 +1,11 @@
 # canivore_hardware
 
 ros2_control hardware interface (`canivore_hardware/CanivoreHardware`) that drives the robot's
-TalonFX motors through a CTRE CANivore using Phoenix 6, instead of the ESP32 serial link. Every
-joint is a TalonFX running closed-loop velocity control on the motor.
+motors through a CTRE CANivore using Phoenix 6, instead of the ESP32 serial link:
+
+- **Wheels and drums**: Kraken X60s (`device_type: talonfx`), closed-loop velocity in rad/s.
+- **Arms**: brushed linear actuators on Talon FXS controllers (`device_type: talonfxs`),
+  open-loop duty cycle like the old ESP32 (command / `max_velocity`, so 1.0 = full power).
 
 It is a drop-in replacement for `robot_serial_hardware/RobotSerialHardware`: same joints, same
 velocity command interface, and it publishes the same feedback topics (`/position`,
@@ -69,20 +72,24 @@ interfaces are filled if present. Effort is reported as motor current in amps.
 
 ### Joint parameters (`<joint>`)
 
-| Param | Default | Meaning |
-|---|---|---|
-| `can_id` | `-1` | TalonFX CAN ID. `-1` = not connected: the joint echoes its command (for testing) |
-| `gear_ratio` | `1.0` | Motor rotations per joint rotation |
-| `inverted` | `false` | Flip direction so a positive command matches the URDF convention |
-| `neutral_mode` | `brake` | `brake` or `coast` when idle |
-| `max_velocity` | `0` | Clamp on commands in rad/s (0 = no clamp) |
-| `stator_current_limit` | none | Amps |
-| `supply_current_limit` | none | Amps |
-| `kP`, `kS`, `kV` | `0` | Slot 0 velocity gains (joint units). With all three at 0 the motor won't move |
-| `min_position`, `max_position` | none | Travel limits in rad, applied as TalonFX soft limits |
-| `initial_position` | none | Joint angle at power-on; needed before soft limits make sense |
-| `feedback_angle_start`, `feedback_angle_end` | `-1.2`, `0.2` | Arm joints only: angle range mapped to `/position` |
-| `feedback_output_start`, `feedback_output_end` | `1.0`, `0.0` | Arm joints only: `/position` values at those angles (same as the sim's `actuator_feedback.yaml`) |
+| Param | Default | Applies to | Meaning |
+|---|---|---|---|
+| `device_type` | `talonfx` | all | `talonfx` (Kraken) or `talonfxs` (Talon FXS driving a brushed actuator) |
+| `can_id` | `-1` | all | Device CAN ID. `-1` = not connected: the joint echoes its command (for testing) |
+| `inverted` | `false` | all | Flip direction so a positive command matches the URDF convention |
+| `neutral_mode` | `brake` | all | `brake` or `coast` when idle |
+| `max_velocity` | talonfx `0`, talonfxs `1.0` | all | talonfx: clamp in rad/s (0 = none). talonfxs: the command that means 100% output |
+| `stator_current_limit`, `supply_current_limit` | none | all | Amps |
+| `min_position`, `max_position` | none | all | Travel limits in rad. talonfx: device soft limits. Also stop estimated positions |
+| `gear_ratio` | `1.0` | talonfx | Motor rotations per joint rotation |
+| `kP`, `kS`, `kV` | `0` | talonfx | Slot 0 velocity gains (joint units). With all three at 0 the motor won't move |
+| `initial_position` | none | talonfx | Joint angle at power-on; needed before soft limits make sense |
+| `brushed_wiring` | `AB` | talonfxs | Which FXS output leads the actuator uses: `AB`, `AC` or `BC` |
+| `feedback_sensor` | `none` | talonfxs | Actuator sensor: `none`, `analog` (potentiometer), `quadrature` or `pulsewidth` |
+| `quadrature_edges_per_rotation` | `4096` | talonfxs | For a quadrature sensor |
+| `sensor_retracted`, `sensor_extended` | none | talonfxs | Raw sensor reading fully retracted / fully extended (volts for analog, rotations for encoders). With these set, `/position` is the measured extension and the plugin stops the actuator at the ends |
+| `feedback_angle_start`, `feedback_angle_end` | `-1.2`, `0.2` | arm joints | Arm angle range mapped to 0..1 extension |
+| `feedback_output_start`, `feedback_output_end` | `1.0`, `0.0` | arm joints | Extension at those angles (same as the sim's `actuator_feedback.yaml`) |
 
 Settings are applied to the devices every time the plugin configures, so anything set by hand
 in Phoenix Tuner X (gains, limits, inversion, brake mode) is overwritten.
@@ -93,7 +100,11 @@ in Phoenix Tuner X (gains, limits, inversion, brake mode) is overwritten.
   the error. Nothing moves in that case.
 - **Lost contact** while running makes `read()` return an error; the controller manager then
   deactivates the hardware and every motor is set to neutral.
-- **Soft limits without `initial_position`** log a warning: the encoder reads 0 wherever the
-  joint is at power-on, so the limits would be in the wrong place.
+- **Soft limits without `initial_position`** (talonfx) log a warning: the encoder reads 0
+  wherever the joint is at power-on, so the limits would be in the wrong place.
+- **Actuators without a calibrated sensor** (talonfxs) log a warning. Their position is
+  estimated from commands, and only the actuator's own limit switches stop it at the ends.
+- **`/position`** is the measured actuator extension when the sensor is calibrated (like the
+  old ESP32), otherwise calculated from the arm angle.
 - `velocity_controllers/JointGroupVelocityController` (`arm_drum_controller`) has no command
   timeout in Jazzy, so the arms and drums keep their last command until something sends zeros.

@@ -53,6 +53,7 @@
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
         <xacro:if value="${robot_backend == 'canivore'}">
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="device_type"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="can_id"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="gear_ratio"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="inverted"/>
@@ -66,6 +67,11 @@
           <xacro:canivore_joint_param joint_name="${joint_name}" key="initial_position"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="min_position"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="max_position"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="brushed_wiring"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_sensor"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="quadrature_edges_per_rotation"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="sensor_retracted"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="sensor_extended"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_angle_start"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_angle_end"/>
           <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_output_start"/>

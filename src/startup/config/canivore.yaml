@@ -1,5 +1,7 @@
 # Hardware settings for robot_backend:=canivore (canivore_hardware/CanivoreHardware).
-# Every motor is a TalonFX (Kraken X60) on the CANivore, driven with Phoenix 6.
+# Wheels and drums: Kraken X60s (device_type talonfx, the default).
+# Arms: linear actuators on Talon FXS controllers (device_type talonfxs).
+# Everything is on the CANivore, driven with Phoenix 6.
 # This is the only file to edit once the real CAN IDs, gear ratios, etc. are known.
 # Every parameter is described in src/canivore_hardware/README.md.
 #
@@ -63,24 +65,31 @@ joints:
     kS: 0.0
     kV: 0.0
 
-  # ---- Arms: URDF range is -1.2 to 0.2 rad at up to 2 rad/s ----
-  # The TalonFX encoder reads 0 wherever the arm is at power-on. Set initial_position to the
-  # arm's angle at power-on (e.g. stowed against its hard stop) so the soft limits below and
-  # the /position feedback are in the right place.
-  # feedback_* map the arm angle to the 0..1 /position that dig/dump use (same as the sim's
-  # actuator_feedback.yaml).
+  # ---- Arms: linear actuators on Talon FXS (brushed DC) ----
+  # Open loop like the old ESP32: a command is a fraction of max_velocity, so with
+  # max_velocity 1.0 a command of 1.0 (what dig/dump send) means full power.
+  #
+  # Position sensor: set feedback_sensor to what the actuator has (analog = potentiometer
+  # into the FXS analog input, quadrature = encoder, pulsewidth = absolute encoder). Then read
+  # the raw value in Phoenix Tuner X with the actuator fully retracted and fully extended
+  # (volts for analog, rotations for the encoders) and fill in sensor_retracted and
+  # sensor_extended. /position then reports the measured extension, like the old robot.
+  # Until then, position is estimated from commands and the actuator's own limit switches
+  # must stop it at the ends.
+  #
+  # feedback_* map arm angle <-> 0..1 extension (same as the sim's actuator_feedback.yaml).
   front_arm_joint:
+    device_type: talonfxs
     can_id: -1
-    gear_ratio: 1.0
+    brushed_wiring: AB      # Talon FXS output leads the actuator is wired to: AB, AC or BC
     inverted: false
     neutral_mode: brake
-    max_velocity: 2.0
+    max_velocity: 1.0
     stator_current_limit: 30.0
     supply_current_limit: 20.0
-    kP: 0.0
-    kS: 0.0
-    kV: 0.0
-    initial_position: null
+    feedback_sensor: none   # none | analog | quadrature | pulsewidth
+    sensor_retracted: null
+    sensor_extended: null
     min_position: -1.2
     max_position: 0.2
     feedback_angle_start: -1.2
@@ -88,17 +97,17 @@ joints:
     feedback_output_start: 1.0
     feedback_output_end: 0.0
   rear_arm_joint:
+    device_type: talonfxs
     can_id: -1
-    gear_ratio: 1.0
+    brushed_wiring: AB
     inverted: false
     neutral_mode: brake
-    max_velocity: 2.0
+    max_velocity: 1.0
     stator_current_limit: 30.0
     supply_current_limit: 20.0
-    kP: 0.0
-    kS: 0.0
-    kV: 0.0
-    initial_position: null
+    feedback_sensor: none
+    sensor_retracted: null
+    sensor_extended: null
     min_position: -1.2
     max_position: 0.2
     feedback_angle_start: -1.2
