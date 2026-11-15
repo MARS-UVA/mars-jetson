@@ -85,6 +85,7 @@ class AprilTagGateNode(Node):
                 alltags = "Family: " + str(family) + "ID: " + str(id) + " at " + str(timeStamp) + " seconds since startup | position: " + position + "| corners: " + corners
                 self.get_logger().info(alltags)
                 responce.data += alltags
+                self.detectionPub.publish(snapshot)
             
             responce.success = True
         
