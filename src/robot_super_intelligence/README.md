@@ -16,9 +16,8 @@ routing, and action supervision. Startup uses the manager and standard muxes:
   cancellation, and terminal results. Ownership is retained through late acceptance.
 - `control_routing.py` owns mux selection, locks, stop heartbeat, mode publishing,
   and E-stop/teleop services. All three classes share the existing manager node.
-- `states/excavate.py`, `states/dump_material.py`, and `states/traverse.py` own their
-  typed ROS action clients, goal validation, and goal construction. Both traversal
-  states inherit the Nav2 client from `Traverse`.
+- `operations.py` owns the typed navigation, dig, and dump ROS action clients,
+  request validation, and goal construction. Machine states dispatch these operations.
 - Standard `twist_mux` selects drive commands by priority and lock settings.
   Standard `topic_tools mux` selects the arm/drum input through its service.
 
@@ -49,9 +48,10 @@ explicit transitions, initial/end states, and successful ending outcomes:
   keeps its target. Finishes with `DUMP_SUCCESS`; failures and deadlines abort.
 
 These reuse the classes under `states/` and run in the robot's FULL_AUTO control
-mode. No extra node or action server is needed for a new machine. Operational
-states in FullAuto and RunStart remain placeholders returning `NOT_IMPLEMENTED`.
-DigTraverseDump supplies the state arguments needed to dispatch real child actions.
+mode. No extra node or action server is needed for a new machine. RunStart and
+DigTraverseDump receive their construction destination from arena markers.
+FullAuto goals are rejected before execution because the current interface has no
+excavation-destination source. Its graph remains available for development and tests.
 
 ## Ownership and stopping
 
@@ -85,16 +85,22 @@ finished and returns immediately. States are reused across cycles. Use
 result string to the state's outcome in `on_result`. Do not block, poll, or call `/manage_robot` recursively. `cancel()` cleans
 up local work; the manager cancels and waits for the dispatched child.
 
-For a new state, export it from `states/__init__.py`, add it to the relevant
-machine's `state_types`, and write each entry in its `transitions` explicitly. A standalone operation state
-owns its `client`, `valid(request)`, and
-`send_goal(request, feedback, on_response)`, plus its
-`source` and `mode`. Register it in the manager's `operations` mapping and extend
-`ManageRobot.action` and mux source configuration as needed. Construct states with
-a ROS node to create their clients. Their `start()` methods dispatch child
-operations when configured by a machine; unconfigured states remain placeholders.
-Standalone operations use `send_goal()`. Tests cover the
-graph separately from ROS delegation, cancellation races, and command routing.
+For a new state, subclass `State` in `states/state.py`, export it from
+`states/__init__.py`, and add it to the machine's `state_types` and explicit
+`transitions`. `start()` is abstract: incomplete states cannot be instantiated.
+Require configuration in the constructor rather than accepting missing arguments.
+Traversal states inherit `Traverse`, provide a destination callable, and declare a
+`success_outcome`. If a previously valid destination disappears during a run,
+they report `FAILED`.
+
+Standalone ROS operations are separate adapters in `operations.py`. They own
+`client`, `valid(request)`, `send_goal(request, feedback, on_response)`, `source`,
+and `mode`; they are not machine states. Register new adapters in the manager's
+`operations` mapping and extend `ManageRobot.action` and mux configuration as
+needed. Machine `valid()` must reject missing or invalid configuration before a
+goal is accepted; `from_goal()` constructs the configured state instances.
+Tests cover the graph separately from ROS delegation, cancellation races, and
+command routing.
 
 `MachineRunner.start(on_complete)` reports one final outcome. State transitions
 are queued through the executor; duplicate and late state callbacks are ignored.
@@ -111,7 +117,7 @@ No action-interface change is needed. Empty or unknown machine names are rejecte
 
 ```bash
 ros2 service call /robot_state/estop std_srvs/srv/SetBool '{data: false}'
-# Full excavation loop
+# Full excavation loop (currently rejected: excavation destination is not configured)
 ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: full_auto, time_limit_sec: 600.0}' --feedback
 # One dig / traverse / dump, using the published arena markers.
 ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: dig_traverse_dump, routine_index: 0, time_limit_sec: 120.0}' --feedback

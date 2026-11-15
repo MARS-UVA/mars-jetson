@@ -21,15 +21,10 @@ class FullAutoMachine(Machine):
         (TraverseToExcavation, Outcome.EXCAVATION_REACHED): Excavate,
         (Excavate, Outcome.EXCAVATE_SUCCESS): TraverseToConstruction,
         (RunStart, Outcome.FAILED): RunEnd,
-        (RunStart, Outcome.NOT_IMPLEMENTED): RunEnd,
         (TraverseToConstruction, Outcome.FAILED): RunEnd,
-        (TraverseToConstruction, Outcome.NOT_IMPLEMENTED): RunEnd,
         (DumpMaterial, Outcome.FAILED): RunEnd,
-        (DumpMaterial, Outcome.NOT_IMPLEMENTED): RunEnd,
         (TraverseToExcavation, Outcome.FAILED): RunEnd,
-        (TraverseToExcavation, Outcome.NOT_IMPLEMENTED): RunEnd,
         (Excavate, Outcome.FAILED): RunEnd,
-        (Excavate, Outcome.NOT_IMPLEMENTED): RunEnd,
     }
 
     def advance(self, outcome):
@@ -37,3 +32,9 @@ class FullAutoMachine(Machine):
         super().advance(outcome)
         if previous is Excavate and outcome is Outcome.EXCAVATE_SUCCESS:
             self.completed_cycles += 1
+
+    @classmethod
+    def valid(cls, request, arena_markers=None):
+        # No excavation destination is provided by the current goal interface.
+        # Reject this unfinished machine before accepting or dispatching work.
+        return False

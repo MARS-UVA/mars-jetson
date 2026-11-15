@@ -55,15 +55,11 @@ def test_complete_cycle_loops_and_reenters_construction():
     assert not machine.done
 
 
-def test_real_placeholder_aborts_instead_of_simulating_success():
-    machine = FullAutoMachine(100, clock=lambda: 0)
-    machine.advance(Outcome.START_SUCCESS)
-    machine.advance(Outcome.NOT_IMPLEMENTED)
-    assert machine.current is RunEnd
-    assert machine.result is Outcome.NOT_IMPLEMENTED
-    assert machine.completed_cycles == 0
-    machine.advance(Outcome.RUN_END)
-    assert machine.done
+def test_unconfigured_machine_is_rejected_before_execution():
+    assert not FullAutoMachine.valid(object())
+    assert not RunStartMachine.valid(object())
+    with pytest.raises(TypeError):
+        FullAutoMachine(100)
 
 
 def test_deadline_interrupts_running_state_and_executes_run_end():
@@ -128,8 +124,8 @@ def test_run_start_finishes_after_construction_without_entering_dump():
 
 
 def test_machines_reuse_state_classes_but_have_independent_instances_and_graphs():
-    full = FullAutoMachine(100, clock=lambda: 0)
-    short = RunStartMachine(100, clock=lambda: 0)
+    full = FullAutoMachine(100, simulated_states(), clock=lambda: 0)
+    short = RunStartMachine(100, {cls: state for cls, state in simulated_states().items() if cls in RunStartMachine.state_types}, clock=lambda: 0)
     assert full.states[RunStart] is not short.states[RunStart]
     for machine in (full, short):
         machine.advance(Outcome.START_SUCCESS)
@@ -141,7 +137,7 @@ def test_machines_reuse_state_classes_but_have_independent_instances_and_graphs(
 
 @pytest.mark.parametrize('machine_type, succeeds', [(FullAutoMachine, True), (RunStartMachine, False)])
 def test_each_machine_defines_whether_its_deadline_is_success(machine_type, succeeds):
-    machine = machine_type(10, clock=lambda: 0)
+    machine = machine_type(10, simulated_states(), clock=lambda: 0)
     machine.end(Outcome.TIME_LIMIT_REACHED)
     machine.advance(Outcome.RUN_END)
     assert machine.done
@@ -155,7 +151,7 @@ def test_engine_supports_a_different_initial_state():
         end_state = RunEnd
         transitions = {(DumpMaterial, Outcome.DUMP_SUCCESS): RunEnd}
         success_outcomes = frozenset({Outcome.DUMP_SUCCESS})
-    machine = DumpOnlyMachine(10, clock=lambda: 0)
+    machine = DumpOnlyMachine(10, {DumpMaterial: DumpMaterial(0), RunEnd: RunEnd()}, clock=lambda: 0)
     assert machine.current is DumpMaterial
     machine.advance(Outcome.DUMP_SUCCESS)
     machine.advance(Outcome.RUN_END)
@@ -165,7 +161,10 @@ def test_engine_supports_a_different_initial_state():
 
 
 def test_dig_traverse_dump_has_explicit_transitions_for_every_state_outcome():
-    machine = DigTraverseDumpMachine(10)
+    machine = DigTraverseDumpMachine(10, states={
+        Excavate: Excavate(0), TraverseToConstruction: TraverseToConstruction(lambda: None),
+        DumpMaterial: DumpMaterial(0), RunEnd: RunEnd(),
+    })
     assert machine.current is Excavate
     for state in (Excavate, TraverseToConstruction, DumpMaterial):
         for outcome in machine.states[state].outcomes:

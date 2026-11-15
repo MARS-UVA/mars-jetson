@@ -1,6 +1,7 @@
 """One dig, construction traversal, and dump, then finish."""
 
 from ..machine import Machine
+from ..operations import DigOperation, DumpOperation
 from ..outcomes import Outcome
 from ..states import DumpMaterial, Excavate, RunEnd, TraverseToConstruction
 
@@ -15,16 +16,13 @@ class DigTraverseDumpMachine(Machine):
         (TraverseToConstruction, Outcome.CONSTRUCTION_REACHED): DumpMaterial,
         (DumpMaterial, Outcome.DUMP_SUCCESS): RunEnd,
         (Excavate, Outcome.FAILED): RunEnd,
-        (Excavate, Outcome.NOT_IMPLEMENTED): RunEnd,
         (TraverseToConstruction, Outcome.FAILED): RunEnd,
-        (TraverseToConstruction, Outcome.NOT_IMPLEMENTED): RunEnd,
         (DumpMaterial, Outcome.FAILED): RunEnd,
-        (DumpMaterial, Outcome.NOT_IMPLEMENTED): RunEnd,
     }
 
     @classmethod
     def valid(cls, request, arena_markers=None):
-        return (Excavate().valid(request) and DumpMaterial().valid(request)
+        return (DigOperation(None).valid(request) and DumpOperation(None).valid(request)
                 and arena_markers is not None and arena_markers.construction_goal() is not None)
 
     @classmethod

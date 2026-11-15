@@ -2,8 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-from ..outcomes import Outcome
-
 
 class State(ABC):
     outcomes = frozenset()
@@ -17,8 +15,3 @@ class State(ABC):
 
     def cancel(self):
         """Release local work; the manager cancels the dispatched child action."""
-
-
-class Placeholder(State):
-    def start(self, dispatch, on_complete):
-        on_complete(Outcome.NOT_IMPLEMENTED)

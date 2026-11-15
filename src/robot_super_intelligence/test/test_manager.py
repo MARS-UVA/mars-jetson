@@ -328,13 +328,11 @@ def test_standalone_deadline_cancels_child_and_aborts(system):
     assert response.result.outcome == 'TIME_LIMIT_REACHED'
 
 
-def test_full_auto_placeholder_uses_machine_runner(system):
+def test_unconfigured_full_auto_is_rejected_before_work(system):
     s = system
     clear(s)
-    goal = s.send('full_auto')
-    response = result(s, goal)
-    assert response.status == GoalStatus.STATUS_ABORTED
-    assert response.result.outcome == 'NOT_IMPLEMENTED'
+    assert not s.send('full_auto').accepted
+    assert not s.manager.busy
     assert not any(routine.goal for routine in s.routines.values())
 
 
@@ -408,7 +406,6 @@ class WaitingState:
 
 
 @pytest.mark.parametrize('operation, expected_status', [
-    ('full_auto', GoalStatus.STATUS_SUCCEEDED),
     ('run_start', GoalStatus.STATUS_ABORTED),
 ])
 def test_machine_deadline_finishes_waiting_state_without_polling(system, operation, expected_status):
@@ -423,7 +420,7 @@ def test_machine_deadline_finishes_waiting_state_without_polling(system, operati
     assert response.result.outcome == 'TIME_LIMIT_REACHED'
 
 
-@pytest.mark.parametrize('operation', ['full_auto', 'run_start'])
+@pytest.mark.parametrize('operation', ['run_start'])
 def test_machine_step_uses_the_internal_dispatcher_and_waits_for_cancel(system, operation):
     s = system
     clear(s)
@@ -550,7 +547,6 @@ def test_state_rejects_unsupported_routine_before_dispatch(system, operation):
 
 
 @pytest.mark.parametrize('operation, status, outcome', [
-    ('full_auto', GoalStatus.STATUS_ABORTED, 'NOT_IMPLEMENTED'),
     ('run_start', GoalStatus.STATUS_SUCCEEDED, 'CONSTRUCTION_REACHED'),
 ])
 def test_goal_selects_the_machine_graph(system, operation, status, outcome):
@@ -569,7 +565,7 @@ def test_goal_selects_the_machine_graph(system, operation, status, outcome):
     assert s.manager.control.mode == RobotState.TELEOP
 
 
-@pytest.mark.parametrize('operation', ['full_auto', 'run_start'])
+@pytest.mark.parametrize('operation', ['run_start'])
 def test_estop_interrupts_either_machine(system, operation):
     s = system
     clear(s)

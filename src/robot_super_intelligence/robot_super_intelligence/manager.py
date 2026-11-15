@@ -14,7 +14,7 @@ from robot_control_msgs.msg import RobotState
 from .arena_markers import ArenaMarkers
 from .child_operation import ChildOperation
 from .control_routing import ControlRouting
-from .states import DumpMaterial, Excavate, Traverse
+from .operations import DumpOperation, DigOperation, NavigationOperation
 from .machine_runner import MachineRunner
 from .machines import MACHINES
 from .outcomes import Outcome
@@ -48,9 +48,9 @@ class StateManager(Node):
             is_stopping=lambda: self.run is not None and bool(self.run.reason),
             stop_run=self.stop_run)
         self.operations = {
-            ManageRobot.Goal.NAVIGATE: Traverse(self),
-            ManageRobot.Goal.DIG: Excavate(self),
-            ManageRobot.Goal.DUMP: DumpMaterial(self),
+            ManageRobot.Goal.NAVIGATE: NavigationOperation(self),
+            ManageRobot.Goal.DIG: DigOperation(self),
+            ManageRobot.Goal.DUMP: DumpOperation(self),
         }
         self.machines = dict(MACHINES)
         self.action_server = ActionServer(
