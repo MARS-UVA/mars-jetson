@@ -1,0 +1,49 @@
+# Regulated Pure Pursuit plugin parameters, loaded after controller.yaml when
+# controller:=rpp (the default). Names and defaults checked against the
+# installed nav2_regulated_pure_pursuit_controller 1.3.13
+# (src/parameter_handler.cpp).
+# Parameters not listed keep those defaults; lookahead (0.3-0.9 m) is the
+# first thing to tune once the benchmark shows how RPP tracks.
+#
+# RPP has no angular-velocity cap or linear-acceleration limit of its own.
+# While tracking it commands wz = v * curvature. The velocity_smoother
+# (smoothers.yaml) clamps both controllers' output to the same 0.6 m/s,
+# 2.4 rad/s, and 0.6 m/s^2 limits that MPPI enforces internally.
+controller_server:
+  ros__parameters:
+    FollowPath:
+      plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
+      # Default 0.5. Match MPPI vx_max and the velocity smoother cap so the
+      # completion times compare like for like.
+      desired_linear_vel: 0.60
+      # Default 0.1. Match MPPI and the local costmap; RTAB-Map's TF lags
+      # more than that in simulation.
+      transform_tolerance: 0.2
+      # Default 3.0. Must equal the local inflation layer's cost_scaling_factor
+      # (local_costmap.yaml). RPP inverts the inflation curve with it to
+      # recover obstacle distance for cost-regulated scaling.
+      inflation_cost_scaling_factor: 9.5
+      # TODO(global planner): revisit these two when the piecewise-linear
+      # global planner replaces Smac Hybrid-A*. If its paths have no reverse
+      # segments, restore the defaults (allow_reversing false,
+      # use_rotate_to_heading true) so RPP turns in place at corners and
+      # aligns to the goal heading.
+      #
+      # Default false. Smac Hybrid-A* (planner.yaml) plans REEDS_SHEPP paths
+      # with reverse segments; RPP drives them backward only with this on.
+      # It also backs up whenever the carrot falls behind the robot.
+      allow_reversing: true
+      # Default true. RPP cannot combine rotate-to-heading with reversing
+      # (1.3.13 rejects enabling both through a parameter update). With it
+      # off, RPP never turns in place, neither at corners nor to the final
+      # goal heading; see "Known limitations" in the README.
+      use_rotate_to_heading: false
+      # The values below equal the Jazzy defaults. They are written out
+      # because the comparison depends on them.
+      # Abort with NO_VALID_CONTROL instead of driving the footprint into
+      # lethal cells along the projected arc.
+      use_collision_detection: true
+      # Slow down on tight curvature (radius under 0.9 m) and near inflated
+      # obstacles (within 0.6 m).
+      use_regulated_linear_velocity_scaling: true
+      use_cost_regulated_linear_velocity_scaling: true

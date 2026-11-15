@@ -105,6 +105,7 @@ def test_world_selects_matching_prior_and_shifted_robot_spawn(world):
     config_path = Path(mapping['cfg'])
     try:
         assert f'Marker\\Priors = {ARENA_APRILTAG_PRIORS[world.name]}' in config_path.read_text()
+        assert 'Mem\\RehearsalSimilarity = 1.0' in config_path.read_text()
     finally:
         config_path.unlink()
     spawn = next(action for action in description.entities
