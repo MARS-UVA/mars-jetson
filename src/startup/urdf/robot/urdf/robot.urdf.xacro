@@ -5,6 +5,8 @@
   <!-- Front/rear Gazebo cameras render grayscale by default to match the
        monochrome OV9281 cameras on the robot; set true for color. -->
   <xacro:arg name="color_cameras" default="false"/>
+  <!-- Used only with robot_backend:=canivore -->
+  <xacro:arg name="canivore_config" default="$(find startup)/config/canivore.yaml"/>
   <xacro:include filename="$(find startup)/urdf/robot/urdf/rgbd.gazebo.xacro" />
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/robot.urdf" />
@@ -21,7 +23,8 @@
 
   <xacro:include filename="$(find startup)/urdf/robot/urdf/ros2_control.urdf.xacro" />
 
-  <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" serial_port="$(arg serial_port)" />
+  <xacro:robot_ros2_control robot_backend="$(arg robot_backend)" serial_port="$(arg serial_port)"
+                            canivore_config="$(arg canivore_config)" />
 
   <xacro:macro name="gazebo_camera" params="name">
     <gazebo reference="${name}_camera_link">

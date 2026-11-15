@@ -5,14 +5,28 @@ TalonFX motors through a CTRE CANivore using Phoenix 6, instead of the ESP32 ser
 joint is a TalonFX running closed-loop velocity control on the motor.
 
 It is a drop-in replacement for `robot_serial_hardware/RobotSerialHardware`: same joints, same
-velocity command interface, and it also publishes `/current_bus_voltage` and `/temperature`.
+velocity command interface, and it publishes the same feedback topics (`/position`,
+`/current_bus_voltage`, `/temperature`).
 
-For testing without the robot, see the separate `canivore_hardware_bench` package.
+## Running the robot with it
+
+```bash
+./deploy.sh robot_backend:=canivore
+```
+
+Settings (CAN IDs, gear ratios, gains, limits) are in `src/startup/config/canivore.yaml`; the
+robot's xacro turns them into the URDF parameters below. To try a different file:
+`robot_backend:=canivore canivore_config:=/path/to/file.yaml`.
+
+Joints with `can_id: -1` echo their commands, so the full stack runs with no motors connected.
+Bring motors up one at a time by giving just that joint its real ID.
 
 ## Building
 
 Needs CTRE's `phoenix6` APT package, plus `canivore-usb` on the computer the CANivore plugs
 into. Both come from CTRE's APT repository (see CTRE's "Installing Phoenix 6 (non-FRC)" docs).
+On machines without Phoenix 6 (e.g. laptops that only run Gazebo) this package skips itself
+with a warning instead of failing the workspace build.
 
 ```bash
 colcon build --packages-select teleop_msgs serial_msgs canivore_hardware
@@ -50,6 +64,7 @@ interfaces are filled if present. Effort is reported as motor current in amps.
 | `enable_foc` | `false` | Field-oriented control on the Krakens; needs Phoenix Pro licenses |
 | `status_frequency_hz` | `100` | How often each Kraken reports position/velocity/current |
 | `feedback_publish_hz` | `10` | Rate of `/current_bus_voltage` and `/temperature` |
+| `position_publish_hz` | `50` | Rate of `/position` (arm actuator positions) |
 | `activation_timeout_s` | `0.5` | How long to wait for devices to answer when activating |
 
 ### Joint parameters (`<joint>`)
@@ -66,6 +81,8 @@ interfaces are filled if present. Effort is reported as motor current in amps.
 | `kP`, `kS`, `kV` | `0` | Slot 0 velocity gains (joint units). With all three at 0 the motor won't move |
 | `min_position`, `max_position` | none | Travel limits in rad, applied as TalonFX soft limits |
 | `initial_position` | none | Joint angle at power-on; needed before soft limits make sense |
+| `feedback_angle_start`, `feedback_angle_end` | `-1.2`, `0.2` | Arm joints only: angle range mapped to `/position` |
+| `feedback_output_start`, `feedback_output_end` | `1.0`, `0.0` | Arm joints only: `/position` values at those angles (same as the sim's `actuator_feedback.yaml`) |
 
 Settings are applied to the devices every time the plugin configures, so anything set by hand
 in Phoenix Tuner X (gains, limits, inversion, brake mode) is overwritten.

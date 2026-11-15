@@ -11,6 +11,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "serial_msgs/msg/current_bus_voltage.hpp"
+#include "serial_msgs/msg/position.hpp"
 #include "serial_msgs/msg/temperature.hpp"
 
 namespace canivore_hardware
@@ -32,6 +33,10 @@ struct JointMotor
   std::optional<double> min_position;      // rad, enables reverse soft limit
   std::optional<double> max_position;      // rad, enables forward soft limit
   std::optional<double> initial_position;  // rad, encoder is set to this on configure
+  // Arm angle -> 0..1 actuator position for /position (same mapping as the sim's
+  // startup/config/actuator_feedback.yaml). Only used for front_arm_joint and rear_arm_joint.
+  double feedback_angle_start{-1.2}, feedback_angle_end{0.2};
+  double feedback_output_start{1.0}, feedback_output_end{0.0};
 
   // ---- Interface names, built once so read()/write() don't rebuild strings ----
   std::string cmd_velocity, st_position, st_velocity, st_effort;
@@ -73,6 +78,7 @@ private:
   bool configure_motor(JointMotor & motor);
   void stop_all_motors();
   void publish_feedback(const rclcpp::Time & time);
+  void publish_position(const rclcpp::Time & time);
   JointMotor * find(const std::string & joint_name);
 
   // ---- Hardware-level params (<hardware><param .../></hardware>) ----
@@ -81,6 +87,7 @@ private:
   bool enable_foc_{false};
   double status_frequency_hz_{100.0};
   double feedback_publish_hz_{10.0};
+  double position_publish_hz_{50.0};
   double activation_timeout_s_{0.5};
 
   std::unique_ptr<ctre::phoenix6::CANBus> canbus_;
@@ -91,7 +98,9 @@ private:
 
   rclcpp::Publisher<serial_msgs::msg::CurrentBusVoltage>::SharedPtr current_bus_pub_;
   rclcpp::Publisher<serial_msgs::msg::Temperature>::SharedPtr temperature_pub_;
+  rclcpp::Publisher<serial_msgs::msg::Position>::SharedPtr position_pub_;
   double last_feedback_publish_s_{-1.0e9};  // seconds; plain double avoids clock-type mismatches
+  double last_position_publish_s_{-1.0e9};
   bool read_error_logged_{false};
 };
 

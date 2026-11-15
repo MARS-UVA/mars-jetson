@@ -1,7 +1,25 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<xacro:macro name="robot_ros2_control" params="robot_backend serial_port">
+<xacro:macro name="robot_ros2_control" params="robot_backend serial_port canivore_config:=''">
+
+  <!-- CANivore settings (CAN IDs, gear ratios, ...) live in config/canivore.yaml. Only loaded
+       for the canivore backend, so the other backends don't need the file. -->
+  <xacro:property name="canivore_cfg"
+    value="${xacro.load_yaml(canivore_config) if robot_backend == 'canivore' else None}"/>
+
+  <!-- Emits <param name="key"> only if canivore.yaml sets it; otherwise the plugin default is used. -->
+  <xacro:macro name="canivore_hw_param" params="key">
+    <xacro:if value="${key in canivore_cfg}">
+      <param name="${key}">${canivore_cfg[key]}</param>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:macro name="canivore_joint_param" params="joint_name key">
+    <xacro:property name="joint_cfg" value="${canivore_cfg['joints'].get(joint_name, dict())}"/>
+    <xacro:if value="${key in joint_cfg}">
+      <param name="${key}">${joint_cfg[key]}</param>
+    </xacro:if>
+  </xacro:macro>
 
   <ros2_control name="RobotSystem" type="system">
     <hardware>
@@ -16,6 +34,16 @@
         <param name="port">${serial_port}</param>
         <param name="baudrate">2000000</param>
       </xacro:if>
+      <xacro:if value="${robot_backend == 'canivore'}">
+        <plugin>canivore_hardware/CanivoreHardware</plugin>
+        <xacro:canivore_hw_param key="canbus"/>
+        <xacro:canivore_hw_param key="feed_timeout_ms"/>
+        <xacro:canivore_hw_param key="enable_foc"/>
+        <xacro:canivore_hw_param key="status_frequency_hz"/>
+        <xacro:canivore_hw_param key="feedback_publish_hz"/>
+        <xacro:canivore_hw_param key="position_publish_hz"/>
+        <xacro:canivore_hw_param key="activation_timeout_s"/>
+      </xacro:if>
     </hardware>
 
     <xacro:macro name="configure_joint" params="joint_name">
@@ -24,6 +52,25 @@
         <state_interface name="position"/>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
+        <xacro:if value="${robot_backend == 'canivore'}">
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="can_id"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="gear_ratio"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="inverted"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="neutral_mode"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="max_velocity"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="stator_current_limit"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="supply_current_limit"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="kP"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="kS"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="kV"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="initial_position"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="min_position"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="max_position"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_angle_start"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_angle_end"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_output_start"/>
+          <xacro:canivore_joint_param joint_name="${joint_name}" key="feedback_output_end"/>
+        </xacro:if>
       </joint>
     </xacro:macro>
 

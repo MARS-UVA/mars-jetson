@@ -17,7 +17,15 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(serial_msgs REQUIRED)
 # Installed by CTRE's "phoenix6" APT package (config lives in /usr/lib/phoenix6/cmake).
-find_package(phoenix6 REQUIRED PATHS /usr/lib/phoenix6/cmake)
+# Only the robot needs it. On machines without Phoenix 6 (e.g. laptops that only run Gazebo),
+# skip this package instead of failing the whole workspace build.
+find_package(phoenix6 QUIET PATHS /usr/lib/phoenix6/cmake)
+if(NOT phoenix6_FOUND)
+  message(WARNING "Phoenix 6 not found: skipping canivore_hardware. Install CTRE's phoenix6 "
+    "package to use robot_backend:=canivore.")
+  ament_package()
+  return()
+endif()
 
 add_library(${PROJECT_NAME} SHARED
   src/canivore_hardware.cpp

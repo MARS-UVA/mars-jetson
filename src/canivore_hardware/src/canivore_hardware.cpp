@@ -106,6 +106,7 @@ CallbackReturn CanivoreHardware::on_init(
     enable_foc_ = get_bool(hw, "enable_foc", false);
     status_frequency_hz_ = get_double(hw, "status_frequency_hz", 100.0);
     feedback_publish_hz_ = get_double(hw, "feedback_publish_hz", 10.0);
+    position_publish_hz_ = get_double(hw, "position_publish_hz", 50.0);
     activation_timeout_s_ = get_double(hw, "activation_timeout_s", 0.5);
 
     std::set<int> used_ids;
@@ -126,6 +127,15 @@ CallbackReturn CanivoreHardware::on_init(
       m.min_position = get_optional_double(jp, "min_position");
       m.max_position = get_optional_double(jp, "max_position");
       m.initial_position = get_optional_double(jp, "initial_position");
+      m.feedback_angle_start = get_double(jp, "feedback_angle_start", -1.2);
+      m.feedback_angle_end = get_double(jp, "feedback_angle_end", 0.2);
+      m.feedback_output_start = get_double(jp, "feedback_output_start", 1.0);
+      m.feedback_output_end = get_double(jp, "feedback_output_end", 0.0);
+      if (m.feedback_angle_start == m.feedback_angle_end) {
+        RCLCPP_ERROR(get_logger(), "Joint '%s': feedback_angle_start and feedback_angle_end "
+          "must differ", m.name.c_str());
+        return CallbackReturn::ERROR;
+      }
 
       if (m.connected()) {
         if (m.can_id > 62) {
@@ -192,6 +202,7 @@ CallbackReturn CanivoreHardware::on_init(
 
   // Same feedback topics the serial plugin publishes, so the dashboard and dig/dump keep working.
   if (auto node = get_node()) {
+    position_pub_ = node->create_publisher<serial_msgs::msg::Position>("position", 10);
     current_bus_pub_ =
       node->create_publisher<serial_msgs::msg::CurrentBusVoltage>("current_bus_voltage", 10);
     temperature_pub_ = node->create_publisher<serial_msgs::msg::Temperature>("temperature", 10);
@@ -435,6 +446,7 @@ return_type CanivoreHardware::read(const rclcpp::Time & time, const rclcpp::Dura
   }
 
   publish_feedback(time);
+  publish_position(time);
   return return_type::OK;
 }
 
@@ -468,6 +480,37 @@ return_type CanivoreHardware::write(const rclcpp::Time &, const rclcpp::Duration
       .WithEnableFOC(enable_foc_));
   }
   return return_type::OK;
+}
+
+// /position: the arms' 0..1 actuator position that dig/dump wait on. The serial plugin got this
+// from the ESP32; here it comes from the arm angles, mapped the same way the simulation does.
+void CanivoreHardware::publish_position(const rclcpp::Time & time)
+{
+  if (!position_pub_ || position_publish_hz_ <= 0.0) {
+    return;
+  }
+  const double now = time.seconds();
+  if (now - last_position_publish_s_ < 1.0 / position_publish_hz_) {
+    return;
+  }
+  const auto * front = find("front_arm_joint");
+  const auto * rear = find("rear_arm_joint");
+  if (!front || !rear) {
+    return;  // not this robot's joint layout
+  }
+  last_position_publish_s_ = now;
+
+  auto calibrated = [](const JointMotor & m) {
+      const double fraction = std::clamp(
+        (m.position - m.feedback_angle_start) / (m.feedback_angle_end - m.feedback_angle_start),
+        0.0, 1.0);
+      return static_cast<float>(
+        m.feedback_output_start + fraction * (m.feedback_output_end - m.feedback_output_start));
+    };
+  serial_msgs::msg::Position msg;
+  msg.front_actuator_position = calibrated(*front);
+  msg.back_actuator_position = calibrated(*rear);
+  position_pub_->publish(msg);
 }
 
 JointMotor * CanivoreHardware::find(const std::string & joint_name)

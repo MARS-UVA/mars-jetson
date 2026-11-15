@@ -27,6 +27,7 @@
   <exec_depend>robot_controller</exec_depend>
   <exec_depend>robot_state_controller</exec_depend>
   <exec_depend>serial_node</exec_depend>
+  <exec_depend>canivore_hardware</exec_depend>
   <exec_depend>teleop</exec_depend>
 
   <!-- Actuator feedback and hardware LiDAR support. -->

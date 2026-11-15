@@ -42,12 +42,18 @@ def generate_launch_description():
     color_cameras = LaunchConfiguration("color_cameras")
     control_station_ip = LaunchConfiguration("control_station_ip")
     serial_port = LaunchConfiguration("serial_port")
+    canivore_config = LaunchConfiguration("canivore_config")
     choose_sim_map = LaunchConfiguration("choose_sim_map")
 
     backend_arg = DeclareLaunchArgument(
         "robot_backend",
         default_value="serial",
-        description="Backend for the robot hardware interface (serial, gazebo, mock)",
+        description="Backend for the robot hardware interface (serial, canivore, gazebo, mock)",
+    )
+    canivore_config_arg = DeclareLaunchArgument(
+        "canivore_config",
+        default_value=PathJoinSubstitution([FindPackageShare("startup"), "config", "canivore.yaml"]),
+        description="CAN IDs, gear ratios and limits for robot_backend:=canivore",
     )
     control_station_ip_arg = DeclareLaunchArgument(
         "control_station_ip",
@@ -55,7 +61,7 @@ def generate_launch_description():
         description="IP address of the control station for network communication",
     )
     
-    args = [backend_arg, control_station_ip_arg, DeclareLaunchArgument(
+    args = [backend_arg, canivore_config_arg, control_station_ip_arg, DeclareLaunchArgument(
         'no_gui', default_value='false',
         description='Disable Gazebo, RViz, and RTAB-Map windows in simulation',
     ), DeclareLaunchArgument(
@@ -143,6 +149,7 @@ def generate_launch_description():
         " enable_rgbd:=", enable_rgbd,
         " enable_lidar:=", enable_lidar,
         " serial_port:=", serial_port,
+        " canivore_config:=", canivore_config,
         " color_cameras:=", color_cameras,
     ])
 
@@ -205,8 +212,9 @@ def generate_launch_description():
             'robot_description': robot_description,
             'color_cameras': color_cameras,
         }.items(),
+        # The real robot's controller manager, for both the ESP32 (serial) and CANivore backends.
         condition=IfCondition(
-            PythonExpression(["'", backend, "' == 'serial'"])
+            PythonExpression(["'", backend, "' in ('serial', 'canivore')"])
         )
     ))
 

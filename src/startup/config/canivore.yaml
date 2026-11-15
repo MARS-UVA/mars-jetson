@@ -1,0 +1,131 @@
+# Hardware settings for robot_backend:=canivore (canivore_hardware/CanivoreHardware).
+# Every motor is a TalonFX (Kraken X60) on the CANivore, driven with Phoenix 6.
+# This is the only file to edit once the real CAN IDs, gear ratios, etc. are known.
+# Every parameter is described in src/canivore_hardware/README.md.
+#
+# can_id: -1 means "not connected": that joint echoes its command back as its state, so the
+# controllers run without the motor. Give one joint a real ID at a time when bringing up.
+#
+# Units: positions in radians, velocities in rad/s, currents in amps. gear_ratio is motor
+# rotations per joint rotation. kP/kS/kV are Phoenix Slot0 gains in volts per (joint
+# rotation/s), because the plugin sets SensorToMechanismRatio = gear_ratio.
+# With kP, kS and kV all 0 a motor will not move; a starting kV is roughly
+# 12 / (max joint speed in rotations/s).
+
+canbus: "*"              # CANivore name or serial number; "*" = any CANivore found
+feed_timeout_ms: 100     # motors disable themselves if commands stop for this long
+enable_foc: false        # needs Phoenix Pro licenses; leave false until licensed
+
+joints:
+  # ---- Drivetrain: max_velocity matches the URDF limit (10 rad/s) ----
+  front_left_wheel_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+  front_right_wheel_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+  rear_left_wheel_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+  rear_right_wheel_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+
+  # ---- Arms: URDF range is -1.2 to 0.2 rad at up to 2 rad/s ----
+  # The TalonFX encoder reads 0 wherever the arm is at power-on. Set initial_position to the
+  # arm's angle at power-on (e.g. stowed against its hard stop) so the soft limits below and
+  # the /position feedback are in the right place.
+  # feedback_* map the arm angle to the 0..1 /position that dig/dump use (same as the sim's
+  # actuator_feedback.yaml).
+  front_arm_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 2.0
+    stator_current_limit: 30.0
+    supply_current_limit: 20.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+    initial_position: null
+    min_position: -1.2
+    max_position: 0.2
+    feedback_angle_start: -1.2
+    feedback_angle_end: 0.2
+    feedback_output_start: 1.0
+    feedback_output_end: 0.0
+  rear_arm_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: brake
+    max_velocity: 2.0
+    stator_current_limit: 30.0
+    supply_current_limit: 20.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+    initial_position: null
+    min_position: -1.2
+    max_position: 0.2
+    feedback_angle_start: -1.2
+    feedback_angle_end: 0.2
+    feedback_output_start: 1.0
+    feedback_output_end: 0.0
+
+  # ---- Drums ----
+  front_drum_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: coast
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
+  rear_drum_joint:
+    can_id: -1
+    gear_ratio: 1.0
+    inverted: false
+    neutral_mode: coast
+    max_velocity: 10.0
+    stator_current_limit: 40.0
+    supply_current_limit: 30.0
+    kP: 0.0
+    kS: 0.0
+    kV: 0.0
