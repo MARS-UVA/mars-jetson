@@ -4,7 +4,7 @@ from autonomy_msgs.action import Dig, ManageRobot
 from rclpy.action import ActionClient
 from robot_control_msgs.msg import RobotState
 
-from .base import Placeholder
+from .state import Placeholder
 from ..outcomes import Outcome
 
 

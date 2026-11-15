@@ -6,17 +6,22 @@ from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from robot_control_msgs.msg import RobotState
 
-from .base import Placeholder
+from .state import State
 from ..outcomes import Outcome
 
 
-class Traverse(Placeholder):
+class Traverse(State):
     source = 'navigation'
     mode = RobotState.NAVIGATION
     outcomes = frozenset({Outcome.FAILED, Outcome.NOT_IMPLEMENTED})
 
     def __init__(self, node=None):
         self.client = ActionClient(node, NavigateToPose, 'navigate_to_pose') if node else None
+
+    def start(self, dispatch, on_complete):
+        # Machine traversal states supply a destination and override this method.
+        # Standalone navigation uses send_goal() with the request's target pose.
+        on_complete(Outcome.NOT_IMPLEMENTED)
 
     def valid(self, request):
         pose = request.target_pose
