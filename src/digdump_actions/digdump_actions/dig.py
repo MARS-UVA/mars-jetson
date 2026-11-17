@@ -157,7 +157,7 @@ class GroundDrumDig:
 
 class DigNode(RoutineServer):
     def __init__(self):
-        super().__init__('dig', Dig, RobotState.DIG, DEFAULTS,
+        super().__init__('dig', Dig, DEFAULTS,
                          {Dig.Goal.BRUNO_INDEX: BrunoDig,
                           Dig.Goal.FRONTLOADER_INDEX: FrontloaderDig,
                           Dig.Goal.GROUND_DRUM_INDEX: GroundDrumDig},

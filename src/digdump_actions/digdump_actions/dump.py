@@ -109,7 +109,7 @@ class GroundDrumDump:
 
 class DumpNode(RoutineServer):
     def __init__(self):
-        super().__init__('dump', Dump, RobotState.DUMP, DEFAULTS,
+        super().__init__('dump', Dump, DEFAULTS,
                          {Dump.Goal.BRUNO_INDEX: BrunoDump,
                           Dump.Goal.FRONTLOADER_INDEX: FrontloaderDump,
                           Dump.Goal.GROUND_DRUM_INDEX: GroundDrumDump})
