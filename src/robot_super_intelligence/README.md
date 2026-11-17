@@ -115,6 +115,20 @@ No action-interface change is needed. Empty or unknown machine names are rejecte
 
 ## Run
 
+`one_cycle` follows DigTraverseDump, then navigates to the `Excavation approach`
+arena marker and finishes with `EXCAVATION_REACHED`. NASA's approach is at
+`(2.5, 3.875)` in `map`, on the excavation/obstacle border halfway between the
+top wall and the pillar's upper face, facing into excavation (-X). Both arena
+destinations must be available before acceptance. The return uses the latest
+approach marker; a missing, invalid, deleted, or expired marker fails traversal.
+`completed_cycles` increments after dumping, as in DigTraverseDump; return
+failure still aborts the goal. Enable the arena publisher with
+`arena_name:=ARENA_NASA` and restart it after rebuilding `robot_navigation`.
+
+```bash
+ros2 action send_goal /manage_robot autonomy_msgs/action/ManageRobot '{operation: 3, machine_name: one_cycle, routine_index: 0, time_limit_sec: 180.0}' --feedback
+```
+
 ```bash
 ros2 service call /robot_state/estop std_srvs/srv/SetBool '{data: false}'
 # Full excavation loop (currently rejected: excavation destination is not configured)

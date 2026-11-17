@@ -40,7 +40,8 @@
           </image>
           <clip><near>0.1</near><far>10.0</far></clip>
           <depth_camera>
-            <clip><near>0.1</near><far>10.0</far></clip>
+            <!-- Exclude robot geometry, including the moving arms/drums. -->
+            <clip><near>1.2</near><far>10.0</far></clip>
           </depth_camera>
           <camera_info_topic>/${name}/camera_info</camera_info_topic>
         </camera>

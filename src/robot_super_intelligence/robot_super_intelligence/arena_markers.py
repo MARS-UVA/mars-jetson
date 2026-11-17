@@ -51,11 +51,25 @@ class ArenaMarkers:
         self.node = node
         self.marker = None
         self.received = None
+        self.excavation_marker = None
+        self.excavation_received = None
         self.subscription = node.create_subscription(
             MarkerArray, '/arena/markers', self.update, 1)
 
     def update(self, message):
         for marker in message.markers:
+            excavation = self.excavation_marker
+            same_excavation = excavation is not None and (marker.ns, marker.id) == (excavation.ns, excavation.id)
+            if marker.action == Marker.DELETEALL:
+                self.excavation_marker = None
+            elif marker.action == Marker.DELETE and same_excavation:
+                self.excavation_marker = None
+            elif marker.action == Marker.ADD:
+                if marker.ns == 'Excavation approach' and marker.type == Marker.ARROW:
+                    self.excavation_marker = marker
+                    self.excavation_received = self.node.get_clock().now()
+                elif same_excavation:
+                    self.excavation_marker = None
             current = self.marker
             same = current is not None and (marker.ns, marker.id) == (current.ns, current.id)
             if marker.action == Marker.DELETEALL:
@@ -78,3 +92,25 @@ class ArenaMarkers:
         if lifetime > 0 and elapsed >= lifetime:
             return None
         return construction_goal(self.marker)
+
+    def excavation_goal(self):
+        """Return the arena's explicit excavation approach while it is valid."""
+        marker = self.excavation_marker
+        if marker is None or not marker.header.frame_id:
+            return None
+        lifetime = marker.lifetime.sec + marker.lifetime.nanosec / 1e9
+        elapsed = (self.node.get_clock().now() - self.excavation_received).nanoseconds / 1e9
+        if lifetime > 0 and elapsed >= lifetime:
+            return None
+        p, q = marker.pose.position, marker.pose.orientation
+        if not all(math.isfinite(v) for v in (p.x, p.y, p.z, q.x, q.y, q.z, q.w)):
+            return None
+        norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+        if norm < 1e-9:
+            return None
+        goal = PoseStamped(header=deepcopy(marker.header), pose=deepcopy(marker.pose))
+        goal.pose.orientation.x /= norm
+        goal.pose.orientation.y /= norm
+        goal.pose.orientation.z /= norm
+        goal.pose.orientation.w /= norm
+        return goal

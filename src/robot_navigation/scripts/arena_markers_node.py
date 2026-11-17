@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Publish fixed arena outlines and labels for RViz."""
 
+import math
+
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Point
@@ -51,6 +53,16 @@ class ArenaMarkersNode(Node):
                     marker.scale.z = 0.2
                     marker.pose.position = Point(x=label_x, y=label_y, z=0.15)
                 self.markers.markers.append(marker)
+        if 'excavation_approach' in config:
+            x, y, yaw = config['excavation_approach']
+            approach = Marker(ns='Excavation approach', id=0, type=Marker.ARROW)
+            approach.header.frame_id = 'map'
+            approach.pose.position = Point(x=x, y=y, z=0.0)
+            approach.pose.orientation.z = math.sin(yaw / 2)
+            approach.pose.orientation.w = math.cos(yaw / 2)
+            approach.scale.x, approach.scale.y, approach.scale.z = 0.6, 0.1, 0.1
+            approach.color.r, approach.color.g, approach.color.a = 0.2, 0.8, 1.0
+            self.markers.markers.append(approach)
         self.publisher = self.create_publisher(MarkerArray, '/arena/markers', 1)
         self.publish_markers()
         self.timer = self.create_timer(1.0, self.publish_markers)

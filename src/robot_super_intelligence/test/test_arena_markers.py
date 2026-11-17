@@ -99,3 +99,32 @@ def test_label_only_does_not_supply_region_geometry():
     source = ArenaMarkers(node)
     source.update(MarkerArray(markers=[Marker(ns='Construction zone', type=Marker.TEXT_VIEW_FACING)]))
     assert source.construction_goal() is None
+
+
+def test_excavation_approach_validation_deletion_and_expiry():
+    seconds = [0.0]
+    clock = SimpleNamespace(now=lambda: Time(seconds=seconds[0]))
+    node = SimpleNamespace(get_clock=lambda: clock,
+                           create_subscription=lambda *args: None)
+    source = ArenaMarkers(node)
+    marker = Marker(ns='Excavation approach', id=0, type=Marker.ARROW)
+    marker.header.frame_id = 'map'
+    marker.pose.position.x, marker.pose.position.y = 2.5, 3.875
+    marker.pose.orientation.z = 1.0
+    marker.lifetime.sec = 1
+    source.update(MarkerArray(markers=[marker]))
+    goal = source.excavation_goal()
+    assert goal.pose.position.x == 2.5
+    assert goal.pose.position.y == 3.875
+    assert goal.pose.orientation.z == 1.0
+    seconds[0] = 2.0
+    assert source.excavation_goal() is None
+    source.update(MarkerArray(markers=[marker]))
+    source.update(MarkerArray(markers=[Marker(ns=marker.ns, id=0, action=Marker.DELETE)]))
+    assert source.excavation_goal() is None
+    source.update(MarkerArray(markers=[marker]))
+    source.update(MarkerArray(markers=[Marker(action=Marker.DELETEALL)]))
+    assert source.excavation_goal() is None
+    marker.pose.position.x = float('nan')
+    source.update(MarkerArray(markers=[marker]))
+    assert source.excavation_goal() is None

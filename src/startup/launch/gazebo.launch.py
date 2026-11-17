@@ -150,9 +150,9 @@ def launch_rtabmap(context):
             '--Rtabmap/CreateIntermediateNodes false '
             '--Reg/Strategy 1 '
             '--RGBD/ProximityBySpace true --Grid/Sensor 0 '
-            # Flat arena: wheel radius 0.1778 - axle Z 0.04445 gives
-            # ground Z ~-0.133 m in base_link. Allow ~5 cm floor tolerance.
-            '--Grid/NormalsSegmentation false --Grid/MaxGroundHeight -0.08 '
+            # Classify ground up to 0.05 m in the base frame, allowing terrain
+            # variation above the nominal ground height of about -0.133 m.
+            '--Grid/NormalsSegmentation false --Grid/MaxGroundHeight 0.05 '
             '--Grid/MapFrameProjection false --Grid/GroundIsObstacle false '
             # Remove body returns from occupancy grids in blue-forward base_link axes.
             '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '

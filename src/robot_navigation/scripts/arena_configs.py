@@ -2,6 +2,9 @@
 
 ARENA_CONFIGS = {
     'ARENA_NASA': {
+        # Excavation/obstacle border, halfway between the pillar's upper face
+        # (y=2.75) and the top wall (y=5), facing into excavation (-X).
+        'excavation_approach': (2.5, 3.875, 3.141592653589793),
         'zones': {
             'Excavation zone': [(0.0, 0.0), (2.5, 0.0), (2.5, 5.0), (0.0, 5.0)],
             'Obstacle zone': [
