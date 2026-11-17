@@ -34,6 +34,8 @@
   <!-- Actuator feedback and hardware LiDAR support. -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>tf2_msgs</exec_depend>
   <exec_depend>serial_msgs</exec_depend>
   <exec_depend>point_lio</exec_depend>
   <exec_depend>unitree_lidar_ros2</exec_depend>

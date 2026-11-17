@@ -72,7 +72,10 @@ def test_gui_controls_and_navigation_override(no_gui, nav_view, nav2):
     mapping = gazebo['launch_rtabmap'](context)
     mapping_arguments = arguments(mapping[0], context)
     assert mapping_arguments['rtabmap_viz'] == ('false' if headless else 'true')
-    assert mapping_arguments['icp_odometry'] == 'true'
+    assert mapping_arguments['icp_odometry'] == 'false'
+    assert mapping_arguments['visual_odometry'] == 'false'
+    assert mapping_arguments['publish_tf_odom'] == 'false'
+    assert mapping_arguments['odom_topic'] == '/ground_truth/odom'
     assert mapping_arguments['subscribe_scan_cloud'] == 'true'
 
     rgbd = included(description, 'enable_rviz')

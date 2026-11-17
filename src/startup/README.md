@@ -93,13 +93,13 @@ ros2 launch startup launch.py robot_backend:=gazebo enable_rtabmap:=true
 ```
 
 `enable_rtabmap` defaults to false. Enabling it defaults both `enable_rgbd`
-and `enable_lidar` to true. RTAB-Map uses LiDAR ICP odometry and subscribes to
+and `enable_lidar` to true. RTAB-Map uses Gazebo ground-truth odometry and subscribes to
 both `/unilidar/cloud` and the RGB-D images. Registration and the occupancy
-grid use LiDAR with the supplied planar ICP settings (5 cm voxels and
+grid use LiDAR with the supplied ICP registration settings (5 cm voxels and
 point-to-plane matching). Subscriptions use Best Effort QoS and simulation time.
 RTAB-Map's own visualization window is enabled.
 
-For RGB-D visual odometry alone, add `enable_lidar:=false`. For LiDAR alone,
+For RGB-D mapping alone, add `enable_lidar:=false`. For LiDAR alone,
 add `enable_rgbd:=false`. Enabling RTAB-Map with both sensors disabled is an
 error. Both sensor arguments also work independently of RTAB-Map; LiDAR defaults
 to off when RTAB-Map is off. `enable_lidar` controls the simulated sensor and its
@@ -109,10 +109,13 @@ creating the robot description with Xacro.
 
 Stop any manually launched RTAB-Map instance before using this option.
 The existing controller configuration disables wheel odometry TF publication
-(`enable_odom_tf: false`), allowing RTAB-Map odometry to own
-`odom -> frame_assembly`. That controller setting also applies when RTAB-Map is
-disabled; restore it to true if returning to wheel odometry, and do not run
-RTAB-Map odometry TF alongside it.
+(`enable_odom_tf: false`). Gazebo's OdometryPublisher supplies 3D ground-truth
+`/ground_truth/odom` and `odom -> base_link` at 50 Hz, even with RTAB-Map disabled.
+RTAB-Map publishes `map -> odom`; its visual and ICP odometry nodes are disabled.
+Nav2 consumes the same ground-truth odometry, including measured body-frame
+velocities. Real pitch, roll, and height changes on terrain are preserved.
+Rebuild `startup` and restart the simulation to load the plugin and bridges.
+The physical robot's odometry configuration is unchanged.
 
 The database defaults to `/tmp/rgbd_visual_test.db`. With LiDAR enabled, the
 launch starts a fresh map on each run; the AprilTag-prior configuration also
@@ -120,7 +123,7 @@ starts fresh when running RGB-D alone. Pass `rtabmap_database_path:=/tmp/another
 to choose a different database path.
 In RViz, select fixed frame `map` and add `/rtabmap/cloud_map` as a PointCloud2
 display to view the accumulated map. Odometry is published on
-`/rtabmap/icp_odom` when LiDAR is enabled, otherwise `/rtabmap/visual_odom`.
+`/ground_truth/odom` for both LiDAR and RGB-D simulation mapping.
 
 ### Anchor a fresh RTAB-Map map with surveyed AprilTags
 
@@ -144,7 +147,7 @@ radians. Keep the default `pose_estimation_method:=pnp` in `apriltag_ros`.
 
 The launch enables RTAB-Map prior optimization and uses its g2o optimizer.
 AprilTag observations still have finite uncertainty. The map is anchored when
-RTAB-Map processes a detection of one of these tags; ICP or visual odometry then
+RTAB-Map processes a detection of one of these tags; ground-truth odometry then
 tracks relative motion as usual. Keep a board tag in view during startup so the
 initial graph can acquire its global anchor. These
 defaults apply to the bundled NASA world; change `rtabmap_marker_priors` when
@@ -174,7 +177,7 @@ calibration and frames; it does not stitch their depth images into one view.
 Approximate synchronization allows at most 20 ms between inputs, with Best
 Effort QoS and simulation time.
 
-RTAB-Map, its visualization, and RGB-D odometry (when LiDAR is disabled) use
+RTAB-Map and its visualization use
 `subscribe_rgbd=true`, `rgbd_cameras=0` and the combined topic. Multi-camera
 visual estimation uses `Vis/EstimationType=0`. LiDAR ICP settings remain active
 when LiDAR is enabled. Use a fresh `rtabmap_database_path` when changing inputs.

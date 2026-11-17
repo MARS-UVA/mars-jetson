@@ -27,7 +27,7 @@ def launch_nav2(context):
         ])),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time', default='true'),
-            'odom_topic': '/rtabmap/icp_odom',
+            'odom_topic': '/ground_truth/odom',
             'arena_name': LaunchConfiguration('arena_name', default='ARENA_NASA'),
             'enable_local_lidar': LaunchConfiguration('enable_local_lidar', default='false'),
             'controller': LaunchConfiguration('controller', default='rpp'),

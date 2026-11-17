@@ -76,9 +76,9 @@ lock and cancellation on transitions remain future work.
 | `odom -> base_link` | RTAB-Map odometry; ICP with LiDAR, visual without it |
 | Base-to-sensor/joint transforms | Robot state publisher using the robot description and joint states |
 | `/rtabmap/map` | RTAB-Map occupancy grid; global costmap static layer subscribes |
-| `/rtabmap/icp_odom` | Current integrated Nav2 odometry input, expected `nav_msgs/msg/Odometry` |
+| `/ground_truth/odom` | Current integrated Nav2 odometry input, expected `nav_msgs/msg/Odometry` |
 | `/rgbd_blue/points`, `/rgbd_orange/points` | Independent `PointCloud2` observations for the local voxel layer |
-| `/unilidar/cloud` | LiDAR `PointCloud2` input for ICP odometry and RTAB-Map mapping |
+| `/unilidar/cloud` | LiDAR `PointCloud2` input for RTAB-Map registration and mapping |
 | `/cmd_vel/navigation_raw` | Controller and recovery behaviors publish; velocity smoother subscribes |
 | `/cmd_vel/navigation` | Velocity smoother publishes final `geometry_msgs/msg/Twist`; base-command mux subscribes |
 | `/cmd_vel` | Mux-selected teleop, dig/dump, or navigation output |
@@ -100,7 +100,7 @@ recovery velocities pass through the same velocity smoother and mux. The launch
 does not start a collision monitor, route server, docking server, or waypoint follower.
 
 The configuration uses `/odom` as a placeholder parameter value. The navigation
-launch rewrites each `odom_topic` to `/rtabmap/icp_odom` for the integrated launch;
+launch rewrites each `odom_topic` to `/ground_truth/odom` for the integrated launch;
 it does not create a new `/odom` publisher. The standalone launch accepts
 `odom_topic`, `config_dir`, `use_sim_time`, `autostart`, and `enable_local_lidar`,
 assuming that its caller already provides map, TF, sensors, and command selection.
@@ -171,18 +171,18 @@ planning, controller, costmaps, behaviors, and both smoothers. See the
   inputs. Only these depth cameras feed the local costmap; LiDAR feeds ICP and
   RTAB-Map mapping. The cameras face the blue and orange ends, providing front/rear depth
   observations in the blue-forward base frame.
-- **Filtering:** The initial ground assumption is approximately z=-0.13 m in
-  `odom`. Obstacle returns must be between -0.08 and 1.45 m. The voxel grid spans
+- **Filtering:** Gazebo ground-truth `odom` uses world coordinates, where flat
+  ground is z=0. Obstacle returns must be between 0.05 and 1.45 m. The voxel grid spans
   -0.10 to 1.50 m. These are fixed-frame height limits, not optical-frame depth;
   verify them against actual TF and point clouds. A height cutoff alone does not
   segment ground on slopes.
 - **Mapping ground classification:** With simulated LiDAR enabled, RTAB-Map
   builds occupancy grids using height passthrough instead of surface normals
-  (`Grid/NormalsSegmentation=false`). `Grid/MaxGroundHeight=-0.08` classifies
-  points at or below -0.08 m as ground in the gravity-aligned robot frame
+  (`Grid/NormalsSegmentation=false`). `Grid/MaxGroundHeight=0.05` classifies
+  points at or below 0.05 m as ground in the gravity-aligned robot frame
   (`Grid/MapFrameProjection=false`, `Grid/GroundIsObstacle=false`). The wheel
   radius (0.1778 m) minus axle height (0.04445 m) predicts floor Z=-0.13335 m,
-  leaving about 5 cm tolerance. This is a flat-arena setting; raised terrain
+  leaving about 18 cm tolerance. This is a flat-arena setting; raised terrain
   above the cutoff remains an obstacle. Existing saved local grids must be
   rebuilt or a fresh database used to evaluate the new classification.
 - **Observation ranges:** All sources mark to 2.5 m and clear to 3.0 m. Minimum
@@ -206,7 +206,7 @@ goals:
 
 ```bash
 ros2 topic info /rtabmap/map --verbose
-ros2 topic echo /rtabmap/icp_odom --once
+ros2 topic echo /ground_truth/odom --once
 ros2 run tf2_ros tf2_echo map base_link
 ros2 topic hz /rgbd_blue/points --qos-reliability best_effort
 ros2 topic hz /rgbd_orange/points --qos-reliability best_effort

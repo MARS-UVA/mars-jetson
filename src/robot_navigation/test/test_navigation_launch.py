@@ -161,11 +161,11 @@ def test_launch_defaults_resolve_installed_configuration():
             action.execute(context)
     config = Path(context.launch_configurations['config_dir'])
     assert config.is_dir()
-    assert context.launch_configurations['arena_name'] == ''
+    assert context.launch_configurations['arena_name'] == 'ARENA_NASA'
     assert context.launch_configurations['use_sim_time'] == 'false'
     assert context.launch_configurations['enable_local_lidar'] == 'false'
     assert context.launch_configurations['autostart'] == 'true'
-    assert context.launch_configurations['odom_topic'] == '/rtabmap/icp_odom'
+    assert context.launch_configurations['odom_topic'] == '/ground_truth/odom'
     assert context.launch_configurations['controller'] == LAUNCH['DEFAULT_CONTROLLER']
     nodes = expanded_nodes(config_dir=str(config))
     assert set(nodes) == SERVERS | {'lifecycle_manager_navigation'}

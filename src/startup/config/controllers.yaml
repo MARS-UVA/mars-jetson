@@ -29,7 +29,7 @@ base_controller:
     wheel_separation: 0.4318
     wheel_radius: 0.1778  # 14-inch diameter from wheel.stl
     base_frame_id: base_link
-    # RTAB-Map visual odometry publishes odom -> base_link for this setup.
+    # Gazebo ground-truth odometry publishes odom -> base_link in simulation.
     # Restore true when using wheel odometry as the TF source.
     enable_odom_tf: false
     publish_rate: 50.0

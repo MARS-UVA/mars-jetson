@@ -1,8 +1,8 @@
 # Initial navigation-only configuration for ROS 2 Jazzy.
-# RTAB-Map owns map -> odom, odom -> base_link, and /rtabmap/map.
+# RTAB-Map owns map -> odom and /rtabmap/map; Gazebo owns odom -> base_link.
 # No AMCL or map_server: confirm /rtabmap/map is nav_msgs/OccupancyGrid.
 # /odom is the intended estimator-independent input. navigation.launch.py rewrites
-# odom_topic to the selected estimator topic (currently /rtabmap/icp_odom).
+# odom_topic to the selected estimator topic (in simulation /ground_truth/odom).
 # Odometry must contain measured base-frame velocities before navigation tests.
 # use_sim_time defaults to false and is rewritten by the optional launch.
 #
@@ -13,11 +13,12 @@
 # Confirm the envelope against the physical robot before hardware use.
 #
 # Height limits are in the costmap fixed frame, not the camera optical frame.
-# Initial flat-ground assumption: ground ~-0.13 m in odom (initial base origin).
-# Reject returns below -0.08 m (~5 cm above that ground). Verify this against
-# actual TF/clouds; a height cut alone does not segment ground on slopes.
+# Gazebo ground-truth odom uses world coordinates: flat ground is z=0.
+# Reject returns below 0.05 m (5 cm above that ground). A height cut alone
+# does not segment ground on slopes. The optional LiDAR prefilter below uses
+# base_link coordinates instead, where nominal ground is about -0.13 m.
 # Local obstacles use the front/rear RGB-D cameras. LiDAR is used for
-# ICP odometry and RTAB-Map mapping, not as a required local observation source.
+# RTAB-Map registration and mapping, not as a required local observation source.
 
 navigation_cloud_filter:
   ros__parameters:
@@ -56,7 +57,7 @@ local_costmap:
         origin_z: -0.10
         z_resolution: 0.10
         z_voxels: 16 # Grid top: 1.50 m; source heights stay inside this grid.
-        min_obstacle_height: -0.08
+        min_obstacle_height: 0.05
         max_obstacle_height: 1.45
         mark_threshold: 0
         observation_sources: rgbd_blue rgbd_orange
@@ -67,7 +68,7 @@ local_costmap:
           data_type: PointCloud2
           marking: true
           clearing: true
-          min_obstacle_height: -0.08
+          min_obstacle_height: 0.05
           max_obstacle_height: 1.45
           obstacle_min_range: 0.10
           obstacle_max_range: 2.5
@@ -80,7 +81,7 @@ local_costmap:
           data_type: PointCloud2
           marking: true
           clearing: true
-          min_obstacle_height: -0.08
+          min_obstacle_height: 0.05
           max_obstacle_height: 1.45
           obstacle_min_range: 0.10
           obstacle_max_range: 2.5
@@ -93,7 +94,7 @@ local_costmap:
           data_type: PointCloud2
           marking: true
           clearing: true
-          min_obstacle_height: -0.08
+          min_obstacle_height: 0.05
           max_obstacle_height: 1.45
           obstacle_min_range: 0.10
           obstacle_max_range: 2.5

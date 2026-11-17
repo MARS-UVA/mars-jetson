@@ -69,7 +69,7 @@ Launch arguments:
   [Known limitations](#known-limitations) for how RPP behaves with the current
   planner.
 - `use_sim_time`: defaults to `false`; rewritten across all loaded configurations.
-- `odom_topic`: defaults to `/rtabmap/icp_odom`; replaces the `/odom` placeholders.
+- `odom_topic`: defaults to `/ground_truth/odom`; replaces the `/odom` placeholders.
 - `autostart`: defaults to `true` for the six managed Nav2 servers.
 - `enable_local_lidar`: defaults to `false`. When enabled, starts
   `navigation_cloud_filter` and adds its output to local obstacle observations.

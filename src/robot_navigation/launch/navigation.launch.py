@@ -114,7 +114,7 @@ def generate_launch_description():
         DeclareLaunchArgument('arena_name', default_value='ARENA_NASA'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('enable_local_lidar', default_value='false'),
-        DeclareLaunchArgument('odom_topic', default_value='/rtabmap/icp_odom'),
+        DeclareLaunchArgument('odom_topic', default_value='/ground_truth/odom'),
         DeclareLaunchArgument(
             'controller', default_value=DEFAULT_CONTROLLER, choices=list(CONTROLLER_CONFIGS),
             description='FollowPath controller plugin configuration to load',

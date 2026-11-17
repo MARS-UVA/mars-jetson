@@ -137,6 +137,19 @@
   <!-- ============================= -->
 
   <gazebo>
+    <xacro:if value="${'$(arg robot_backend)' == 'gazebo'}">
+      <!-- Model/root pose is blue-forward base_link. Preserve real pitch,
+           roll and height on terrain without integrating sensor drift. -->
+      <plugin filename="gz-sim-odometry-publisher-system"
+              name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_link</robot_base_frame>
+        <dimensions>3</dimensions>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <odom_topic>/ground_truth/odom</odom_topic>
+        <tf_topic>/ground_truth/tf</tf_topic>
+      </plugin>
+    </xacro:if>
     <plugin
         filename="libgz_ros2_control-system.so"
         name="gz_ros2_control::GazeboSimROS2ControlPlugin">

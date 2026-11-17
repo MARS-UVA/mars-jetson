@@ -172,17 +172,17 @@ def launch_rtabmap(context):
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'frame_id': 'base_link',
-            'visual_odometry': 'false' if enable_lidar else 'true',
-            'icp_odometry': 'true' if enable_lidar else 'false',
+            'visual_odometry': 'false',
+            'icp_odometry': 'false',
             'depth': 'true' if enable_rgbd and not sync_rgbd else 'false',
             'subscribe_rgb': 'true' if enable_rgbd and not sync_rgbd else 'false',
             'subscribe_rgbd': 'true' if sync_rgbd else 'false',
             'rgbd_sync': 'false',
             'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
             'scan_cloud_topic': '/unilidar/cloud',
-            'publish_tf_odom': 'true',
+            'publish_tf_odom': 'false',
             'vo_frame_id': 'odom',
-            'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
+            'odom_topic': '/ground_truth/odom',
             'rtabmap_args': rtabmap_args,
             'cfg': marker_config_path,
             'tag_topic': '/detections', 
@@ -238,8 +238,11 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/ground_truth/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/ground_truth/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
             '/front_camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
         ],
+        remappings=[('/ground_truth/tf', '/tf')],
         output='screen',
     )
 

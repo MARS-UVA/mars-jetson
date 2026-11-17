@@ -102,7 +102,7 @@ def test_enabled_navigation_includes_new_package_and_matching_arguments(sim_time
     actions = launch['launch_nav2'](ctx)
     assert len(actions) == 1
     arguments = dict(actions[0].launch_arguments)
-    assert arguments['odom_topic'] == '/rtabmap/icp_odom'
+    assert arguments['odom_topic'] == '/ground_truth/odom'
     assert perform_substitutions(ctx, [arguments['use_sim_time']]) == sim_time
     assert perform_substitutions(ctx, [arguments['enable_local_lidar']]) == local_lidar
     source = actions[0].launch_description_source
@@ -153,14 +153,14 @@ def test_arena_selection_is_forwarded_only_with_navigation(arena_name):
     assert perform_substitutions(ctx, [arguments['arena_name']]) == arena_name
 
 
-def test_arena_argument_defaults_to_empty():
+def test_arena_argument_defaults_to_nasa():
     launch = runpy.run_path(str(ROOT / 'launch/launch.py'))
     argument = next(action for action in launch['generate_launch_description']().entities
                     if isinstance(action, DeclareLaunchArgument)
                     and action.name == 'arena_name')
     ctx = context()
     argument.execute(ctx)
-    assert ctx.launch_configurations['arena_name'] == ''
+    assert ctx.launch_configurations['arena_name'] == 'ARENA_NASA'
 
 
 @pytest.mark.parametrize('relative_path', [
