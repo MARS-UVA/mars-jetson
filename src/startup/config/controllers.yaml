@@ -35,6 +35,7 @@ base_controller:
     publish_rate: 50.0
     cmd_vel_timeout: 0.5
     use_stamped_vel: false
+    open_loop: true
 
 arm_drum_controller:
   ros__parameters:

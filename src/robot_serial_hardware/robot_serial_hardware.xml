@@ -1,0 +1,14 @@
+<library path="robot_serial_hardware">
+
+  <class
+    name="robot_serial_hardware/RobotSerialHardware"
+    type="robot_serial_hardware::RobotSerialHardware"
+    base_class_type="hardware_interface::SystemInterface">
+
+    <description>
+      Serial hardware interface for robot base.
+    </description>
+
+  </class>
+
+</library>

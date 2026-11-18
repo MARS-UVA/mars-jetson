@@ -91,3 +91,42 @@ def test_direct_gazebo_launch_respects_no_gui(no_gui):
     _, description, context = load('gazebo.launch.py', {'no_gui': no_gui})
     rgbd_arguments = arguments(included(description, 'enable_rviz'), context)
     assert rgbd_arguments['enable_rviz'] == ('false' if no_gui == 'true' else 'true')
+
+
+@pytest.mark.parametrize('world', sorted((ROOT / 'world').glob('arena*.world')),
+                         ids=lambda p: p.stem)
+def test_world_selects_matching_prior_and_shifted_robot_spawn(world):
+    from startup.marker_priors import ARENA_APRILTAG_PRIORS
+
+    gazebo, description, context = load('gazebo.launch.py', {
+        'choose_sim_map': world.name, 'enable_rtabmap': 'true',
+    })
+    mapping = arguments(gazebo['launch_rtabmap'](context)[0], context)
+    config_path = Path(mapping['cfg'])
+    try:
+        assert f'Marker\\Priors = {ARENA_APRILTAG_PRIORS[world.name]}' in config_path.read_text()
+        assert 'Mem\\RehearsalSimilarity = 1.0' in config_path.read_text()
+    finally:
+        config_path.unlink()
+    spawn = next(action for action in description.entities
+                 if isinstance(action, Node) and action.node_package == 'ros_gz_sim')
+    command = [perform_substitutions(context, normalize_to_list_of_substitutions(part))
+               for part in spawn.cmd]
+    x, y = [float(command[command.index(flag) + 1]) for flag in ('-x', '-y')]
+    assert (x, y) == ((0.95, 0.735) if world.stem == 'arena_ucf' else (1, 1))
+
+
+@pytest.mark.parametrize('prior', ['', '1 1 2 0.25 0 0 0'])
+def test_explicit_prior_override_is_preserved(prior):
+    gazebo, _, context = load('gazebo.launch.py', {
+        'enable_rtabmap': 'true', 'rtabmap_marker_priors': prior,
+    })
+    mapping = arguments(gazebo['launch_rtabmap'](context)[0], context)
+    if prior:
+        path = Path(mapping['cfg'])
+        try:
+            assert f'Marker\\Priors = {prior}' in path.read_text()
+        finally:
+            path.unlink()
+    else:
+        assert mapping['cfg'] == ''

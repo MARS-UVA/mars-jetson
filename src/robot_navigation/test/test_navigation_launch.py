@@ -35,11 +35,18 @@ def expanded_nodes(**settings):
     return {node.node_name.lstrip('/'): node for node in nodes}
 
 
+def merge(base, overlay):
+    # ROS applies parameter files in order, one leaf parameter at a time.
+    for key, value in overlay.items():
+        base[key] = merge(base.get(key, {}), value) if isinstance(value, dict) else value
+    return base
+
+
 def parameters(node):
     result = {}
     for filename, _ in node._Node__expanded_parameter_arguments:
         # launch_ros serializes normalized string arrays as YAML tuples.
-        result.update(yaml.full_load(Path(filename).read_text()))
+        merge(result, yaml.full_load(Path(filename).read_text()))
     return result
 
 
@@ -97,6 +104,56 @@ def test_split_parameters_and_command_path(sim_time, odom_topic, autostart, loca
     assert set(manager['node_names']) == SERVERS
 
 
+PLUGINS = {
+    'mppi': 'nav2_mppi_controller::MPPIController',
+    'pnt': 'point_and_turn_controller::PointAndTurnController',
+    'rpp': 'nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController',
+}
+
+
+def test_default_controller_is_rpp():
+    # Team requirement. The startup test checks both launch files agree.
+    assert LAUNCH['DEFAULT_CONTROLLER'] == 'rpp'
+
+
+@pytest.mark.parametrize('controller', [None, 'mppi', 'pnt', 'rpp'])
+def test_controller_selection_keeps_plugin_name_and_shared_checkers(controller):
+    settings = {} if controller is None else {'controller': controller}
+    plugin = PLUGINS[controller or LAUNCH['DEFAULT_CONTROLLER']]
+    nodes = expanded_nodes(use_sim_time='true', **settings)
+    server = parameters(nodes['controller_server'])['controller_server']['ros__parameters']
+    # The behavior tree calls FollowPath by name, so the name must not change.
+    assert server['controller_plugins'] == ['FollowPath']
+    assert server['FollowPath']['plugin'] == plugin
+    assert server['goal_checker']['xy_goal_tolerance'] == 0.20
+    assert server['progress_checker']['movement_time_allowance'] == 20.0
+    assert server['use_sim_time'] is True
+    local = parameters(nodes['controller_server'])['local_costmap']['local_costmap']
+    if plugin == PLUGINS['rpp']:
+        # RPP reads obstacle distance back out of the inflation curve.
+        assert (server['FollowPath']['inflation_cost_scaling_factor']
+                == local['ros__parameters']['inflation_layer']['cost_scaling_factor'])
+        # Follows the planner's reverse segments, so it cannot rotate to heading.
+        assert server['FollowPath']['allow_reversing'] is True
+        assert server['FollowPath']['use_rotate_to_heading'] is False
+    if plugin == PLUGINS['pnt']:
+        follow = server['FollowPath']
+        checker = server['goal_checker']
+        # Stopping outside the goal checker's tolerance would leave the robot
+        # parked short of a goal the checker never accepts.
+        assert follow['goal_arrival_tolerance'] < checker['xy_goal_tolerance']
+        assert follow['final_align_tolerance'] < checker['yaw_goal_tolerance']
+        # The plugin rejects this at configure; catch it before launch.
+        assert follow['align_tolerance'] < follow['realign_tolerance']
+        # Follows the planner's reverse segments instead of pivoting.
+        assert follow['allow_reversing'] is True
+
+
+def test_unknown_controller_is_rejected():
+    with pytest.raises(RuntimeError, match='controller must be one of'):
+        expanded_nodes(controller='dwb')
+
+
 def test_launch_defaults_resolve_installed_configuration():
     context = LaunchContext()
     for action in LAUNCH['generate_launch_description']().entities:
@@ -104,10 +161,12 @@ def test_launch_defaults_resolve_installed_configuration():
             action.execute(context)
     config = Path(context.launch_configurations['config_dir'])
     assert config.is_dir()
+    assert context.launch_configurations['arena_name'] == ''
     assert context.launch_configurations['use_sim_time'] == 'false'
     assert context.launch_configurations['enable_local_lidar'] == 'false'
     assert context.launch_configurations['autostart'] == 'true'
     assert context.launch_configurations['odom_topic'] == '/rtabmap/icp_odom'
+    assert context.launch_configurations['controller'] == LAUNCH['DEFAULT_CONTROLLER']
     nodes = expanded_nodes(config_dir=str(config))
     assert set(nodes) == SERVERS | {'lifecycle_manager_navigation'}
 
@@ -122,3 +181,16 @@ def test_custom_configuration_directory(tmp_path):
     nodes = expanded_nodes(config_dir=str(config))
     planner = parameters(nodes['planner_server'])['planner_server']['ros__parameters']
     assert planner['GridBased']['tolerance'] == 0.35
+
+
+@pytest.mark.parametrize('sim_time', ['false', 'true'])
+def test_arena_override(sim_time):
+    nodes = expanded_nodes(arena_name='another_arena', use_sim_time=sim_time)
+    arena = parameters(nodes['arena_markers_node'])['arena_markers_node']['ros__parameters']
+    assert arena['arena_name'] == 'another_arena'
+    assert arena['use_sim_time'] is (sim_time == 'true')
+    assert set(nodes) == SERVERS | {'lifecycle_manager_navigation', 'arena_markers_node'}
+
+
+def test_empty_arena_omits_markers():
+    assert 'arena_markers_node' not in expanded_nodes(arena_name='')

@@ -41,7 +41,11 @@ def generate_launch_description():
 
     return LaunchDescription([
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(PathJoinSubstitution([point_lio, 'launch', 'mapping_unilidar_l2.launch.py']))
+            PythonLaunchDescriptionSource(PathJoinSubstitution([point_lio, 'launch', 'mapping_unilidar_l2.launch.py'])),
+            launch_arguments={
+                'rviz': 'false',
+                'use_sim_time': 'false',
+            }.items()
         ),
         unitree_lidar
     ])

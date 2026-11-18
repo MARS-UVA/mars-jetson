@@ -5,6 +5,7 @@
 # server keeps the old world running for the next run's spawn to land in. So
 # kill any leftover before starting, and ours on the way out.
 cd "$(dirname -- "${BASH_SOURCE[0]}")"
+export MAKEFLAGS="${MAKEFLAGS:--j2}"
 
 kill_gz() {
     pkill -TERM -f 'gz sim' 2>/dev/null || return 0

@@ -20,6 +20,16 @@ Visualization Manager:
     Background Color: 48; 48; 48
     Frame Rate: 20
   Displays:
+  - Class: rviz_default_plugins/MarkerArray
+    Name: Arena regions
+    Enabled: true
+    Value: true
+    Topic:
+      Depth: 1
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /arena/markers
   - Class: rviz_default_plugins/Grid
     Name: Grid
     Enabled: true
