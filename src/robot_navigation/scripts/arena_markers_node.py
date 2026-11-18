@@ -53,15 +53,19 @@ class ArenaMarkersNode(Node):
                     marker.scale.z = 0.2
                     marker.pose.position = Point(x=label_x, y=label_y, z=0.15)
                 self.markers.markers.append(marker)
-        if 'excavation_approach' in config:
-            x, y, yaw = config['excavation_approach']
-            approach = Marker(ns='Excavation approach', id=0, type=Marker.ARROW)
+        approaches = (('excavation_approach', 'Excavation approach', (0.2, 0.8, 0.0)),
+                      ('start_approach', 'Start approach', (1.0, 0.85, 0.1)))
+        for key, namespace, (r, g, b) in approaches:
+            if key not in config:
+                continue
+            x, y, yaw = config[key]
+            approach = Marker(ns=namespace, id=0, type=Marker.ARROW)
             approach.header.frame_id = 'map'
-            approach.pose.position = Point(x=x, y=y, z=0.0)
+            approach.pose.position = Point(x=float(x), y=float(y), z=0.0)
             approach.pose.orientation.z = math.sin(yaw / 2)
             approach.pose.orientation.w = math.cos(yaw / 2)
             approach.scale.x, approach.scale.y, approach.scale.z = 0.6, 0.1, 0.1
-            approach.color.r, approach.color.g, approach.color.a = 0.2, 0.8, 1.0
+            approach.color.r, approach.color.g, approach.color.b, approach.color.a = r, g, b, 1.0
             self.markers.markers.append(approach)
         self.publisher = self.create_publisher(MarkerArray, '/arena/markers', 1)
         self.publish_markers()

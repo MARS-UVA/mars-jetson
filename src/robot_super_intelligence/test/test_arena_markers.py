@@ -8,7 +8,9 @@ import pytest
 from rclpy.time import Time
 from visualization_msgs.msg import Marker, MarkerArray
 
-from robot_super_intelligence.arena_markers import ArenaMarkers, construction_goal
+from robot_super_intelligence.arena_markers import (
+    ArenaMarkers, construction_goal, polygon_approach,
+)
 
 
 def polygon():
@@ -128,3 +130,70 @@ def test_excavation_approach_validation_deletion_and_expiry():
     marker.pose.position.x = float('nan')
     source.update(MarkerArray(markers=[marker]))
     assert source.excavation_goal() is None
+
+
+def fake_node(seconds):
+    clock = SimpleNamespace(now=lambda: Time(seconds=seconds[0]))
+    return SimpleNamespace(get_clock=lambda: clock,
+                           create_subscription=lambda *args: None)
+
+
+def berm():
+    # The NASA config's berm: 2.2 m x 0.9 m centered at (5.38, 0.75).
+    marker = Marker(ns='Berm', id=6, type=Marker.LINE_STRIP)
+    marker.header.frame_id = 'map'
+    marker.pose.orientation.w = 1.0
+    marker.points = [Point(x=x, y=y, z=0.05) for x, y in (
+        (4.28, 0.3), (6.48, 0.3), (6.48, 1.2), (4.28, 1.2), (4.28, 0.3))]
+    return marker
+
+
+def test_standoff_moves_goal_outward_and_keeps_heading():
+    goal = polygon_approach(polygon(), standoff=0.5)
+    assert goal.pose.position.x == pytest.approx(12.0)
+    assert goal.pose.position.y == pytest.approx(6.5)
+    assert goal.pose.orientation.z == pytest.approx(-math.sqrt(0.5))
+    assert polygon_approach(polygon(), standoff=float('nan')) is None
+
+
+def test_berm_goal_centers_on_top_edge_facing_the_wall():
+    source = ArenaMarkers(fake_node([0.0]))
+    assert source.berm_goal() is None
+    source.update(MarkerArray(markers=[berm()]))
+    goal = source.berm_goal()
+    assert goal.header.frame_id == 'map'
+    assert goal.pose.position.x == pytest.approx(5.38)
+    assert goal.pose.position.y == pytest.approx(1.2)
+    assert goal.pose.orientation.z == pytest.approx(-math.sqrt(0.5))
+    assert source.berm_goal(standoff=0.9).pose.position.y == pytest.approx(2.1)
+
+
+def test_berm_and_construction_are_tracked_independently():
+    source = ArenaMarkers(fake_node([0.0]))
+    source.update(MarkerArray(markers=[polygon(), berm()]))
+    assert source.construction_goal().pose.position.y == 6.0
+    assert source.berm_goal().pose.position.y == pytest.approx(1.2)
+    source.update(MarkerArray(markers=[Marker(ns='Berm', id=6, action=Marker.DELETE)]))
+    assert source.berm_goal() is None
+    assert source.construction_goal() is not None
+
+
+def test_start_approach_validation_deletion_and_expiry():
+    seconds = [0.0]
+    source = ArenaMarkers(fake_node(seconds))
+    assert source.start_goal() is None
+    marker = Marker(ns='Start approach', id=0, type=Marker.ARROW)
+    marker.header.frame_id = 'map'
+    marker.pose.position.x, marker.pose.position.y = 1.5, 1.0
+    marker.pose.orientation.z = 2.0  # Unnormalized on purpose.
+    marker.lifetime.sec = 1
+    source.update(MarkerArray(markers=[marker]))
+    goal = source.start_goal()
+    assert (goal.pose.position.x, goal.pose.position.y) == (1.5, 1.0)
+    assert goal.pose.orientation.z == pytest.approx(1.0)
+    assert source.excavation_goal() is None
+    seconds[0] = 2.0
+    assert source.start_goal() is None
+    source.update(MarkerArray(markers=[marker]))
+    source.update(MarkerArray(markers=[Marker(action=Marker.DELETEALL)]))
+    assert source.start_goal() is None

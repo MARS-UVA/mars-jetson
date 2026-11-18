@@ -8,6 +8,7 @@ from autonomy_msgs.action import ManageRobot
 from robot_super_intelligence.states.state import State
 from robot_super_intelligence.states import (
     Traverse, TraverseToConstruction, TraverseToExcavation, Excavate, DumpMaterial,
+    TraverseToStart, TraverseToCenterBerm, IsBeached,
 )
 from robot_super_intelligence.machines import RunStartMachine
 from robot_super_intelligence.outcomes import Outcome
@@ -40,6 +41,7 @@ def test_incomplete_states_are_abstract(state_type):
 
 @pytest.mark.parametrize('state_type', [
     TraverseToConstruction, TraverseToExcavation, Excavate, DumpMaterial,
+    TraverseToStart, TraverseToCenterBerm,
 ])
 def test_states_require_configuration(state_type):
     with pytest.raises(TypeError):
@@ -51,6 +53,8 @@ def test_states_require_configuration(state_type):
 @pytest.mark.parametrize('state_type, expected', [
     (TraverseToConstruction, Outcome.CONSTRUCTION_REACHED),
     (TraverseToExcavation, Outcome.EXCAVATION_REACHED),
+    (TraverseToStart, Outcome.START_REACHED),
+    (TraverseToCenterBerm, Outcome.BERM_REACHED),
 ])
 def test_configured_traversal_dispatches_and_maps_result(state_type, expected):
     target = ManageRobot.Goal().target_pose
@@ -63,6 +67,28 @@ def test_configured_traversal_dispatches_and_maps_result(state_type, expected):
     complete.assert_not_called()
     callback('SUCCESS')
     complete.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize('state_type', [
+    TraverseToConstruction, TraverseToExcavation, TraverseToStart, TraverseToCenterBerm,
+])
+def test_traversal_navigation_failure_reports_failed(state_type):
+    dispatch, complete = Mock(), Mock()
+    state_type(lambda: ManageRobot.Goal().target_pose).start(dispatch, complete)
+    _, callback = dispatch.call_args.args
+    callback('CHILD_FAILED')
+    complete.assert_called_once_with(Outcome.FAILED)
+    assert Outcome.FAILED in state_type.outcomes
+
+
+def test_is_beached_boilerplate_reports_not_beached_without_dispatch():
+    dispatch, complete = Mock(), Mock()
+    state = IsBeached()
+    state.enter()
+    state.start(dispatch, complete)
+    dispatch.assert_not_called()
+    complete.assert_called_once_with(Outcome.NOT_BEACHED)
+    assert IsBeached.outcomes == {Outcome.NOT_BEACHED}
 
 
 def test_destination_lost_after_acceptance_is_a_runtime_failure():
