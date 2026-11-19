@@ -17,11 +17,11 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_sub_cloud_ground;
 
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_sub_cloud_obstacle;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_sub_cloud_obstacles;
 
     void cloud_ground_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 
-    void cloud_obstacle_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+    void cloud_obstacles_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 
 
 
