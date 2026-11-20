@@ -179,7 +179,7 @@ def launch_rtabmap(context):
             'subscribe_rgbd': 'true' if sync_rgbd else 'false',
             'rgbd_sync': 'false',
             'subscribe_scan_cloud': 'true' if enable_lidar else 'false',
-            'scan_cloud_topic': '/unilidar/cloud',
+            'scan_cloud_topic': '/unilidar/cloud_filtered',
             'publish_tf_odom': 'true',
             'vo_frame_id': 'odom',
             'odom_topic': '/rtabmap/icp_odom' if enable_lidar else '/rtabmap/visual_odom',
