@@ -16,12 +16,12 @@ class OneCycleMachine(DigTraverseDumpMachine):
     }
 
     @classmethod
-    def valid(cls, request, arena_markers=None):
+    def valid(cls, request, arena_markers=None, apriltags=None):
         return (super().valid(request, arena_markers)
                 and arena_markers.excavation_goal() is not None)
 
     @classmethod
-    def from_goal(cls, request, arena_markers=None):
+    def from_goal(cls, request, arena_markers=None, apriltags=None):
         return cls(request.time_limit_sec, states={
             Excavate: Excavate(routine_index=request.routine_index),
             TraverseToConstruction: TraverseToConstruction(arena_markers.construction_goal),

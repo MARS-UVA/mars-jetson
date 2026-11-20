@@ -12,12 +12,12 @@ class Machine:
     success_outcomes = frozenset()
 
     @classmethod
-    def valid(cls, request, arena_markers=None):
+    def valid(cls, request, arena_markers=None, apriltags=None):
         """Validate any goal fields needed by this machine before work starts."""
         return True
 
     @classmethod
-    def from_goal(cls, request, arena_markers=None):
+    def from_goal(cls, request, arena_markers=None, apriltags=None):
         return cls(request.time_limit_sec)
 
     def __init__(self, time_limit_sec, states=None, clock=time.monotonic):

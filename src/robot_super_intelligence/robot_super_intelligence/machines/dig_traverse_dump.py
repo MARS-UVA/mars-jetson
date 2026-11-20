@@ -21,12 +21,12 @@ class DigTraverseDumpMachine(Machine):
     }
 
     @classmethod
-    def valid(cls, request, arena_markers=None):
+    def valid(cls, request, arena_markers=None, apriltags=None):
         return (DigOperation(None).valid(request) and DumpOperation(None).valid(request)
                 and arena_markers is not None and arena_markers.construction_goal() is not None)
 
     @classmethod
-    def from_goal(cls, request, arena_markers=None):
+    def from_goal(cls, request, arena_markers=None, apriltags=None):
         return cls(request.time_limit_sec, states={
             Excavate: Excavate(routine_index=request.routine_index),
             TraverseToConstruction: TraverseToConstruction(

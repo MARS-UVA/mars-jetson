@@ -23,13 +23,13 @@ class StartBermTestMachine(Machine):
     }
 
     @classmethod
-    def valid(cls, request, arena_markers=None):
+    def valid(cls, request, arena_markers=None, apriltags=None):
         return (arena_markers is not None
                 and arena_markers.start_goal() is not None
                 and arena_markers.berm_goal(BERM_STANDOFF) is not None)
 
     @classmethod
-    def from_goal(cls, request, arena_markers=None):
+    def from_goal(cls, request, arena_markers=None, apriltags=None):
         return cls(request.time_limit_sec, states={
             TraverseToStart: TraverseToStart(arena_markers.start_goal),
             TraverseToCenterBerm: TraverseToCenterBerm(

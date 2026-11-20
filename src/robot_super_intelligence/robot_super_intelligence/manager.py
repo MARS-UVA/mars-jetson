@@ -11,6 +11,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from robot_control_msgs.msg import RobotState
 
+from .apriltags import AprilTags
 from .arena_markers import ArenaMarkers
 from .child_operation import ChildOperation
 from .control_routing import ControlRouting
@@ -43,6 +44,7 @@ class StateManager(Node):
         self.busy = False
         self.run = None
         self.arena_markers = ArenaMarkers(self)
+        self.apriltags = AprilTags(self)
         self.control = ControlRouting(
             self, is_busy=lambda: self.busy,
             is_stopping=lambda: self.run is not None and bool(self.run.reason),
@@ -85,7 +87,8 @@ class StateManager(Node):
         state = self.operations.get(request.operation)
         if request.operation == ManageRobot.Goal.RUN_MACHINE:
             machine = self.machines.get(request.machine_name)
-            if machine is None or not machine.valid(request, self.arena_markers):
+            if machine is None or not machine.valid(
+                    request, self.arena_markers, apriltags=self.apriltags):
                 return GoalResponse.REJECT
         elif state is None or not state.valid(request):
             return GoalResponse.REJECT
@@ -166,7 +169,8 @@ class StateManager(Node):
                 self.control.publish_mode(RobotState.FULL_AUTO)
                 run.runner = MachineRunner(
                     self, self.machines[run.goal.request.machine_name].from_goal(
-                        run.goal.request, arena_markers=self.arena_markers),
+                        run.goal.request, arena_markers=self.arena_markers,
+                        apriltags=self.apriltags),
                     lambda step, done: self.dispatch(run, step, done),
                     lambda: self.feedback(run))
                 run.runner.start(lambda outcome: self.machine_completed(run, outcome))

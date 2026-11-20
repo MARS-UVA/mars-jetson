@@ -34,7 +34,7 @@ class FullAutoMachine(Machine):
             self.completed_cycles += 1
 
     @classmethod
-    def valid(cls, request, arena_markers=None):
+    def valid(cls, request, arena_markers=None, apriltags=None):
         # No excavation destination is provided by the current goal interface.
         # Reject this unfinished machine before accepting or dispatching work.
         return False

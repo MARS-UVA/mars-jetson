@@ -11,3 +11,4 @@ from .run_end import RunEnd
 from .traverse_to_start import TraverseToStart
 from .traverse_to_center_berm import TraverseToCenterBerm
 from .is_beached import IsBeached
+from .localize_to_apriltags import LocalizeToAprilTags
