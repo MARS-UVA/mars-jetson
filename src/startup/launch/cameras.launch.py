@@ -37,9 +37,8 @@ def generate_launch_description():
            namespace='front_camera',
            executable='v4l2_camera_node',
            parameters=[{
-               # 'video_device': '/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index0',
-               # 'video_device': '/dev/video0',
-               'video_device': '/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2:1.0-video-index0',
+               # Blue/front camera (formerly rear_camera).
+               'video_device': '/dev/v4l/by-path/platform-3610000.usb-usb-0:2.4:1.0-video-index0',
                'image_size': [480, 320],
                'time_per_frame': [1, 15],  # 15 fps
                'output_encoding': OUTPUT_ENCODING,
@@ -53,9 +52,8 @@ def generate_launch_description():
            namespace='rear_camera',
            executable='v4l2_camera_node',
            parameters=[{
-               # 'video_device': '/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index1',
-               # 'video_device': '/dev/video2',
-               'video_device': '/dev/v4l/by-path/platform-3610000.usb-usb-0:2.4:1.0-video-index0',
+               # Orange/rear camera (formerly front_camera).
+               'video_device': '/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2:1.0-video-index0',
                'image_size': [480, 320],
                # 'image_size': [1280, 720],
                'time_per_frame': [1, 15],  # 15 fps
