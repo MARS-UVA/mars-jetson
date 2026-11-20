@@ -31,6 +31,7 @@ class AprilTagGateNode(Node):
         self.updated = False
         self.data_lock = threading.Lock()
         self.declare_parameter("send_detections", 100)
+        self.declare_parameter("detection_timeout", 2.0)
         
         self.get_logger().info("April Tag Service Initialized")
         
@@ -53,14 +54,23 @@ class AprilTagGateNode(Node):
     def AprilTagService_callback(self,request,responce):
         
         totalCall = self.get_parameter("send_detections").get_parameter_value().integer_value
+        timeout = self.get_parameter("detection_timeout").get_parameter_value().double_value
+
+        # Only forward detections that arrive during this call.
+        with self.data_lock:
+            self.updated = False
         
         for i in range(1, totalCall):
             
             #waiting for subscriber to update with new tag detections
+            deadline = time.monotonic() + timeout
             while True:
                 with self.data_lock:
                     if self.updated:
                         break
+                if time.monotonic() >= deadline:
+                    self.get_logger().info(f"No AprilTag detections for {timeout} s; ending call")
+                    return responce
                 time.sleep(0.01)
                 
                 
