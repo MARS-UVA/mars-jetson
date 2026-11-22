@@ -157,7 +157,10 @@ def launch_rtabmap(context):
             # Remove body returns from occupancy grids in blue-forward base_link axes.
             '--Grid/FootprintLength 1.80 --Grid/FootprintWidth 0.76 '
             '--Grid/FootprintHeight 0.50 '
-            '--Icp/VoxelSize 0.05 --Icp/PointToPlane true'
+            '--Icp/VoxelSize 0.05 --Icp/PointToPlane true '
+            # More detailed output
+            '--Grid/CellSize 0.01 '
+            '--cloud_output_voxelized true '
         )
     elif marker_priors:
         rtabmap_args = '-d --Rtabmap/CreateIntermediateNodes false'
