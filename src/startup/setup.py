@@ -31,6 +31,7 @@ setup(
     entry_points={
         'console_scripts': [
             'actuator_position_feedback = scripts.actuator_position_feedback:main',
+            'map_cloud_relay = startup.map_cloud_relay:main',
         ],
     },
 )

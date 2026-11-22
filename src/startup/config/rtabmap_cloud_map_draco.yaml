@@ -1,0 +1,6 @@
+/rtabmap_cloud_map_draco:
+  ros__parameters:
+    in_transport: raw
+    out_transport: draco
+    rtabmap.cloud_map.draco.force_quantization: true
+    rtabmap.cloud_map.draco.quantization_POSITION: 12

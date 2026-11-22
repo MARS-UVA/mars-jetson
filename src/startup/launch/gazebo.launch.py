@@ -197,6 +197,43 @@ def launch_rtabmap(context):
             'rviz': 'false',
         }.items(),
     )
+    map_relay = Node(
+        package='startup',
+        executable='map_cloud_relay',
+        name='map_cloud_relay',
+        output='screen',
+    )
+    map_compressor = Node(
+        package='point_cloud_transport',
+        executable='republish',
+        name='rtabmap_cloud_map_draco',
+        output='screen',
+        parameters=[
+            PathJoinSubstitution([
+                FindPackageShare('startup'), 'config', 'rtabmap_cloud_map_draco.yaml',
+            ]),
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        ],
+        remappings=[
+            ('in', '/map_cloud_relay/cloud'),
+            ('out/draco', '/rtabmap/cloud_map/draco'),
+        ],
+    )
+    map_decoder = Node(
+        package='point_cloud_transport',
+        executable='republish',
+        name='rtabmap_cloud_map_decoder',
+        output='screen',
+        parameters=[{
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'in_transport': 'draco',
+            'out_transport': 'raw',
+        }],
+        remappings=[
+            ('in/draco', '/rtabmap/cloud_map/draco'),
+            ('out', '/rtabmap/cloud_map_decompressed'),
+        ],
+    )
     if sync_rgbd:
         # The upstream launch does not expose RGBDImages input arguments.
         # Apply these to mapping, visualization and optional RGB-D odometry.
@@ -204,8 +241,8 @@ def launch_rtabmap(context):
             SetParameter(name='rgbd_cameras', value=0),
             SetRemap(src='rgbd_images', dst='/rgbd_images'),
             rtabmap,
-        ])]
-    return [rtabmap]
+        ]), map_decoder, map_relay, map_compressor]
+    return [rtabmap, map_decoder, map_relay, map_compressor]
 
 
 def generate_launch_description():
